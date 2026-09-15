@@ -1001,6 +1001,37 @@ $flash = get_flash();
             }
         }
     </style>
+    <script>
+        function toggleAppSidebar(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            var sb = document.getElementById('appSidebar');
+            var bd = document.getElementById('sidebarBackdrop');
+            if (window.innerWidth >= 992) {
+                document.body.classList.toggle('sidebar-collapsed');
+            } else {
+                if (sb) {
+                    var isOpen = sb.classList.toggle('sidebar-open');
+                    if (bd) {
+                        if (isOpen) {
+                            bd.classList.add('active');
+                        } else {
+                            bd.classList.remove('active');
+                        }
+                    }
+                }
+            }
+        }
+
+        function closeAppSidebar() {
+            var sb = document.getElementById('appSidebar');
+            var bd = document.getElementById('sidebarBackdrop');
+            if (sb) sb.classList.remove('sidebar-open');
+            if (bd) bd.classList.remove('active');
+        }
+    </script>
 </head>
 <body>
     <!-- Hộp Thoại Dialog SVG Stroke Draw -->
@@ -1018,7 +1049,7 @@ $flash = get_flash();
      * ========================================================== -->
     <header class="app-header">
         <div class="header-left">
-            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Đóng/Mở Menu">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" onclick="toggleAppSidebar(event)" title="Đóng/Mở Menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="index.php" class="brand-logo">
@@ -1026,7 +1057,7 @@ $flash = get_flash();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span class="brand-tech-suffix">Tech</span>
+                    ThanhQuy<span>Tech</span>
                 </div>
             </a>
         </div>
