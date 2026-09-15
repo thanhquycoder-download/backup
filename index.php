@@ -1549,13 +1549,10 @@ $flash = get_flash();
                 <span>Tổng quan (Tất cả nền tảng)</span>
             </a>
             <?php foreach ($platforms as $p): ?>
-                <?php if ($p['status'] === 'Active' || $isAdmin): ?>
+                <?php if ($p['status'] === 'Active'): ?>
                     <a href="index.php?platform=<?= htmlspecialchars($p['code']) ?>" class="platform-pill <?= ($selectedPlatformCode === $p['code']) ? 'active' : '' ?>">
                         <i class="fa-solid <?= htmlspecialchars($p['icon']) ?>"></i>
                         <span><?= htmlspecialchars($p['name']) ?></span>
-                        <?php if ($p['status'] === 'Inactive'): ?>
-                            <span class="badge bg-secondary" style="font-size: 0.65rem;">Tắt</span>
-                        <?php endif; ?>
                     </a>
                 <?php endif; ?>
             <?php endforeach; ?>
