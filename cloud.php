@@ -1723,7 +1723,7 @@ $csrfToken = get_csrf_token();
         <div class="sidebar-category">TIỆN ÍCH & HỆ THỐNG</div>
         <ul class="sidebar-nav-list">
             <li>
-                <a href="/referral" class="sidebar-link">
+                <a href="referral.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-share-nodes"></i></span>
                     <span class="sidebar-title">Giới thiệu</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
