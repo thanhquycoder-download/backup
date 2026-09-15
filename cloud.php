@@ -1823,107 +1823,114 @@ $csrfToken = get_csrf_token();
                 </div>
             </div>
 
-            <!-- ================= BẢNG LỊCH SỬ THUÊ CLOUD ================= -->
+            <!-- ================= BẢNG LỊCH SỬ THUÊ CLOUD & COMBO ================= -->
             <div class="dash-card">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <div>
                         <h4 class="fw-bold text-dark mb-1">
-                            <i class="fa-solid fa-server text-primary me-2"></i>Lịch Sử Máy Chủ Cloud Đã Thuê
+                            <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Lịch Sử Đơn Hàng Mua Key & Cloud
                         </h4>
-                        <p class="text-muted small mb-0">Quản lý các máy chủ Cloud đang cày ngầm và theo dõi thời hạn sử dụng của bạn</p>
+                        <p class="text-muted small mb-0">Quản lý mã Key kích hoạt, thời hạn sử dụng và trạng thái máy chủ của bạn</p>
                     </div>
-                    <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill">
-                        Tổng cộng: <?= count($userOrders) ?> đơn hàng
+                    <span class="badge bg-light text-dark border px-3 py-2">
+                        Tổng đơn đã mua: <strong><?= count($userOrders) ?></strong>
                     </span>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table align-middle orders-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>MÃ ĐƠN</th>
-                                <th>GÓI DỊCH VỤ</th>
-                                <th>MÁY CHỦ CLOUD</th>
-                                <th>MÃ KEY BẢN QUYỀN</th>
-                                <th>THANH TOÁN</th>
-                                <th>HẠN DÙNG</th>
-                                <th>TRẠNG THÁI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($userOrders)): ?>
+                <?php if (empty($userOrders)): ?>
+                    <div class="text-center py-5">
+                        <div class="p-3 bg-light rounded-circle d-inline-flex align-items-center justify-content-center text-muted mb-3" style="width: 70px; height: 70px;">
+                            <i class="fa-solid fa-server fs-2 text-primary"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Bạn chưa có đơn hàng nào</h5>
+                        <p class="text-muted small mb-3">Hãy chọn một trong các gói phía trên để trải nghiệm công cụ và máy chủ Cloud cày ngầm đỉnh cao.</p>
+                        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                            <i class="fa-solid fa-cart-plus me-1"></i> Chọn gói thuê ngay
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="history-table">
+                            <thead>
                                 <tr>
-                                    <td colspan="7" class="text-center py-5 text-muted">
-                                        <i class="fa-solid fa-cloud-arrow-up fs-1 d-block mb-3 text-secondary opacity-50"></i>
-                                        Bạn chưa thuê máy chủ Cloud nào. Hãy chọn gói phù hợp bên trên để kích hoạt cày ngầm 24/24!
-                                    </td>
+                                    <th>Mã đơn</th>
+                                    <th>Gói dịch vụ</th>
+                                    <th>Mã Key bản quyền</th>
+                                    <th>Máy chủ Cloud</th>
+                                    <th class="text-end">Thanh toán</th>
+                                    <th>Thời hạn đến</th>
+                                    <th class="text-center">Trạng thái</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($userOrders as $ord): ?>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($userOrders as $order): ?>
                                     <?php 
-                                    $isExpired = ($ord['status'] === 'Expired' || strtotime($ord['expires_at']) < time());
-                                    $expireTime = strtotime($ord['expires_at']);
-                                    $nowTime = time();
-                                    $diffSec = $expireTime - $nowTime;
+                                    $isExpired = ($order['status'] === 'Expired' || strtotime($order['expires_at']) < time());
                                     ?>
                                     <tr>
                                         <td>
-                                            <span class="fw-bold text-dark font-monospace">#<?= htmlspecialchars($ord['order_code']) ?></span>
-                                            <div class="text-muted" style="font-size: 0.72rem;"><?= date('d/m/Y H:i', strtotime($ord['created_at'])) ?></div>
+                                            <strong class="font-monospace text-primary">#<?= htmlspecialchars($order['order_code']) ?></strong>
+                                            <div class="text-muted" style="font-size: 0.72rem;"><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></div>
                                         </td>
                                         <td>
-                                            <div class="fw-bold text-dark"><?= htmlspecialchars($ord['package_name']) ?></div>
-                                            <span class="badge bg-secondary-subtle text-secondary px-2 py-0" style="font-size: 0.7rem;"><?= $ord['duration_days'] ?> ngày</span>
+                                            <div class="fw-bold text-dark"><?= htmlspecialchars($order['package_name']) ?></div>
+                                            <small class="text-muted">Thời hạn: <?= $order['duration_days'] ?> ngày</small>
                                         </td>
                                         <td>
-                                            <?php if (!empty($ord['cloud_server'])): ?>
-                                                <span class="badge bg-info-subtle text-info fw-semibold px-2 py-1">
-                                                    <i class="fa-solid fa-server me-1"></i><?= htmlspecialchars($ord['cloud_server']) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-muted small">Node-Cloud Tự Động</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <div class="key-copy-badge" onclick="copyToClipboard('<?= htmlspecialchars($ord['license_key']) ?>', this)" title="Bấm để sao chép Key">
-                                                <span><?= htmlspecialchars($ord['license_key']) ?></span>
-                                                <i class="fa-regular fa-copy text-primary"></i>
+                                            <div class="key-code-box">
+                                                <span><?= htmlspecialchars($order['license_key']) ?></span>
+                                                <button type="button" 
+                                                        class="btn-copy-key" 
+                                                        title="Sao chép Key" 
+                                                        onclick="copyKeyText('<?= htmlspecialchars($order['license_key']) ?>')">
+                                                    <i class="fa-regular fa-copy"></i>
+                                                </button>
                                             </div>
                                         </td>
-                                        <td class="fw-bold text-primary">
-                                            <?= number_format($ord['amount'], 0, ',', '.') ?> ₫
-                                        </td>
                                         <td>
-                                            <div class="small fw-semibold"><?= date('d/m/Y H:i', strtotime($ord['expires_at'])) ?></div>
-                                            <?php if (!$isExpired && $diffSec > 0): ?>
-                                                <?php 
-                                                $leftDays = floor($diffSec / 86400);
-                                                $leftHours = floor(($diffSec % 86400) / 3600);
-                                                ?>
-                                                <span class="badge bg-success-subtle text-success py-0" style="font-size: 0.7rem;">
-                                                    Còn <?= $leftDays ?>n <?= $leftHours ?>g
+                                            <?php if (!empty($order['cloud_server'])): ?>
+                                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 font-monospace">
+                                                    <i class="fa-solid fa-server me-1"></i><?= htmlspecialchars($order['cloud_server']) ?>
                                                 </span>
                                             <?php else: ?>
-                                                <span class="badge bg-danger-subtle text-danger py-0" style="font-size: 0.7rem;">Đã hết hạn</span>
+                                                <span class="text-muted small"><i class="fa-solid fa-laptop me-1"></i>Chạy thiết bị riêng</span>
                                             <?php endif; ?>
                                         </td>
+                                        <td class="text-end">
+                                            <strong class="text-dark"><?= format_currency($order['amount']) ?></strong>
+                                        </td>
                                         <td>
+                                            <div class="small fw-semibold text-dark"><?= date('d/m/Y H:i', strtotime($order['expires_at'])) ?></div>
                                             <?php if (!$isExpired): ?>
-                                                <span class="badge bg-success text-white px-3 py-1 rounded-pill">
-                                                    <i class="fa-solid fa-circle-check me-1"></i> Hoạt động
+                                                <?php 
+                                                $leftSeconds = strtotime($order['expires_at']) - time();
+                                                $leftDays = floor($leftSeconds / 86400);
+                                                $leftHours = floor(($leftSeconds % 86400) / 3600);
+                                                ?>
+                                                <small class="text-success fw-bold">
+                                                    <i class="fa-regular fa-clock me-1"></i>Còn <?= $leftDays ?> ngày <?= $leftHours ?>h
+                                                </small>
+                                            <?php else: ?>
+                                                <small class="text-muted">Đã kết thúc</small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-center">
+                                            <?php if (!$isExpired): ?>
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
+                                                    <i class="fa-solid fa-circle-check me-1"></i> Đang hoạt động
                                                 </span>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary text-white px-3 py-1 rounded-pill">
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
                                                     <i class="fa-solid fa-circle-xmark me-1"></i> Đã hết hạn
                                                 </span>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
 
         </div>
