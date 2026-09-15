@@ -209,6 +209,8 @@ CREATE TABLE IF NOT EXISTS `referral_claims` (
     CONSTRAINT `fk_rc_user_uuid`
         FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
         ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ----------------------------------------------------------
 -- 9. Bảng: support_tickets (Quản lý các phiếu yêu cầu hỗ trợ)
 -- Liên kết khóa ngoại với users.uuid
@@ -327,3 +329,21 @@ ON DUPLICATE KEY UPDATE `reward_days` = VALUES(`reward_days`), `is_claimed` = VA
 INSERT INTO `referral_claims` (`user_uuid`, `claim_code`, `referred_count`, `reward_days`, `license_key`, `expires_at`, `status`, `created_at`) VALUES
 ('0191eb50-0002-7000-8000-000000000002', 'REF-KEY-892144', 1, 1, 'TQ-REF-VIP-8921-HN03', DATE_ADD(DATE_SUB(NOW(), INTERVAL 2 DAY), INTERVAL 1 DAY), 'Expired', DATE_SUB(NOW(), INTERVAL 2 DAY))
 ON DUPLICATE KEY UPDATE `reward_days` = VALUES(`reward_days`), `license_key` = VALUES(`license_key`);
+
+-- 7. Dữ liệu yêu cầu hỗ trợ mẫu (Support Tickets)
+INSERT INTO `support_tickets` (`id`, `user_uuid`, `ticket_code`, `subject`, `category`, `priority`, `status`, `order_code`, `created_at`) VALUES
+(1, '0191eb50-0002-7000-8000-000000000002', 'TK-2609-7812', 'Hỗ trợ nạp tiền chưa cộng số dư tự động', 'Billing', 'High', 'Answered', 'NAP6839204-01', DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(2, '0191eb50-0003-7000-8000-000000000003', 'TK-2609-4159', 'Key Golike báo lỗi kích hoạt trên máy chủ phụ', 'LicenseKey', 'Urgent', 'In Progress', 'TQ-REF-VIP-8921-HN03', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(3, '0191eb50-0004-7000-8000-000000000004', 'TK-2609-9023', 'Tư vấn cấu hình máy chủ Cloud chạy đa luồng', 'CloudServer', 'Medium', 'Closed', NULL, DATE_SUB(NOW(), INTERVAL 2 DAY))
+ON DUPLICATE KEY UPDATE `subject` = VALUES(`subject`), `status` = VALUES(`status`);
+
+-- 8. Dữ liệu tin nhắn trao đổi hỗ trợ mẫu (Support Messages)
+INSERT INTO `support_messages` (`id`, `ticket_id`, `sender_uuid`, `sender_role`, `message`, `created_at`) VALUES
+(1, 1, '0191eb50-0002-7000-8000-000000000002', 'Member', 'Chào ban quản trị, mình vừa quét mã QR nạp 2.000.000đ từ app ngân hàng nhưng sau 5 phút hệ thống chưa cộng số dư. Nhờ ad kiểm tra giúp với mã giao dịch NAP6839204-01.', DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(2, 1, '0191eb50-0001-7000-8000-000000000001', 'Admin', 'Chào bạn Thanh Quý, hệ thống đã kiểm tra và đối soát giao dịch ngân hàng thành công. Số dư 2.000.000đ đã được cộng vào tài khoản của bạn. Chúc bạn làm việc hiệu quả!', DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+(3, 2, '0191eb50-0003-7000-8000-000000000003', 'Member', 'Admin kiểm tra giúp mình mã key vừa nhận từ quà giới thiệu bạn bè, khi nhập vào tool Golike thì báo mã không tìm thấy trên server.', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(4, 2, '0191eb50-0001-7000-8000-000000000001', 'Admin', 'Kỹ thuật viên đang đồng bộ lại cache máy chủ bản quyền, bạn vui lòng đợi trong 5 phút rồi thử lại nhé.', DATE_SUB(NOW(), INTERVAL 20 HOUR)),
+(5, 3, '0191eb50-0004-7000-8000-000000000004', 'Member', 'Mình muốn thuê gói cloud treo 100 nick Golike cùng lúc thì nên chọn cấu hình nào tối ưu nhất ạ?', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(6, 3, '0191eb50-0001-7000-8000-000000000001', 'Admin', 'Chào bạn, với 100 luồng Golike bạn nên chọn gói Cloud Pro (4 vCPU, 8GB RAM) tại mục Thuê Cloud để chạy ổn định 24/7 mượt mà không bị nghẽn CPU nhé.', DATE_SUB(NOW(), INTERVAL 2 DAY))
+ON DUPLICATE KEY UPDATE `message` = VALUES(`message`);
+
