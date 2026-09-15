@@ -894,9 +894,6 @@ $csrfToken = get_csrf_token();
             margin-bottom: 24px;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
             max-width: 100%;
-            position: relative;
-            z-index: 5;
-            pointer-events: auto;
         }
 
         .pricing-tab-btn {
@@ -913,14 +910,6 @@ $csrfToken = get_csrf_token();
             align-items: center;
             gap: 8px;
             white-space: nowrap;
-            user-select: none;
-            -webkit-user-select: none;
-            pointer-events: auto !important;
-            touch-action: manipulation;
-        }
-
-        .pricing-tab-btn * {
-            pointer-events: none !important;
         }
 
         .pricing-tab-btn.active {
