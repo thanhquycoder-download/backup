@@ -189,7 +189,11 @@ $selectedPlatformId = null;
 if ($selectedPlatformCode !== 'all') {
     foreach ($platforms as $p) {
         if ($p['code'] === $selectedPlatformCode) {
-            $selectedPlatformId = $p['id'];
+            if ($p['status'] === 'Active') {
+                $selectedPlatformId = $p['id'];
+            } else {
+                $selectedPlatformCode = 'all';
+            }
             break;
         }
     }
