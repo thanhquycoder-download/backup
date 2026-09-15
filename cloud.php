@@ -918,6 +918,10 @@ $csrfToken = get_csrf_token();
             touch-action: manipulation;
         }
 
+        .pricing-tab-btn * {
+            pointer-events: none;
+        }
+
         .pricing-tab-btn.active {
             background: #ffffff;
             color: #0284c7;
