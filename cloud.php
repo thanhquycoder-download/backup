@@ -1828,7 +1828,7 @@ $csrfToken = get_csrf_token();
                 </a>
             </li>
             <li>
-                <a href="/support" class="sidebar-link">
+                <a href="support.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-headset"></i></span>
                     <span class="sidebar-title">Hỗ trợ</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
