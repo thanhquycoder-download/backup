@@ -1105,24 +1105,59 @@ $csrfToken = get_csrf_token();
 
         .pkg-price-box {
             background: #f8fafc;
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: 14px;
+            padding: 14px 10px;
             text-align: center;
             margin-bottom: 16px;
             border: 1px solid #f1f5f9;
+            transition: var(--transition);
+        }
+
+        .pkg-old-price {
+            text-decoration: line-through;
+            color: #94a3b8;
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .pkg-discount-pill {
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
         }
 
         .pkg-price {
-            font-size: 1.55rem;
+            font-size: 1.6rem;
             font-weight: 800;
             color: var(--primary);
-            line-height: 1;
+            line-height: 1.1;
+            margin: 4px 0 2px;
         }
 
         .pkg-price-unit {
-            font-size: 0.75rem;
+            font-size: 0.76rem;
             color: #64748b;
-            margin-top: 4px;
+        }
+
+        .pkg-save-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #15803d;
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            padding: 2px 9px;
+            border-radius: 50px;
         }
 
         .pkg-features {
@@ -1607,13 +1642,13 @@ $csrfToken = get_csrf_token();
                 <div class="row align-items-center">
                     <div class="col-lg-8">
                         <span class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2 rounded-pill">
-                            <i class="fa-solid fa-fire-flame-curved me-1"></i> Giá Cực Rẻ - Siêu Ổn Định
+                            <i class="fa-solid fa-fire-flame-curved me-1"></i> Ưu Đãi Cực Lớn - Giảm Đến 40% Khi Mua Dài Hạn
                         </span>
                         <h2 class="fw-extrabold mb-2" style="font-weight: 800;">
                             Mua Bản Quyền Key & Treo Cloud Tự Động
                         </h2>
                         <p class="text-light opacity-75 mb-3" style="font-size: 0.95rem;">
-                            Chỉ từ <strong>1.000đ/ngày</strong> cho Key Tool Golike, hoặc <strong>4.000đ/ngày</strong> cho Combo trọn gói vừa có Key vừa cày ngầm trên máy chủ Cloud tốc độ cao 24/24.
+                            Chỉ từ <strong>600đ/ngày</strong> cho Key Tool Golike, hoặc <strong>2.400đ/ngày</strong> cho Combo trọn gói vừa có Key vừa cày ngầm 24/24 trên Cloud VPS. Càng mua dài hạn càng được giảm sâu!
                         </p>
                         <div class="d-flex flex-wrap gap-2">
                             <span class="badge bg-white bg-opacity-20 text-white py-2 px-3 rounded-pill">
@@ -1643,14 +1678,14 @@ $csrfToken = get_csrf_token();
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div class="pricing-tabs">
                     <button type="button" class="pricing-tab-btn active" id="tabKeyOnlyBtn" onclick="switchPricingTab('key_only')">
-                        <i class="fa-solid fa-key"></i> Bản Quyền Key (1.000đ/ngày)
+                        <i class="fa-solid fa-key"></i> Bản Quyền Key <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 40%</span>
                     </button>
                     <button type="button" class="pricing-tab-btn" id="tabComboBtn" onclick="switchPricingTab('combo')">
-                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud (4.000đ/ngày)
+                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 40%</span>
                     </button>
                 </div>
                 <div class="text-muted small">
-                    <i class="fa-solid fa-circle-info text-primary me-1"></i> Đơn hàng kích hoạt tự động ngay sau khi bấm xác nhận
+                    <i class="fa-solid fa-circle-info text-primary me-1"></i> Gói thời hạn càng dài giá trên ngày càng rẻ, tiết kiệm tối đa!
                 </div>
             </div>
 
@@ -1671,8 +1706,25 @@ $csrfToken = get_csrf_token();
                                 </div>
 
                                 <div class="pkg-price-box">
+                                    <?php if (!empty($pkg['discount_pct'])): ?>
+                                        <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                                            <span class="pkg-old-price"><?= number_format($pkg['original_price'], 0, ',', '.') ?> ₫</span>
+                                            <span class="pkg-discount-pill">-<?= $pkg['discount_pct'] ?>%</span>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="d-flex align-items-center justify-content-center mb-1">
+                                            <span class="badge bg-light text-muted border px-2 py-0" style="font-size: 0.68rem;">Gói cơ bản</span>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <div class="pkg-price"><?= number_format($pkg['price'], 0, ',', '.') ?> <span style="font-size: 1rem;">₫</span></div>
-                                    <div class="pkg-price-unit"><?= number_format($pkg['price'] / $pkg['days'], 0, ',', '.') ?>đ / 24h sử dụng</div>
+                                    <div class="pkg-price-unit">Chỉ <strong><?= number_format(round($pkg['price'] / $pkg['days']), 0, ',', '.') ?>đ</strong> / 24h</div>
+
+                                    <?php if (!empty($pkg['discount_pct'])): ?>
+                                        <div class="pkg-save-label">
+                                            <i class="fa-solid fa-piggy-bank me-1"></i> Tiết kiệm <?= number_format($pkg['original_price'] - $pkg['price'], 0, ',', '.') ?>đ
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <ul class="pkg-features">
@@ -1709,8 +1761,25 @@ $csrfToken = get_csrf_token();
                                 </div>
 
                                 <div class="pkg-price-box" style="background: #f0f9ff; border-color: #e0f2fe;">
+                                    <?php if (!empty($pkg['discount_pct'])): ?>
+                                        <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                                            <span class="pkg-old-price"><?= number_format($pkg['original_price'], 0, ',', '.') ?> ₫</span>
+                                            <span class="pkg-discount-pill" style="background: #e11d48;">-<?= $pkg['discount_pct'] ?>%</span>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="d-flex align-items-center justify-content-center mb-1">
+                                            <span class="badge bg-light text-muted border px-2 py-0" style="font-size: 0.68rem;">Gói cơ bản</span>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <div class="pkg-price text-info"><?= number_format($pkg['price'], 0, ',', '.') ?> <span style="font-size: 1rem;">₫</span></div>
-                                    <div class="pkg-price-unit"><?= number_format($pkg['price'] / $pkg['days'], 0, ',', '.') ?>đ / 24h trọn gói</div>
+                                    <div class="pkg-price-unit">Chỉ <strong><?= number_format(round($pkg['price'] / $pkg['days']), 0, ',', '.') ?>đ</strong> / 24h trọn gói</div>
+
+                                    <?php if (!empty($pkg['discount_pct'])): ?>
+                                        <div class="pkg-save-label" style="background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8;">
+                                            <i class="fa-solid fa-bolt text-warning me-1"></i> Tiết kiệm <?= number_format($pkg['original_price'] - $pkg['price'], 0, ',', '.') ?>đ
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <ul class="pkg-features">
