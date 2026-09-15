@@ -1169,27 +1169,69 @@ $csrfToken = get_csrf_token();
             box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45) !important;
         }
 
-        /* Bảng Lịch Sử Thuê Cloud */
-        .orders-table th {
-            font-size: 0.72rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: #64748b;
+        /* Bảng Lịch Sử Thuê Cloud & Combo (Đồng bộ với buy-key.php) */
+        .history-table, .orders-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .history-table th, .orders-table th {
             background: #f8fafc;
-            border-bottom: 2px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
             padding: 12px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            letter-spacing: 0.4px;
             white-space: nowrap;
         }
 
-        .orders-table td {
-            font-size: 0.86rem;
+        .history-table td, .orders-table td {
             padding: 14px;
-            vertical-align: middle;
             border-bottom: 1px solid #f1f5f9;
+            font-size: 0.88rem;
+            vertical-align: middle;
         }
 
-        .orders-table tbody tr:hover { background-color: #f8fafc; }
+        .history-table tr:hover td, .orders-table tbody tr:hover td {
+            background: #f8faff;
+        }
+
+        .key-code-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #0f172a;
+        }
+
+        .btn-copy-key {
+            border: none;
+            background: #e2e8f0;
+            color: #475569;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-copy-key:hover {
+            background: var(--primary);
+            color: #ffffff;
+        }
 
         .key-copy-badge {
             font-family: monospace;
