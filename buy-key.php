@@ -64,7 +64,7 @@ try {
 // ĐỊNH NGHĨA DANH MỤC CÁC GÓI BẢN QUYỀN & COMBO
 // ==========================================================
 $PACKAGES = [
-    // 1. Nhóm chỉ Mua Key (Giá gốc 1.000đ / ngày, càng mua dài hạn càng giảm sâu)
+    // 1. Nhóm chỉ Mua Key (Giá gốc 1.000đ / ngày, chiết khấu vừa phải 5% - 20% đảm bảo chi phí & lợi nhuận)
     'key_1d' => [
         'id'             => 'key_1d',
         'type'           => 'key_only',
@@ -90,8 +90,8 @@ $PACKAGES = [
         'name'           => 'Gói Key 3 Ngày',
         'days'           => 3,
         'original_price' => 3000,
-        'price'          => 2700,
-        'discount_pct'   => 10,
+        'price'          => 2850,
+        'discount_pct'   => 5,
         'badge'          => 'Ưu đãi',
         'badge_class'    => 'badge-uudai',
         'popular'        => false,
@@ -109,8 +109,8 @@ $PACKAGES = [
         'name'           => 'Gói Key 1 Tuần',
         'days'           => 7,
         'original_price' => 7000,
-        'price'          => 5600,
-        'discount_pct'   => 20,
+        'price'          => 6300,
+        'discount_pct'   => 10,
         'badge'          => 'Phổ biến',
         'badge_class'    => 'badge-popular',
         'popular'        => true,
@@ -128,8 +128,8 @@ $PACKAGES = [
         'name'           => 'Gói Key 1 Tháng',
         'days'           => 30,
         'original_price' => 30000,
-        'price'          => 21000,
-        'discount_pct'   => 30,
+        'price'          => 25500,
+        'discount_pct'   => 15,
         'badge'          => 'Tiết kiệm',
         'badge_class'    => 'badge-tietkiem',
         'popular'        => false,
@@ -147,8 +147,8 @@ $PACKAGES = [
         'name'           => 'Gói Key 3 Tháng',
         'days'           => 90,
         'original_price' => 90000,
-        'price'          => 54000,
-        'discount_pct'   => 40,
+        'price'          => 72000,
+        'discount_pct'   => 20,
         'badge'          => 'Siêu Tiết Kiệm',
         'badge_class'    => 'badge-sieutietkiem',
         'popular'        => false,
@@ -161,7 +161,7 @@ $PACKAGES = [
         ]
     ],
 
-    // 2. Nhóm Combo Key + Treo Cloud (Giá gốc 4.000đ / ngày, tiết kiệm lên đến 40%)
+    // 2. Nhóm Combo Key + Treo Cloud (Giá gốc 4.000đ / ngày, chiết khấu 5% - 20% giữ vững biên lợi nhuận & chi phí VPS)
     'combo_1d' => [
         'id'             => 'combo_1d',
         'type'           => 'combo',
@@ -187,8 +187,8 @@ $PACKAGES = [
         'name'           => 'Combo 3 Ngày (Key + Treo Cloud)',
         'days'           => 3,
         'original_price' => 12000,
-        'price'          => 10800,
-        'discount_pct'   => 10,
+        'price'          => 11400,
+        'discount_pct'   => 5,
         'badge'          => 'Ưu đãi',
         'badge_class'    => 'badge-uudai',
         'popular'        => false,
@@ -206,8 +206,8 @@ $PACKAGES = [
         'name'           => 'Combo 1 Tuần (Key + Treo Cloud)',
         'days'           => 7,
         'original_price' => 28000,
-        'price'          => 22400,
-        'discount_pct'   => 20,
+        'price'          => 25200,
+        'discount_pct'   => 10,
         'badge'          => 'Hot Combo',
         'badge_class'    => 'badge-combo-hot',
         'popular'        => true,
@@ -225,8 +225,8 @@ $PACKAGES = [
         'name'           => 'Combo 1 Tháng (Key + Treo Cloud)',
         'days'           => 30,
         'original_price' => 120000,
-        'price'          => 84000,
-        'discount_pct'   => 30,
+        'price'          => 102000,
+        'discount_pct'   => 15,
         'badge'          => 'Tiết kiệm',
         'badge_class'    => 'badge-tietkiem',
         'popular'        => false,
@@ -244,8 +244,8 @@ $PACKAGES = [
         'name'           => 'Combo 3 Tháng (Key + Treo Cloud)',
         'days'           => 90,
         'original_price' => 360000,
-        'price'          => 216000,
-        'discount_pct'   => 40,
+        'price'          => 288000,
+        'discount_pct'   => 20,
         'badge'          => 'Siêu Tiết Kiệm',
         'badge_class'    => 'badge-sieutietkiem',
         'popular'        => false,
