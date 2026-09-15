@@ -1508,27 +1508,6 @@ $csrfToken = get_csrf_token();
                 sectionCombo.style.display = 'none';
                 sectionCloudOnly.style.display = 'block';
             }
-        function toggleAppSidebar(e) {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            var appSidebar = document.getElementById('appSidebar');
-            var sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-            if (window.innerWidth <= 991.98) {
-                if (appSidebar) appSidebar.classList.toggle('sidebar-open');
-                if (sidebarBackdrop) sidebarBackdrop.classList.toggle('active');
-            } else {
-                document.body.classList.toggle('sidebar-collapsed');
-            }
-        }
-
-        function closeAppSidebar() {
-            var appSidebar = document.getElementById('appSidebar');
-            var sidebarBackdrop = document.getElementById('sidebarBackdrop');
-            if (appSidebar) appSidebar.classList.remove('sidebar-open');
-            if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
         }
     </script>
 </head>
@@ -1537,7 +1516,7 @@ $csrfToken = get_csrf_token();
     <!-- HEADER CỐ ĐỊNH -->
     <header class="app-header">
         <div class="header-left">
-            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" onclick="toggleAppSidebar(event)" title="Đóng/Mở Menu">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Đóng/Mở Menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="index.php" class="brand-logo">
