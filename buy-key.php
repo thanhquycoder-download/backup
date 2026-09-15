@@ -1433,14 +1433,39 @@ $csrfToken = get_csrf_token();
         .svg-warning .svg-question { stroke: #f59e0b; }
         .svg-warning .svg-question-dot { fill: #f59e0b; }
 
-        /* Responsive Mobile & Tablet chuẩn index.php */
+        /* Responsive Mobile, Tablet & Desktop Sidebar Collapse */
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .app-sidebar {
+                transform: translateX(-100%) !important;
+            }
+            body.sidebar-collapsed .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+
         @media (max-width: 991.98px) {
             .app-sidebar {
-                transform: translateX(-100%);
+                position: fixed !important;
+                top: 70px;
+                left: 0;
+                bottom: 0;
+                width: 270px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1050 !important;
+                box-shadow: none;
             }
             .app-sidebar.sidebar-open {
-                transform: translateX(0);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                transform: translateX(0) !important;
+                box-shadow: 4px 0 25px rgba(0, 0, 0, 0.2) !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            .sidebar-backdrop {
+                z-index: 1045 !important;
             }
             .app-main {
                 margin-left: 0 !important;
@@ -1456,7 +1481,7 @@ $csrfToken = get_csrf_token();
 
         @media (max-width: 767.98px) {
             .app-sidebar {
-                top: 56px;
+                top: 56px !important;
             }
             .app-main {
                 margin-left: 0 !important;
@@ -1512,6 +1537,37 @@ $csrfToken = get_csrf_token();
             }
         }
     </style>
+    <script>
+        function toggleAppSidebar(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            var sb = document.getElementById('appSidebar');
+            var bd = document.getElementById('sidebarBackdrop');
+            if (window.innerWidth >= 992) {
+                document.body.classList.toggle('sidebar-collapsed');
+            } else {
+                if (sb) {
+                    var isOpen = sb.classList.toggle('sidebar-open');
+                    if (bd) {
+                        if (isOpen) {
+                            bd.classList.add('active');
+                        } else {
+                            bd.classList.remove('active');
+                        }
+                    }
+                }
+            }
+        }
+
+        function closeAppSidebar() {
+            var sb = document.getElementById('appSidebar');
+            var bd = document.getElementById('sidebarBackdrop');
+            if (sb) sb.classList.remove('sidebar-open');
+            if (bd) bd.classList.remove('active');
+        }
+    </script>
 </head>
 <body>
 
@@ -1520,7 +1576,7 @@ $csrfToken = get_csrf_token();
      * ========================================================== -->
     <header class="app-header">
         <div class="header-left">
-            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Đóng/Mở Menu">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" onclick="toggleAppSidebar(event)" title="Đóng/Mở Menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="index.php" class="brand-logo">
@@ -1528,7 +1584,7 @@ $csrfToken = get_csrf_token();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span class="brand-tech-suffix">Tech</span>
+                    ThanhQuy<span>Tech</span>
                 </div>
             </a>
         </div>
@@ -1770,7 +1826,7 @@ $csrfToken = get_csrf_token();
         </ul>
     </aside>
 
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAppSidebar()"></div>
 
     <!-- ==========================================================
      * KHU VỰC NỘI DUNG CHÍNH (APP MAIN)
@@ -2293,16 +2349,11 @@ $csrfToken = get_csrf_token();
         const appSidebar = document.getElementById('appSidebar');
         const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-        if (sidebarToggle && appSidebar && sidebarBackdrop) {
-            sidebarToggle.addEventListener('click', () => {
-                appSidebar.classList.toggle('sidebar-open');
-                sidebarBackdrop.classList.toggle('active');
-            });
-
-            sidebarBackdrop.addEventListener('click', () => {
-                appSidebar.classList.remove('sidebar-open');
-                sidebarBackdrop.classList.remove('active');
-            });
+        if (sidebarToggle) {
+            sidebarToggle.onclick = toggleAppSidebar;
+        }
+        if (sidebarBackdrop) {
+            sidebarBackdrop.onclick = closeAppSidebar;
         }
 
         <?php if (!empty($flash)): ?>
