@@ -1389,7 +1389,7 @@ $flash = get_flash();
             </li>
             <!-- Thuê cloud -->
             <li>
-                <a href="buy-key.php?tab=combo" class="sidebar-link">
+                <a href="cloud.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-cloud"></i></span>
                     <span class="sidebar-title">Thuê cloud</span>
                 </a>
