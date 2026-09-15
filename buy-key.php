@@ -715,7 +715,7 @@ $csrfToken = get_csrf_token();
         }
 
         /* ==========================================================
-         * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI
+         * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI (CHUẨN 1:1 THEO INDEX)
          * ========================================================== */
         .app-sidebar {
             position: fixed;
@@ -733,20 +733,34 @@ $csrfToken = get_csrf_token();
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
         }
 
-        .app-sidebar::-webkit-scrollbar { width: 5px; }
-        .app-sidebar::-webkit-scrollbar-track { background: transparent; }
-        .app-sidebar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .app-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .app-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
 
         .sidebar-category {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
+            font-size: 0.68rem;
+            font-weight: 800;
             letter-spacing: 0.8px;
+            text-transform: uppercase;
             color: #94a3b8;
             padding: 12px 14px 6px;
+            margin-top: 4px;
         }
 
         .sidebar-nav-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
             list-style: none;
             padding: 0;
             margin: 0;
@@ -816,6 +830,7 @@ $csrfToken = get_csrf_token();
             transform: rotate(180deg);
         }
 
+        /* Submenu accordion */
         .sidebar-submenu {
             list-style: none;
             padding: 4px 0 6px 14px;
@@ -846,6 +861,13 @@ $csrfToken = get_csrf_token();
             padding-left: 15px;
         }
 
+        .submenu-link.active {
+            color: var(--primary);
+            background: #eef2ff;
+            font-weight: 700;
+        }
+
+        /* Huy hiệu Lịch Sử */
         .badge-history {
             font-size: 0.65rem;
             font-weight: 700;
@@ -854,11 +876,22 @@ $csrfToken = get_csrf_token();
             border: 1px solid #e2e8f0;
             padding: 2px 7px;
             border-radius: 6px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
             display: inline-flex;
             align-items: center;
             gap: 3px;
+            transition: var(--transition);
         }
 
+        .submenu-link:hover .badge-history,
+        .sidebar-link:hover .badge-history {
+            background: #e0e7ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+        }
+
+        /* Backdrop cho mobile */
         .sidebar-backdrop {
             position: fixed;
             inset: 0;
