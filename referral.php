@@ -1,9 +1,10 @@
 <?php
 /**
  * ==========================================================
- * TRANG GIỚI THIỆU & TIẾP THỊ LIÊN KẾT (REFERRAL AFFILIATE)
+ * TRANG GIỚI THIỆU BẠN BÈ - TÍCH LŨY KEY VIP GOLIKE
  * File: referral.php
  * Website: ThanhQuyTech
+ * Cơ chế: 1 người tham gia = 1 ngày Key VIP (Đánh dấu chống nhận trùng lặp)
  * ==========================================================
  */
 
@@ -29,47 +30,60 @@ if (!$user) {
 $isAdmin = ($user['role'] === 'Admin');
 $currentUser = $user;
 
-// Tự động kiểm tra và khởi tạo bảng nếu chưa có (Chống lỗi khi chưa import database.sql)
+// Tự động kiểm tra và nâng cấp bảng referrals & referral_claims nếu chưa có cột mới
 try {
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `referrals` (
             `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             `referrer_uuid` CHAR(36) NOT NULL,
             `referee_uuid` CHAR(36) NOT NULL UNIQUE,
-            `commission_rate` DECIMAL(5, 2) NOT NULL DEFAULT 10.00,
-            `total_commission` DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+            `reward_days` INT UNSIGNED NOT NULL DEFAULT 1,
+            `is_claimed` TINYINT(1) NOT NULL DEFAULT 0,
+            `claimed_at` DATETIME DEFAULT NULL,
+            `claim_order_code` VARCHAR(50) DEFAULT NULL,
             `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
             `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             INDEX `idx_ref_referrer` (`referrer_uuid`),
             INDEX `idx_ref_referee` (`referee_uuid`),
+            INDEX `idx_ref_is_claimed` (`is_claimed`),
             INDEX `idx_ref_status` (`status`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-        CREATE TABLE IF NOT EXISTS `referral_commissions` (
+        CREATE TABLE IF NOT EXISTS `referral_claims` (
             `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `referrer_uuid` CHAR(36) NOT NULL,
-            `referee_uuid` CHAR(36) NOT NULL,
-            `order_code` VARCHAR(50) DEFAULT NULL,
-            `service_type` ENUM('buy_key', 'cloud', 'deposit', 'other') NOT NULL DEFAULT 'buy_key',
-            `order_amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
-            `commission_rate` DECIMAL(5, 2) NOT NULL DEFAULT 10.00,
-            `commission_amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
-            `status` ENUM('Pending', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Completed',
-            `note` VARCHAR(255) DEFAULT NULL,
+            `user_uuid` CHAR(36) NOT NULL,
+            `claim_code` VARCHAR(50) NOT NULL UNIQUE,
+            `referred_count` INT UNSIGNED NOT NULL,
+            `reward_days` INT UNSIGNED NOT NULL,
+            `license_key` VARCHAR(100) NOT NULL UNIQUE,
+            `expires_at` DATETIME NOT NULL,
+            `status` ENUM('Active', 'Expired') NOT NULL DEFAULT 'Active',
             `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX `idx_rc_referrer` (`referrer_uuid`),
-            INDEX `idx_rc_referee` (`referee_uuid`),
-            INDEX `idx_rc_order_code` (`order_code`),
-            INDEX `idx_rc_status` (`status`),
-            INDEX `idx_rc_created_at` (`created_at`)
+            INDEX `idx_rc_user_uuid` (`user_uuid`),
+            INDEX `idx_rc_claim_code` (`claim_code`),
+            INDEX `idx_rc_license_key` (`license_key`),
+            INDEX `idx_rc_status` (`status`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+
+    // Đảm bảo các cột mới tồn tại nếu bảng cũ đã tạo trước đó
+    $colCheck = $pdo->query("SHOW COLUMNS FROM `referrals` LIKE 'is_claimed'")->fetch();
+    if (!$colCheck) {
+        $pdo->exec("
+            ALTER TABLE `referrals` 
+            ADD COLUMN `reward_days` INT UNSIGNED NOT NULL DEFAULT 1 AFTER `referee_uuid`,
+            ADD COLUMN `is_claimed` TINYINT(1) NOT NULL DEFAULT 0 AFTER `reward_days`,
+            ADD COLUMN `claimed_at` DATETIME DEFAULT NULL AFTER `is_claimed`,
+            ADD COLUMN `claim_order_code` VARCHAR(50) DEFAULT NULL AFTER `claimed_at`,
+            ADD INDEX `idx_ref_is_claimed` (`is_claimed`);
+        ");
+    }
 } catch (Exception $e) {
-    // Bỏ qua nếu bảng đã tồn tại
+    // Bỏ qua nếu bảng đã chuẩn
 }
 
-// Xử lý hành động rút hoa hồng về ví chính (nếu có yêu cầu)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'claim_commission') {
+// XỬ LÝ QUY ĐỔI KEY VIP: 1 NGƯỜI = 1 NGÀY KEY VIP
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'claim_key_reward') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         set_flash('error', 'Mã xác thực CSRF không hợp lệ hoặc đã hết hạn.', 'Lỗi xác thực');
         header("Location: referral.php");
@@ -79,75 +93,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
 
-        // Tính tổng hoa hồng chưa rút (các commission Completed chưa được rút)
-        // Ở đây hệ thống hỗ trợ cộng dồn hoa hồng tích lũy
-        $stmtSum = $pdo->prepare("
-            SELECT COALESCE(SUM(commission_amount), 0) as total_comm 
-            FROM referral_commissions 
-            WHERE referrer_uuid = ? AND status = 'Completed'
+        // 1. Khóa và lấy danh sách các F1 CHƯA ĐƯỢC QUY ĐỔI (is_claimed = 0)
+        $stmtUnclaimed = $pdo->prepare("
+            SELECT id, referee_uuid, reward_days 
+            FROM referrals 
+            WHERE referrer_uuid = ? AND is_claimed = 0 AND status = 'Active'
+            FOR UPDATE
         ");
-        $stmtSum->execute([$currentUser['uuid']]);
-        $totalComm = (float)($stmtSum->fetch()['total_comm'] ?? 0);
+        $stmtUnclaimed->execute([$currentUser['uuid']]);
+        $unclaimedList = $stmtUnclaimed->fetchAll();
 
-        // Kiểm tra số dư hoa hồng có thể rút
-        if ($totalComm <= 0) {
+        $unclaimedCount = count($unclaimedList);
+
+        if ($unclaimedCount <= 0) {
             $pdo->rollBack();
-            set_flash('warning', 'Hiện tại bạn chưa có khoản hoa hồng khả dụng để quy đổi.', 'Chưa đủ điều kiện');
+            set_flash('warning', 'Bạn chưa có thành viên giới thiệu mới nào để quy đổi Key VIP. Hãy chia sẻ thêm link cho bạn bè!', 'Chưa có lượt quy đổi');
             header("Location: referral.php");
             exit;
         }
 
-        // Kiểm tra xem đã từng rút bao nhiêu
-        $stmtClaimed = $pdo->prepare("
-            SELECT COALESCE(SUM(amount), 0) as claimed_amount 
-            FROM transactions 
-            WHERE user_uuid = ? AND type = 'Deposit' AND note LIKE 'Quy đổi hoa hồng giới thiệu%'
-        ");
-        $stmtClaimed->execute([$currentUser['uuid']]);
-        $claimedAmount = (float)($stmtClaimed->fetch()['claimed_amount'] ?? 0);
+        // 2. Tính số ngày Key VIP tương ứng (1 người = 1 ngày)
+        $totalDays = 0;
+        $refIdsToUpdate = [];
+        foreach ($unclaimedList as $item) {
+            $totalDays += (int)($item['reward_days'] > 0 ? $item['reward_days'] : 1);
+            $refIdsToUpdate[] = (int)$item['id'];
+        }
 
-        $availableToClaim = $totalComm - $claimedAmount;
-
-        if ($availableToClaim < 10000) {
+        if ($totalDays <= 0) {
             $pdo->rollBack();
-            set_flash('warning', 'Số tiền hoa hồng tối thiểu để quy đổi vào ví là <strong>10.000đ</strong>. Số dư hiện tại của bạn: <strong>' . format_currency($availableToClaim) . '</strong>.', 'Chưa đạt tối thiểu');
+            set_flash('warning', 'Số ngày quy đổi không hợp lệ.', 'Lỗi dữ liệu');
             header("Location: referral.php");
             exit;
         }
 
-        // Khóa dòng user để cập nhật số dư
-        $stmtUser = $pdo->prepare("SELECT balance FROM users WHERE uuid = ? FOR UPDATE");
-        $stmtUser->execute([$currentUser['uuid']]);
-        $currBal = (float)$stmtUser->fetchColumn();
-        $newBal = $currBal + $availableToClaim;
+        // 3. Sinh mã Key VIP ngẫu nhiên và mã đơn quy đổi
+        $licenseKey = 'TQ-REF-' . strtoupper(bin2hex(random_bytes(3))) . '-' . strtoupper(bin2hex(random_bytes(3)));
+        $claimCode = 'REF-KEY-' . strtoupper(substr(uniqid(), -8));
+        $expiresAt = date('Y-m-d H:i:s', strtotime("+{$totalDays} days"));
 
-        $updateUser = $pdo->prepare("UPDATE users SET balance = ? WHERE uuid = ?");
-        $updateUser->execute([$newBal, $currentUser['uuid']]);
-
-        // Ghi nhận biến động số dư vào transactions
-        $transCode = 'COMM-' . strtoupper(substr(uniqid(), -8));
-        $stmtTrans = $pdo->prepare("
-            INSERT INTO transactions (
-                user_uuid, code, type, amount, balance_before, balance_after, status, note
+        // 4. Lưu vào bảng key_orders (để đồng bộ sang danh sách Key của user và nhập vào Tool Golike)
+        $stmtKeyOrder = $pdo->prepare("
+            INSERT INTO key_orders (
+                user_uuid, order_code, package_type, package_name, duration_days, license_key, cloud_server, amount, status, expires_at
             ) VALUES (
-                ?, ?, 'Deposit', ?, ?, ?, 'Success', ?
+                ?, ?, 'key_only', ?, ?, ?, NULL, 0.00, 'Active', ?
             )
         ");
-        $stmtTrans->execute([
+        $stmtKeyOrder->execute([
             $currentUser['uuid'],
-            $transCode,
-            $availableToClaim,
-            $currBal,
-            $newBal,
-            'Quy đổi hoa hồng giới thiệu (Mã: ' . $transCode . ')'
+            $claimCode,
+            "Key VIP Thưởng Giới Thiệu ({$totalDays} Ngày)",
+            $totalDays,
+            $licenseKey,
+            $expiresAt
         ]);
+
+        // 5. Lưu vào lịch sử referral_claims
+        $stmtClaimLog = $pdo->prepare("
+            INSERT INTO referral_claims (
+                user_uuid, claim_code, referred_count, reward_days, license_key, expires_at, status
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, 'Active'
+            )
+        ");
+        $stmtClaimLog->execute([
+            $currentUser['uuid'],
+            $claimCode,
+            $unclaimedCount,
+            $totalDays,
+            $licenseKey,
+            $expiresAt
+        ]);
+
+        // 6. ĐÁNH DẤU CHỐNG LẤY LẠI TỪ ĐẦU (Đánh dấu is_claimed = 1 cho các ID này)
+        $inPlaceholders = implode(',', array_fill(0, count($refIdsToUpdate), '?'));
+        $updateParams = array_merge([$claimCode], $refIdsToUpdate);
+        $stmtMarkClaimed = $pdo->prepare("
+            UPDATE referrals 
+            SET is_claimed = 1, claimed_at = NOW(), claim_order_code = ? 
+            WHERE id IN ($inPlaceholders)
+        ");
+        $stmtMarkClaimed->execute($updateParams);
 
         $pdo->commit();
 
         set_flash(
             'success',
-            'Đã quy đổi thành công <strong>+' . format_currency($availableToClaim) . '</strong> vào số dư ví của bạn!<br>Số dư mới: <strong class="text-success">' . format_currency($newBal) . '</strong>.',
-            'Quy đổi thành công'
+            'Chúc mừng bạn đã quy đổi thành công <strong>' . $unclaimedCount . ' bạn bè</strong> thành <strong>Key VIP ' . $totalDays . ' Ngày</strong>!<br>' .
+            '<div class="p-3 my-2 bg-light border rounded-3 text-start font-monospace small">' .
+            '<strong>Mã Key VIP:</strong> <span class="text-success fw-bold fs-6">' . $licenseKey . '</span><br>' .
+            '<strong>Thời hạn:</strong> ' . $totalDays . ' ngày (Đến ' . date('d/m/Y H:i:s', strtotime($expiresAt)) . ')<br>' .
+            '<strong>Mã đơn:</strong> #' . $claimCode .
+            '</div>' .
+            'Mã Key đã được kích hoạt và lưu vào bảng lịch sử bên dưới. Bạn có thể sao chép để dán vào Tool Golike ngay bây giờ!',
+            'Quy đổi Key VIP thành công'
         );
         header("Location: referral.php");
         exit;
@@ -156,66 +196,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        set_flash('error', 'Có lỗi xảy ra: ' . $e->getMessage(), 'Lỗi quy đổi');
+        set_flash('error', 'Có lỗi xảy ra khi quy đổi Key VIP: ' . $e->getMessage(), 'Lỗi quy đổi');
         header("Location: referral.php");
         exit;
     }
 }
 
-// 1. Thống kê tổng quan Tiếp thị liên kết
-$stmtRefStats = $pdo->prepare("
-    SELECT 
-        COUNT(id) as total_referrals,
-        COALESCE(SUM(total_commission), 0) as total_commission_earned
+// 1. Thống kê số lượng bạn bè và số ngày Key VIP
+// - Số bạn bè CHƯA QUY ĐỔI (Sẵn sàng nhận thưởng)
+$stmtUnclaimedCount = $pdo->prepare("
+    SELECT COUNT(id) as unclaimed_count, COALESCE(SUM(reward_days), 0) as unclaimed_days 
+    FROM referrals 
+    WHERE referrer_uuid = ? AND is_claimed = 0 AND status = 'Active'
+");
+$stmtUnclaimedCount->execute([$currentUser['uuid']]);
+$unclaimedData = $stmtUnclaimedCount->fetch();
+$availableRewardDays = (int)($unclaimedData['unclaimed_days'] ?? 0);
+$availableF1Count = (int)($unclaimedData['unclaimed_count'] ?? 0);
+
+// - Tổng số bạn bè đã giới thiệu (Tất cả từ trước đến nay)
+$stmtTotalRef = $pdo->prepare("
+    SELECT COUNT(id) as total_referrals 
     FROM referrals 
     WHERE referrer_uuid = ?
 ");
-$stmtRefStats->execute([$currentUser['uuid']]);
-$refStats = $stmtRefStats->fetch() ?: ['total_referrals' => 0, 'total_commission_earned' => 0];
+$stmtTotalRef->execute([$currentUser['uuid']]);
+$totalReferralsCount = (int)($stmtTotalRef->fetchColumn() ?: 0);
 
-// Hoa hồng tháng này
-$stmtMonthComm = $pdo->prepare("
-    SELECT COALESCE(SUM(commission_amount), 0) as month_comm
-    FROM referral_commissions
-    WHERE referrer_uuid = ? 
-      AND status = 'Completed' 
-      AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
-      AND YEAR(created_at) = YEAR(CURRENT_DATE())
+// - Tổng số ngày Key VIP đã từng quy đổi thành công
+$stmtTotalClaimedDays = $pdo->prepare("
+    SELECT COALESCE(SUM(reward_days), 0) as total_days 
+    FROM referral_claims 
+    WHERE user_uuid = ?
 ");
-$stmtMonthComm->execute([$currentUser['uuid']]);
-$monthCommission = (float)($stmtMonthComm->fetch()['month_comm'] ?? 0);
+$stmtTotalClaimedDays->execute([$currentUser['uuid']]);
+$totalClaimedDays = (int)($stmtTotalClaimedDays->fetchColumn() ?: 0);
 
-// Tính cấp bậc và tỉ lệ hoa hồng
-$totalF1Count = (int)$refStats['total_referrals'];
-$tierName = 'Thành viên Mới';
-$commissionRate = 10.0;
-$tierBadgeClass = 'badge-tier-bronze';
-$tierIcon = 'fa-medal';
-
-if ($totalF1Count >= 50) {
-    $tierName = 'Đối tác Kim Cương';
-    $commissionRate = 20.0;
-    $tierBadgeClass = 'badge-tier-diamond';
-    $tierIcon = 'fa-gem';
-} elseif ($totalF1Count >= 20) {
-    $tierName = 'Đại lý Vàng';
-    $commissionRate = 15.0;
-    $tierBadgeClass = 'badge-tier-gold';
-    $tierIcon = 'fa-crown';
-} elseif ($totalF1Count >= 5) {
-    $tierName = 'Cộng tác viên Bạc';
-    $commissionRate = 12.0;
-    $tierBadgeClass = 'badge-tier-silver';
-    $tierIcon = 'fa-shield-halved';
-}
-
-// 2. Danh sách F1 được giới thiệu
+// 2. Danh sách tất cả bạn bè F1 đã giới thiệu
 $stmtF1List = $pdo->prepare("
     SELECT 
         r.id as ref_id,
-        r.commission_rate,
-        r.total_commission as f1_commission,
-        r.status as ref_status,
+        r.reward_days,
+        r.is_claimed,
+        r.claimed_at,
+        r.claim_order_code,
         r.created_at as joined_at,
         u.uid,
         u.name,
@@ -225,28 +249,22 @@ $stmtF1List = $pdo->prepare("
     FROM referrals r
     JOIN users u ON r.referee_uuid = u.uuid
     WHERE r.referrer_uuid = ?
-    ORDER BY r.id DESC
+    ORDER BY r.is_claimed ASC, r.id DESC
 ");
 $stmtF1List->execute([$currentUser['uuid']]);
 $referredUsers = $stmtF1List->fetchAll();
 
-// 3. Lịch sử nhận hoa hồng gần nhất (50 giao dịch)
-$stmtCommHistory = $pdo->prepare("
-    SELECT 
-        rc.*,
-        u.uid as referee_uid,
-        u.name as referee_name,
-        u.username as referee_username
-    FROM referral_commissions rc
-    LEFT JOIN users u ON rc.referee_uuid = u.uuid
-    WHERE rc.referrer_uuid = ?
-    ORDER BY rc.id DESC
-    LIMIT 50
+// 3. Lịch sử các đợt quy đổi Key VIP
+$stmtClaimsHistory = $pdo->prepare("
+    SELECT * 
+    FROM referral_claims 
+    WHERE user_uuid = ? 
+    ORDER BY id DESC
 ");
-$stmtCommHistory->execute([$currentUser['uuid']]);
-$commissionHistory = $stmtCommHistory->fetchAll();
+$stmtClaimsHistory->execute([$currentUser['uuid']]);
+$claimsHistory = $stmtClaimsHistory->fetchAll();
 
-// Tạo URL giới thiệu tuyệt đối
+// Tạo URL giới thiệu
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
 $host = $_SERVER['HTTP_HOST'];
 $basePath = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
@@ -260,7 +278,7 @@ $csrfToken = get_csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chương Trình Giới Thiệu & Hoa Hồng - <?= htmlspecialchars(APP_NAME) ?></title>
+    <title>Giới Thiệu Bạn Bè - Tích Lũy Key VIP - <?= htmlspecialchars(APP_NAME) ?></title>
 
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -287,7 +305,7 @@ $csrfToken = get_csrf_token();
             --warning: #f59e0b;
             --danger: #ef4444;
             --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #06b6d4 100%);
-            --gradient-affiliate: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #8b5cf6 100%);
+            --gradient-vip: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #e11d48 100%);
             --radius-md: 14px;
             --radius-lg: 20px;
             --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -749,15 +767,15 @@ $csrfToken = get_csrf_token();
             width: 100%;
         }
 
-        /* Hero Banner Tiếp Thị */
+        /* Hero Banner Key VIP */
         .referral-hero-banner {
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4f46e5 100%);
             border-radius: var(--radius-lg);
             padding: 32px 36px;
             color: #ffffff;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 16px 35px -10px rgba(49, 46, 129, 0.4);
+            box-shadow: 0 16px 35px -10px rgba(79, 70, 229, 0.35);
             margin-bottom: 24px;
         }
 
@@ -768,7 +786,7 @@ $csrfToken = get_csrf_token();
             right: -60px;
             width: 240px;
             height: 240px;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(255, 255, 255, 0) 70%);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, rgba(255, 255, 255, 0) 70%);
             border-radius: 50%;
         }
 
@@ -776,7 +794,7 @@ $csrfToken = get_csrf_token();
             content: '';
             position: absolute;
             bottom: -40px;
-            left: 20%;
+            left: 25%;
             width: 180px;
             height: 180px;
             background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, rgba(255, 255, 255, 0) 70%);
@@ -787,13 +805,13 @@ $csrfToken = get_csrf_token();
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(245, 158, 11, 0.2);
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(245, 158, 11, 0.4);
             padding: 5px 14px;
             border-radius: 50px;
             font-size: 0.8rem;
-            font-weight: 700;
+            font-weight: 800;
             color: #fef08a;
             margin-bottom: 12px;
         }
@@ -809,7 +827,7 @@ $csrfToken = get_csrf_token();
         .hero-subtitle {
             font-size: 0.95rem;
             color: #cbd5e1;
-            max-width: 650px;
+            max-width: 680px;
             line-height: 1.6;
             margin-bottom: 0;
         }
@@ -930,14 +948,14 @@ $csrfToken = get_csrf_token();
             flex-shrink: 0;
         }
 
-        .icon-green { background: #dcfce7; color: #16a34a; }
+        .icon-gold { background: #fef3c7; color: #d97706; }
         .icon-blue { background: #dbeafe; color: #2563eb; }
         .icon-purple { background: #ede9fe; color: #7c3aed; }
-        .icon-amber { background: #fef3c7; color: #d97706; }
+        .icon-green { background: #dcfce7; color: #16a34a; }
 
         .stat-info { min-width: 0; flex-grow: 1; }
         .stat-label {
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.4px;
@@ -952,11 +970,48 @@ $csrfToken = get_csrf_token();
             line-height: 1.2;
         }
 
-        /* Cấp bậc badge */
-        .badge-tier-bronze { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-        .badge-tier-silver { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-        .badge-tier-gold { background: #fef08a; color: #854d0e; border: 1px solid #facc15; }
-        .badge-tier-diamond { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+        /* Khối Quy Đổi Key VIP */
+        .claim-card-box {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 50%, #f3e8ff 100%);
+            border: 1.5px solid #e9d5ff;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .btn-claim-key {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+            transition: var(--transition);
+        }
+
+        .btn-claim-key:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(168, 85, 247, 0.45);
+            filter: brightness(1.05);
+        }
+
+        .btn-claim-key:disabled {
+            background: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+            color: #64748b;
+        }
 
         /* Quy trình 3 bước */
         .steps-card {
@@ -1021,14 +1076,8 @@ $csrfToken = get_csrf_token();
             gap: 8px;
         }
 
-        .tab-btn:hover {
-            color: var(--primary);
-        }
-
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
         .tab-badge {
             font-size: 0.72rem;
@@ -1047,7 +1096,7 @@ $csrfToken = get_csrf_token();
         .tab-content-panel { display: none; }
         .tab-content-panel.active { display: block; }
 
-        /* Bảng dữ liệu đẹp */
+        /* Bảng dữ liệu */
         .table-custom {
             width: 100%;
             border-collapse: separate;
@@ -1074,9 +1123,7 @@ $csrfToken = get_csrf_token();
             vertical-align: middle;
         }
 
-        .table-custom tr:hover td {
-            background: #fcfcfd;
-        }
+        .table-custom tr:hover td { background: #fcfcfd; }
 
         .status-pill {
             display: inline-flex;
@@ -1089,7 +1136,35 @@ $csrfToken = get_csrf_token();
         }
 
         .status-completed { background: #dcfce7; color: #15803d; }
-        .status-active { background: #e0f2fe; color: #0369a1; }
+        .status-pending { background: #fef3c7; color: #b45309; }
+
+        .key-code-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.88rem;
+        }
+
+        .btn-copy-mini {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 2px;
+            transition: var(--transition);
+        }
+
+        .btn-copy-mini:hover {
+            color: var(--primary);
+            transform: scale(1.15);
+        }
 
         /* Modal QR Code */
         .modal-qr-body {
@@ -1130,7 +1205,7 @@ $csrfToken = get_csrf_token();
 
         .svg-dialog-card {
             width: 100%;
-            max-width: 440px;
+            max-width: 460px;
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: var(--radius-lg);
@@ -1147,13 +1222,8 @@ $csrfToken = get_csrf_token();
 
         /* Responsive */
         @media (max-width: 991.98px) {
-            .app-sidebar {
-                transform: translateX(-100%);
-            }
-            .app-sidebar.sidebar-open {
-                transform: translateX(0);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            }
+            .app-sidebar { transform: translateX(-100%); }
+            .app-sidebar.sidebar-open { transform: translateX(0); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); }
             .app-main {
                 margin-left: 0 !important;
                 margin-top: 56px !important;
@@ -1164,17 +1234,12 @@ $csrfToken = get_csrf_token();
                 overflow-x: hidden !important;
                 box-sizing: border-box !important;
             }
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
         }
 
         @media (max-width: 767.98px) {
             .app-sidebar { top: 56px; }
-            .app-header {
-                height: 56px !important;
-                padding: 0 8px !important;
-            }
+            .app-header { height: 56px !important; padding: 0 8px !important; }
             .brand-name { font-size: 0.86rem !important; }
             .user-avatar-small { width: 28px !important; height: 28px !important; }
             .user-profile-popup {
@@ -1186,22 +1251,12 @@ $csrfToken = get_csrf_token();
                 max-width: 360px !important;
                 margin: 0 auto !important;
             }
-            .referral-hero-banner {
-                padding: 24px 18px;
-            }
+            .referral-hero-banner { padding: 24px 18px; }
             .hero-title { font-size: 1.35rem; }
             .hero-subtitle { font-size: 0.85rem; }
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            .copy-box {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .btn-copy-action {
-                width: 100%;
-                justify-content: center;
-            }
+            .stats-grid { grid-template-columns: 1fr; }
+            .copy-box { flex-direction: column; align-items: stretch; }
+            .btn-copy-action { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -1466,34 +1521,36 @@ $csrfToken = get_csrf_token();
             <!-- Hero Banner -->
             <div class="referral-hero-banner">
                 <div class="hero-badge">
-                    <i class="fa-solid fa-hand-holding-dollar"></i> Tiếp Thị Liên Kết 4.0
+                    <i class="fa-solid fa-gift"></i> Tặng Key VIP Miễn Phí
                 </div>
-                <h1 class="hero-title">Kiếm Tiền Thụ Động Cùng ThanhQuyTech</h1>
+                <h1 class="hero-title">Mời 1 Bạn Bè = Nhận Ngay 1 Ngày Key VIP</h1>
                 <p class="hero-subtitle">
-                    Giới thiệu bạn bè tham gia sử dụng Key Tool Golike hoặc Thuê Cloud VPS để nhận ngay <strong>10% - 20% hoa hồng trọn đời</strong> cho mỗi giao dịch thành công.
+                    Không giới hạn số lượt! Cứ mỗi người bạn tham gia đăng ký qua liên kết của bạn, bạn sẽ được tích lũy ngay <strong>1 Ngày Bản Quyền Key VIP Tool Golike</strong>. Quy đổi bất cứ lúc nào bạn muốn.
                 </p>
             </div>
 
-            <!-- Thẻ liên kết giới thiệu & Mã QR -->
+            <!-- Thẻ liên kết giới thiệu & Khối quy đổi Key VIP -->
             <div class="referral-card">
-                <div class="row g-4 align-items-center">
-                    <div class="col-lg-7">
-                        <h4 class="fw-bold mb-2 text-dark">
-                            <i class="fa-solid fa-link text-primary me-2"></i>Đường dẫn giới thiệu của bạn
-                        </h4>
-                        <p class="text-muted small mb-3">
-                            Chia sẻ đường dẫn này cho bạn bè. Khi họ đăng ký tài khoản, hệ thống sẽ tự động liên kết họ làm thành viên cấp dưới (F1) của bạn mãi mãi.
-                        </p>
-                        
-                        <div class="copy-box mb-3">
-                            <span class="copy-text" id="refUrlText"><?= htmlspecialchars($referralUrl) ?></span>
-                            <button type="button" class="btn-copy-action" onclick="copyReferralLink()">
-                                <i class="fa-regular fa-copy" id="copyIcon"></i>
-                                <span id="copyBtnLabel">Sao chép liên kết</span>
-                            </button>
+                <div class="row g-4 align-items-stretch">
+                    <div class="col-lg-7 d-flex flex-column justify-content-between">
+                        <div>
+                            <h4 class="fw-bold mb-2 text-dark">
+                                <i class="fa-solid fa-link text-primary me-2"></i>Đường dẫn giới thiệu của bạn
+                            </h4>
+                            <p class="text-muted small mb-3">
+                                Gửi link này cho bạn bè. Khi bạn bè hoàn tất tạo tài khoản, hệ thống sẽ tự động cộng <strong>+1 Ngày Key VIP</strong> vào quỹ thưởng chờ quy đổi của bạn.
+                            </p>
+                            
+                            <div class="copy-box mb-3">
+                                <span class="copy-text" id="refUrlText"><?= htmlspecialchars($referralUrl) ?></span>
+                                <button type="button" class="btn-copy-action" onclick="copyReferralLink()">
+                                    <i class="fa-regular fa-copy" id="copyIcon"></i>
+                                    <span id="copyBtnLabel">Sao chép liên kết</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="d-flex align-items-center gap-3 flex-wrap pt-2">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="text-muted small fw-semibold">Mã giới thiệu UID:</span>
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 font-monospace fw-bold" style="font-size: 0.9rem;">
@@ -1510,20 +1567,46 @@ $csrfToken = get_csrf_token();
                         </div>
                     </div>
 
+                    <!-- Khối quy đổi Key VIP -->
                     <div class="col-lg-5">
-                        <div class="p-3 rounded-4 bg-light border">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <span class="fw-bold text-dark small"><i class="fa-solid fa-wallet text-success me-1"></i> Rút hoa hồng về ví</span>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Tự động 24/7</span>
+                        <div class="claim-card-box">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="fw-bold text-dark small"><i class="fa-solid fa-award text-warning me-1"></i> Quỹ Key VIP chờ nhận</span>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 fw-bold">
+                                        Tự động chống trùng
+                                    </span>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-baseline gap-2">
+                                        <span class="fs-1 fw-extrabold text-purple-700" style="color: #7e22ce; font-weight: 800;">
+                                            <?= $availableRewardDays ?>
+                                        </span>
+                                        <span class="fw-bold text-muted">Ngày Key VIP</span>
+                                        <span class="badge bg-purple-100 text-purple-700 px-2 py-1 ms-auto small" style="background: #ede9fe; color: #6b21a8;">
+                                            <?= $availableF1Count ?> bạn mới
+                                        </span>
+                                    </div>
+                                    <p class="text-muted small mb-0 mt-1">
+                                        <?php if ($availableRewardDays > 0): ?>
+                                            Bạn đang có <strong><?= $availableF1Count ?> bạn bè mới</strong> chưa nhận thưởng. Bấm nút bên dưới để tạo ngay mã Key VIP <strong><?= $availableRewardDays ?> ngày</strong>!
+                                        <?php else: ?>
+                                            Bạn đã quy đổi hết tất cả bạn bè hiện tại. Mời thêm bạn bè mới để tích lũy thêm ngày Key VIP.
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
                             </div>
-                            <p class="text-muted small mb-3">
-                                Hoa hồng sẽ được cộng dồn. Bạn có thể quy đổi trực tiếp vào số dư ví tài khoản để mua Key hoặc rút về ngân hàng.
-                            </p>
-                            <form method="POST" action="referral.php">
+
+                            <form method="POST" action="referral.php" onsubmit="return confirmRedeemKey(<?= $availableRewardDays ?>)">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                                <input type="hidden" name="action" value="claim_commission">
-                                <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm d-flex align-items-center justify-content-center gap-2">
-                                    <i class="fa-solid fa-arrow-down-to-bracket"></i> Quy đổi hoa hồng vào số dư ví
+                                <input type="hidden" name="action" value="claim_key_reward">
+                                <button type="submit" class="btn-claim-key" <?= ($availableRewardDays <= 0) ? 'disabled' : '' ?>>
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <?php if ($availableRewardDays > 0): ?>
+                                        Quy đổi ngay <?= $availableRewardDays ?> Ngày Key VIP
+                                    <?php else: ?>
+                                        Chưa có lượt mới để đổi
+                                    <?php endif; ?>
                                 </button>
                             </form>
                         </div>
@@ -1533,65 +1616,69 @@ $csrfToken = get_csrf_token();
 
             <!-- 4 Thẻ thống kê KPI -->
             <div class="stats-grid">
-                <!-- Tổng hoa hồng -->
+                <!-- Key VIP khả dụng -->
                 <div class="stat-card">
-                    <div class="stat-icon-wrapper icon-green">
-                        <i class="fa-solid fa-sack-dollar"></i>
+                    <div class="stat-icon-wrapper icon-gold">
+                        <i class="fa-solid fa-key"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-label">Tổng hoa hồng đã nhận</div>
-                        <div class="stat-number text-success"><?= format_currency($refStats['total_commission_earned']) ?></div>
+                        <div class="stat-label">Key VIP chờ quy đổi</div>
+                        <div class="stat-number text-warning" style="color: #d97706 !important;">
+                            +<?= $availableRewardDays ?> <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Ngày</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Số lượng F1 -->
+                <!-- Bạn bè chưa quy đổi -->
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper icon-purple">
+                        <i class="fa-solid fa-user-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Bạn bè chờ nhận thưởng</div>
+                        <div class="stat-number text-dark">
+                            <?= $availableF1Count ?> <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Người</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tổng ngày Key đã từng nhận -->
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper icon-green">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Tổng Key VIP đã nhận</div>
+                        <div class="stat-number text-success">
+                            <?= $totalClaimedDays ?> <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Ngày</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tổng bạn bè từ trước đến nay -->
                 <div class="stat-card">
                     <div class="stat-icon-wrapper icon-blue">
                         <i class="fa-solid fa-users"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-label">Thành viên đã giới thiệu</div>
-                        <div class="stat-number text-primary"><?= number_format($totalF1Count) ?> <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">người</span></div>
-                    </div>
-                </div>
-
-                <!-- Hoa hồng tháng này -->
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper icon-purple">
-                        <i class="fa-solid fa-chart-line"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-label">Hoa hồng tháng này</div>
-                        <div class="stat-number text-dark"><?= format_currency($monthCommission) ?></div>
-                    </div>
-                </div>
-
-                <!-- Cấp bậc & Chiết khấu -->
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper icon-amber">
-                        <i class="fa-solid <?= $tierIcon ?>"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-label">Cấp bậc & Tỷ lệ</div>
-                        <div class="d-flex align-items-center gap-2 mt-1">
-                            <span class="badge <?= $tierBadgeClass ?> px-2 py-1 fw-bold" style="font-size: 0.82rem;">
-                                <?= htmlspecialchars($tierName) ?> (<?= $commissionRate ?>%)
-                            </span>
+                        <div class="stat-label">Tổng bạn bè đã mời</div>
+                        <div class="stat-number text-primary">
+                            <?= $totalReferralsCount ?> <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Người</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Quy trình kiếm tiền 3 bước -->
+            <!-- Quy trình 3 bước nhận Key VIP -->
             <div class="steps-card">
-                <h5 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-circle-nodes text-primary me-2"></i>Quy trình 3 bước nhận hoa hồng thụ động</h5>
+                <h5 class="fw-bold mb-4 text-dark"><i class="fa-solid fa-circle-nodes text-primary me-2"></i>Quy tắc nhận Key VIP đơn giản & minh bạch</h5>
                 <div class="row g-4">
                     <div class="col-md-4">
                         <div class="step-item">
                             <div class="step-circle">1</div>
                             <div>
-                                <h6 class="fw-bold mb-1">Lấy link hoặc mã QR</h6>
-                                <p class="text-muted small mb-0">Sao chép đường link liên kết hoặc tải mã QR giới thiệu được cấp riêng cho bạn.</p>
+                                <h6 class="fw-bold mb-1">Mời bạn bè tham gia</h6>
+                                <p class="text-muted small mb-0">Chia sẻ đường link hoặc mã giới thiệu UID cho bạn bè đăng ký tài khoản mới.</p>
                             </div>
                         </div>
                     </div>
@@ -1599,8 +1686,8 @@ $csrfToken = get_csrf_token();
                         <div class="step-item">
                             <div class="step-circle">2</div>
                             <div>
-                                <h6 class="fw-bold mb-1">Chia sẻ cho bạn bè</h6>
-                                <p class="text-muted small mb-0">Gửi cho bạn bè hoặc cộng đồng cày xu Golike đăng ký tài khoản tham gia hệ thống.</p>
+                                <h6 class="fw-bold mb-1">Tích lũy 1 Ngày / Người</h6>
+                                <p class="text-muted small mb-0">Cứ mỗi bạn bè tham gia thành công, hệ thống tự động cộng dồn <strong>+1 Ngày Key VIP</strong>.</p>
                             </div>
                         </div>
                     </div>
@@ -1608,87 +1695,96 @@ $csrfToken = get_csrf_token();
                         <div class="step-item">
                             <div class="step-circle">3</div>
                             <div>
-                                <h6 class="fw-bold mb-1">Nhận hoa hồng trọn đời</h6>
-                                <p class="text-muted small mb-0">Hệ thống trích ngay 10% - 20% mỗi khi bạn bè thanh toán mua Key bản quyền hoặc thuê Cloud.</p>
+                                <h6 class="fw-bold mb-1">Quy đổi Key VIP Bản Quyền</h6>
+                                <p class="text-muted small mb-0">Bấm nút quy đổi để tạo ngay mã Key VIP với tổng số ngày tương ứng để sử dụng cày xu.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bảng Dữ Liệu: Tabs Chuyển Đổi (Lịch Sử Hoa Hồng & Danh Sách Bạn Bè) -->
+            <!-- Bảng Dữ Liệu: Tabs Chuyển Đổi (Lịch Sử Nhận Key & Danh Sách Bạn Bè) -->
             <div class="history-card">
                 <div class="referral-tabs">
-                    <button type="button" class="tab-btn active" onclick="switchReferralTab('commissions', this)">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử nhận hoa hồng
-                        <span class="tab-badge"><?= count($commissionHistory) ?></span>
+                    <button type="button" class="tab-btn active" onclick="switchReferralTab('claims', this)">
+                        <i class="fa-solid fa-key"></i> Lịch sử quy đổi Key VIP
+                        <span class="tab-badge"><?= count($claimsHistory) ?></span>
                     </button>
                     <button type="button" class="tab-btn" onclick="switchReferralTab('members', this)">
-                        <i class="fa-solid fa-user-group"></i> Bạn bè đã giới thiệu (F1)
+                        <i class="fa-solid fa-user-group"></i> Danh sách bạn bè đã giới thiệu (F1)
                         <span class="tab-badge"><?= count($referredUsers) ?></span>
                     </button>
                 </div>
 
-                <!-- Tab 1: Lịch sử nhận hoa hồng -->
-                <div id="tabCommissions" class="tab-content-panel active">
-                    <?php if (empty($commissionHistory)): ?>
+                <!-- Tab 1: Lịch sử nhận Key VIP -->
+                <div id="tabClaims" class="tab-content-panel active">
+                    <?php if (empty($claimsHistory)): ?>
                         <div class="text-center py-5">
                             <div class="mb-3 text-muted" style="font-size: 3rem;">
-                                <i class="fa-solid fa-receipt"></i>
+                                <i class="fa-solid fa-ticket"></i>
                             </div>
-                            <h6 class="fw-bold text-dark">Chưa có giao dịch hoa hồng nào</h6>
-                            <p class="text-muted small">Khi bạn bè của bạn phát sinh đơn hàng, các khoản hoa hồng sẽ hiển thị chi tiết tại đây.</p>
+                            <h6 class="fw-bold text-dark">Chưa có lần quy đổi Key VIP nào</h6>
+                            <p class="text-muted small">Khi bạn có bạn bè mới tham gia và bấm nút quy đổi, mã Key VIP sẽ xuất hiện chi tiết tại đây.</p>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
                             <table class="table-custom">
                                 <thead>
                                     <tr>
-                                        <th>Mã Đơn / Giao Dịch</th>
-                                        <th>Thành Viên (F1)</th>
-                                        <th>Dịch Vụ</th>
-                                        <th>Giá Trị Đơn</th>
-                                        <th>% Hoa Hồng</th>
-                                        <th>Hoa Hồng Nhận</th>
-                                        <th>Thời Gian</th>
+                                        <th>Mã Đơn Quy Đổi</th>
+                                        <th>Mã Key VIP Bản Quyền</th>
+                                        <th>Số Bạn Bè Đổi</th>
+                                        <th>Thời Hạn Key</th>
+                                        <th>Hạn Dùng Đến</th>
+                                        <th>Thời Gian Đổi</th>
                                         <th>Trạng Thái</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($commissionHistory as $comm): ?>
+                                    <?php foreach ($claimsHistory as $claim): ?>
+                                    <?php 
+                                        $isExpired = (strtotime($claim['expires_at']) < time());
+                                    ?>
                                     <tr>
                                         <td>
                                             <span class="fw-bold font-monospace text-primary">
-                                                #<?= htmlspecialchars($comm['order_code'] ?? ('ORD-' . $comm['id'])) ?>
+                                                #<?= htmlspecialchars($claim['claim_code']) ?>
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="fw-semibold text-dark"><?= htmlspecialchars($comm['referee_name'] ?? 'Ẩn danh') ?></div>
-                                                <span class="badge bg-light text-muted font-monospace" style="font-size: 0.7rem;">#<?= htmlspecialchars($comm['referee_uid'] ?? '') ?></span>
+                                            <div class="key-code-box">
+                                                <span><?= htmlspecialchars($claim['license_key']) ?></span>
+                                                <button type="button" class="btn-copy-mini" onclick="copyKey('<?= htmlspecialchars($claim['license_key']) ?>')" title="Sao chép Key">
+                                                    <i class="fa-regular fa-copy"></i>
+                                                </button>
                                             </div>
                                         </td>
                                         <td>
-                                            <?php if ($comm['service_type'] === 'buy_key'): ?>
-                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="fa-solid fa-key me-1"></i> Mua Key</span>
-                                            <?php elseif ($comm['service_type'] === 'cloud'): ?>
-                                                <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fa-solid fa-cloud me-1"></i> Thuê Cloud</span>
+                                            <span class="badge bg-light text-dark border fw-bold px-2 py-1">
+                                                <?= (int)$claim['referred_count'] ?> người
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-purple font-monospace" style="color: #7e22ce;">
+                                                +<?= (int)$claim['reward_days'] ?> Ngày VIP
+                                            </span>
+                                        </td>
+                                        <td class="text-muted small font-monospace">
+                                            <?= date('d/m/Y H:i', strtotime($claim['expires_at'])) ?>
+                                        </td>
+                                        <td class="text-muted small">
+                                            <?= date('d/m/Y H:i', strtotime($claim['created_at'])) ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($isExpired): ?>
+                                                <span class="status-pill" style="background: #f1f5f9; color: #64748b;">
+                                                    <i class="fa-solid fa-clock-rotate-left"></i> Đã hết hạn
+                                                </span>
                                             <?php else: ?>
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-wallet me-1"></i> Nạp tiền</span>
+                                                <span class="status-pill status-completed">
+                                                    <i class="fa-solid fa-circle-check"></i> Đang hoạt động
+                                                </span>
                                             <?php endif; ?>
-                                        </td>
-                                        <td class="font-monospace text-muted"><?= format_currency($comm['order_amount']) ?></td>
-                                        <td><span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold"><?= (float)$comm['commission_rate'] ?>%</span></td>
-                                        <td>
-                                            <span class="fw-bold text-success font-monospace">
-                                                +<?= format_currency($comm['commission_amount']) ?>
-                                            </span>
-                                        </td>
-                                        <td class="text-muted small"><?= date('d/m/Y H:i', strtotime($comm['created_at'])) ?></td>
-                                        <td>
-                                            <span class="status-pill status-completed">
-                                                <i class="fa-solid fa-circle-check"></i> Đã cộng
-                                            </span>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -1698,7 +1794,7 @@ $csrfToken = get_csrf_token();
                     <?php endif; ?>
                 </div>
 
-                <!-- Tab 2: Danh sách bạn bè đã giới thiệu -->
+                <!-- Tab 2: Danh sách bạn bè đã giới thiệu (F1) -->
                 <div id="tabMembers" class="tab-content-panel">
                     <?php if (empty($referredUsers)): ?>
                         <div class="text-center py-5">
@@ -1706,20 +1802,19 @@ $csrfToken = get_csrf_token();
                                 <i class="fa-solid fa-user-plus"></i>
                             </div>
                             <h6 class="fw-bold text-dark">Bạn chưa có thành viên F1 nào</h6>
-                            <p class="text-muted small">Hãy sao chép link giới thiệu bên trên và gửi cho bạn bè để bắt đầu nhận hoa hồng.</p>
+                            <p class="text-muted small">Hãy sao chép link giới thiệu bên trên và gửi cho bạn bè để bắt đầu tích lũy ngày Key VIP.</p>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
                             <table class="table-custom">
                                 <thead>
                                     <tr>
-                                        <th>Thành Viên</th>
+                                        <th>Thành Viên (F1)</th>
                                         <th>Tên Người Dùng</th>
                                         <th>Mã UID</th>
                                         <th>Ngày Tham Gia</th>
-                                        <th>Hoa Hồng Mang Lại</th>
-                                        <th>Tỷ Lệ Áp Dụng</th>
-                                        <th>Trạng Thái</th>
+                                        <th>Phần Thưởng</th>
+                                        <th>Trạng Thái Quy Đổi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1737,12 +1832,21 @@ $csrfToken = get_csrf_token();
                                         <td class="text-muted small font-monospace"><?= htmlspecialchars($f1['username']) ?></td>
                                         <td><span class="badge bg-light text-primary border font-monospace">#<?= htmlspecialchars($f1['uid']) ?></span></td>
                                         <td class="text-muted small"><?= date('d/m/Y H:i', strtotime($f1['joined_at'])) ?></td>
-                                        <td class="fw-bold text-success font-monospace">+<?= format_currency($f1['f1_commission']) ?></td>
-                                        <td><span class="badge bg-primary-subtle text-primary"><?= (float)$f1['commission_rate'] ?>%</span></td>
                                         <td>
-                                            <span class="status-pill status-active">
-                                                <i class="fa-solid fa-circle"></i> Đang hoạt động
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold">
+                                                +1 Ngày Key VIP
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if ((int)$f1['is_claimed'] === 1): ?>
+                                                <span class="status-pill status-completed" title="Đã nhận thưởng vào đơn #<?= htmlspecialchars($f1['claim_order_code'] ?? '') ?>">
+                                                    <i class="fa-solid fa-circle-check"></i> Đã nhận thưởng Key
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="status-pill status-pending" title="Chưa quy đổi, sẵn sàng nhận">
+                                                    <i class="fa-solid fa-clock"></i> Chưa quy đổi (Sẵn sàng)
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -1770,7 +1874,6 @@ $csrfToken = get_csrf_token();
                     <p class="text-muted small mb-3">Mở camera trên điện thoại và quét mã bên dưới để mở ngay liên kết đăng ký thành viên:</p>
                     
                     <div class="qr-image-wrapper">
-                        <!-- Sử dụng API sinh mã QR độ nét cao trực tuyến -->
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=<?= urlencode($referralUrl) ?>&margin=1" 
                              alt="Referral QR Code" 
                              class="img-fluid"
@@ -1803,7 +1906,7 @@ $csrfToken = get_csrf_token();
 
     <script>
         // ==========================================================
-        // SAO CHÉP LIÊN KẾT GIỚI THIỆU & MÃ UID
+        // SAO CHÉP LIÊN KẾT & MÃ KEY
         // ==========================================================
         function copyReferralLink() {
             const urlText = document.getElementById('refUrlText').innerText;
@@ -1830,6 +1933,20 @@ $csrfToken = get_csrf_token();
             });
         }
 
+        function copyKey(keyText) {
+            navigator.clipboard.writeText(keyText).then(() => {
+                showSvgAlert('Đã sao chép mã Key VIP: <strong class="text-primary font-monospace">' + keyText + '</strong><br>Bạn có thể dán vào Tool Golike để sử dụng ngay.', 'Sao chép thành công', 'success');
+            });
+        }
+
+        function confirmRedeemKey(days) {
+            if (days <= 0) {
+                showSvgAlert('Bạn chưa có bạn bè mới nào chưa quy đổi để nhận thưởng.', 'Chưa đủ điều kiện', 'info');
+                return false;
+            }
+            return confirm('Bạn có chắc chắn muốn quy đổi ' + days + ' bạn bè thành ' + days + ' ngày Key VIP bản quyền không?');
+        }
+
         // ==========================================================
         // CHUYỂN ĐỔI TAB BẢNG DỮ LIỆU
         // ==========================================================
@@ -1839,8 +1956,8 @@ $csrfToken = get_csrf_token();
 
             if (btnElement) btnElement.classList.add('active');
 
-            if (tabKey === 'commissions') {
-                document.getElementById('tabCommissions').classList.add('active');
+            if (tabKey === 'claims') {
+                document.getElementById('tabClaims').classList.add('active');
             } else if (tabKey === 'members') {
                 document.getElementById('tabMembers').classList.add('active');
             }

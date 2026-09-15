@@ -123,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($referrer) {
                     try {
                         $stmtInsertRef = $pdo->prepare("
-                            INSERT INTO referrals (referrer_uuid, referee_uuid, commission_rate, total_commission, status)
-                            VALUES (?, ?, 10.00, 0.00, 'Active')
+                            INSERT INTO referrals (referrer_uuid, referee_uuid, reward_days, is_claimed, status)
+                            VALUES (?, ?, 1, 0, 'Active')
                         ");
                         $stmtInsertRef->execute([$referrer['uuid'], $uuid]);
                         unset($_SESSION['referral_ref']);
