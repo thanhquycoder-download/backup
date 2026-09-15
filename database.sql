@@ -160,19 +160,23 @@ CREATE TABLE IF NOT EXISTS `key_orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 7. Bảng: referrals (Quản lý liên kết người giới thiệu & thành viên F1)
+-- 7. Bảng: referrals (Quản lý liên kết người giới thiệu & trạng thái nhận Key VIP)
+-- Quy tắc: 1 người tham gia = thưởng 1 ngày Key VIP
 -- ----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `referrals` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `referrer_uuid` CHAR(36) NOT NULL COMMENT 'Người giới thiệu (bảng users.uuid)',
-    `referee_uuid` CHAR(36) NOT NULL UNIQUE COMMENT 'Người được giới thiệu (bảng users.uuid - mỗi người chỉ có 1 người giới thiệu)',
-    `commission_rate` DECIMAL(5, 2) NOT NULL DEFAULT 10.00 COMMENT 'Tỉ lệ hoa hồng mặc định (%)',
-    `total_commission` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Tổng hoa hồng tích lũy đã nhận từ thành viên này (VND)',
+    `referrer_uuid` CHAR(36) NOT NULL COMMENT 'Người giới thiệu (users.uuid)',
+    `referee_uuid` CHAR(36) NOT NULL UNIQUE COMMENT 'Người được giới thiệu (users.uuid - mỗi người chỉ có 1 người giới thiệu)',
+    `reward_days` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Số ngày thưởng Key VIP cho mỗi người (mặc định 1 ngày)',
+    `is_claimed` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0: Chưa quy đổi Key, 1: Đã quy đổi nhận Key',
+    `claimed_at` DATETIME DEFAULT NULL COMMENT 'Thời điểm quy đổi Key',
+    `claim_order_code` VARCHAR(50) DEFAULT NULL COMMENT 'Mã đơn Key quy đổi liên kết',
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái hoạt động',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm đăng ký qua mã giới thiệu',
     
     INDEX `idx_ref_referrer` (`referrer_uuid`),
     INDEX `idx_ref_referee` (`referee_uuid`),
+    INDEX `idx_ref_is_claimed` (`is_claimed`),
     INDEX `idx_ref_status` (`status`),
     CONSTRAINT `fk_referrals_referrer`
         FOREIGN KEY (`referrer_uuid`) REFERENCES `users` (`uuid`)
@@ -183,31 +187,25 @@ CREATE TABLE IF NOT EXISTS `referrals` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 8. Bảng: referral_commissions (Lịch sử nhận hoa hồng chi tiết)
+-- 8. Bảng: referral_claims (Lịch sử các đợt quy đổi Key VIP từ bạn bè giới thiệu)
 -- ----------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `referral_commissions` (
+CREATE TABLE IF NOT EXISTS `referral_claims` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `referrer_uuid` CHAR(36) NOT NULL COMMENT 'Người nhận hoa hồng (users.uuid)',
-    `referee_uuid` CHAR(36) NOT NULL COMMENT 'Người phát sinh đơn hàng (users.uuid)',
-    `order_code` VARCHAR(50) DEFAULT NULL COMMENT 'Mã đơn hàng phát sinh hoa hồng (VD: #ORD-..., PAY-...)',
-    `service_type` ENUM('buy_key', 'cloud', 'deposit', 'other') NOT NULL DEFAULT 'buy_key' COMMENT 'Dịch vụ phát sinh giao dịch',
-    `order_amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Giá trị đơn hàng gốc (VND)',
-    `commission_rate` DECIMAL(5, 2) NOT NULL DEFAULT 10.00 COMMENT 'Tỉ lệ hoa hồng áp dụng (%)',
-    `commission_amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Số tiền hoa hồng nhận được (VND)',
-    `status` ENUM('Pending', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Completed' COMMENT 'Trạng thái cộng hoa hồng',
-    `note` VARCHAR(255) DEFAULT NULL COMMENT 'Ghi chú giao dịch hoa hồng',
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm phát sinh',
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Người nhận Key VIP (users.uuid)',
+    `claim_code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã đơn quy đổi (#REF-KEY-XXXXXX)',
+    `referred_count` INT UNSIGNED NOT NULL COMMENT 'Số lượng bạn bè quy đổi đợt này',
+    `reward_days` INT UNSIGNED NOT NULL COMMENT 'Tổng số ngày Key VIP nhận được (= referred_count * 1)',
+    `license_key` VARCHAR(100) NOT NULL UNIQUE COMMENT 'Mã Key VIP bản quyền được tạo',
+    `expires_at` DATETIME NOT NULL COMMENT 'Thời hạn hết hạn của Key',
+    `status` ENUM('Active', 'Expired') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái Key',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm quy đổi',
     
-    INDEX `idx_rc_referrer` (`referrer_uuid`),
-    INDEX `idx_rc_referee` (`referee_uuid`),
-    INDEX `idx_rc_order_code` (`order_code`),
+    INDEX `idx_rc_user_uuid` (`user_uuid`),
+    INDEX `idx_rc_claim_code` (`claim_code`),
+    INDEX `idx_rc_license_key` (`license_key`),
     INDEX `idx_rc_status` (`status`),
-    INDEX `idx_rc_created_at` (`created_at`),
-    CONSTRAINT `fk_rc_referrer`
-        FOREIGN KEY (`referrer_uuid`) REFERENCES `users` (`uuid`)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT `fk_rc_referee`
-        FOREIGN KEY (`referee_uuid`) REFERENCES `users` (`uuid`)
+    CONSTRAINT `fk_rc_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
