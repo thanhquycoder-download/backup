@@ -1275,7 +1275,7 @@ $csrfToken = get_csrf_token();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span class="text-dark">Tech</span>
+                    <span>ThanhQuy</span><span class="brand-tech-suffix">Tech</span>
                 </div>
             </a>
         </div>
@@ -1322,23 +1322,40 @@ $csrfToken = get_csrf_token();
                         </div>
                     </div>
 
+                    <!-- Khung xem số dư và nạp tiền nhanh trong popup -->
+                    <div class="p-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div>
+                            <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
+                            <div class="fw-bold" style="color: #15803d; font-size: 0.95rem;"><?= format_currency($currentUser['balance']) ?></div>
+                        </div>
+                        <a href="/payments/deposit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-arrow-down me-1"></i> Nạp tiền
+                        </a>
+                    </div>
+
+                    <!-- Các mục điều hướng -->
                     <div class="d-flex flex-column gap-1">
                         <a href="profile.php" class="popup-menu-item">
-                            <i class="fa-solid fa-user-circle me-2 text-primary"></i> Xem hồ sơ cá nhân
+                            <i class="fa-solid fa-id-card text-primary me-2"></i> Hồ sơ cá nhân
+                        </a>
+                        <a href="index.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gauge-high text-info me-2"></i> Bảng tổng quan
                         </a>
                         <a href="buy-key.php" class="popup-menu-item">
-                            <i class="fa-solid fa-key me-2 text-warning"></i> Quản lý Key bản quyền
+                            <i class="fa-solid fa-key text-warning me-2"></i> Mua key bản quyền
                         </a>
                         <a href="cloud.php" class="popup-menu-item">
-                            <i class="fa-solid fa-cloud me-2 text-info"></i> Thuê máy chủ Cloud
+                            <i class="fa-solid fa-cloud text-info me-2"></i> Thuê cloud
                         </a>
-                        <a href="referral.php" class="popup-menu-item fw-bold text-primary">
-                            <i class="fa-solid fa-share-nodes me-2 text-primary"></i> Tiếp thị & Giới thiệu
+                        <?php if ($isAdmin): ?>
+                        <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
+                            <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
                         </a>
-                        <div class="border-top my-2"></div>
-                        <a href="logout.php" class="popup-menu-item text-danger">
+                        <?php endif; ?>
+                        <hr class="my-2 border-secondary-subtle">
+                        <button type="button" class="popup-menu-item text-danger text-start border-0 bg-transparent w-100" onclick="closeUserPopup(); confirmLogout();">
                             <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

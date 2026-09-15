@@ -1399,23 +1399,13 @@ $csrfToken = get_csrf_token();
         .svg-warning .svg-question { stroke: #f59e0b; }
         .svg-warning .svg-question-dot { fill: #f59e0b; }
 
-        /* Hỗ trợ Đóng/Mở Sidebar trên Desktop (Màn hình lớn) */
-        body.sidebar-collapsed .app-sidebar {
-            transform: translateX(-100%) !important;
-        }
-        body.sidebar-collapsed .app-main {
-            margin-left: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
         /* Responsive Mobile & Tablet chuẩn index.php */
         @media (max-width: 991.98px) {
             .app-sidebar {
                 transform: translateX(-100%);
             }
             .app-sidebar.sidebar-open {
-                transform: translateX(0) !important;
+                transform: translateX(0);
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             }
             .app-main {
@@ -1759,7 +1749,7 @@ $csrfToken = get_csrf_token();
         </ul>
     </aside>
 
-    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAppSidebar()"></div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <!-- KHU VỰC NỘI DUNG CHÍNH (APP MAIN) -->
     <main class="app-main">
@@ -2083,67 +2073,7 @@ $csrfToken = get_csrf_token();
         }
 
         // ==========================================================
-        // SIDEBAR TOGGLE (MOBILE & DESKTOP)
-        // ==========================================================
-        function toggleAppSidebar(e) {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            const appSidebar = document.getElementById('appSidebar');
-            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-            if (window.innerWidth <= 991.98) {
-                // Mobile & Tablet
-                if (appSidebar) appSidebar.classList.toggle('sidebar-open');
-                if (sidebarBackdrop) sidebarBackdrop.classList.toggle('active');
-            } else {
-                // Desktop
-                document.body.classList.toggle('sidebar-collapsed');
-            }
-        }
-
-        function closeAppSidebar() {
-            const appSidebar = document.getElementById('appSidebar');
-            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-            if (appSidebar) appSidebar.classList.remove('sidebar-open');
-            if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
-        }
-
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const appSidebar = document.getElementById('appSidebar');
-        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', toggleAppSidebar);
-        }
-        if (sidebarBackdrop) {
-            sidebarBackdrop.addEventListener('click', closeAppSidebar);
-        }
-
-        // Đảm bảo mở/đóng submenu (Tool Golike, Account, Payment) hoạt động trơn tru 100%
-        document.querySelectorAll('.app-sidebar [data-bs-toggle="collapse"]').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                const targetSelector = this.getAttribute('data-bs-target');
-                if (!targetSelector) return;
-                const targetEl = document.querySelector(targetSelector);
-                if (targetEl) {
-                    setTimeout(() => {
-                        const isShown = targetEl.classList.contains('show');
-                        if (isShown) {
-                            this.classList.remove('collapsed');
-                            this.setAttribute('aria-expanded', 'true');
-                        } else {
-                            this.classList.add('collapsed');
-                            this.setAttribute('aria-expanded', 'false');
-                        }
-                    }, 50);
-                }
-            });
-        });
-
-        // ==========================================================
-        // POPUP HỒ SƠ (AVATAR DROPDOWN)
+        // ĐIỀU KHIỂN BẬT/TẮT BẢNG POPUP HỒ SƠ
         // ==========================================================
         function toggleUserPopup(e) {
             if (e) {
@@ -2151,23 +2081,56 @@ $csrfToken = get_csrf_token();
                 e.stopPropagation();
             }
             const popup = document.getElementById('userProfilePopup');
-            if (popup) popup.classList.toggle('active');
+            const toggle = document.getElementById('userProfileToggle');
+            if (!popup) return;
+            const isOpen = popup.classList.contains('active');
+            if (isOpen) {
+                popup.classList.remove('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            } else {
+                popup.classList.add('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'true');
+            }
         }
 
         function closeUserPopup() {
             const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
             if (popup) popup.classList.remove('active');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
         }
 
-        document.addEventListener('click', function(e) {
-            const popup = document.getElementById('userProfilePopup');
-            const toggle = document.getElementById('userProfileToggle');
-            if (popup && popup.classList.contains('active')) {
-                if (!popup.contains(e.target) && (!toggle || !toggle.contains(e.target))) {
-                    popup.classList.remove('active');
-                }
+        document.addEventListener('click', function (e) {
+            const container = document.getElementById('userDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                closeUserPopup();
             }
         });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeUserPopup();
+            }
+        });
+
+        // ==========================================================
+        // ĐIỀU KHIỂN ĐÓNG/MỞ SIDEBAR (MOBILE & DESKTOP)
+        // ==========================================================
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const appSidebar = document.getElementById('appSidebar');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+        if (sidebarToggle && appSidebar && sidebarBackdrop) {
+            sidebarToggle.addEventListener('click', () => {
+                appSidebar.classList.toggle('sidebar-open');
+                sidebarBackdrop.classList.toggle('active');
+            });
+
+            sidebarBackdrop.addEventListener('click', () => {
+                appSidebar.classList.remove('sidebar-open');
+                sidebarBackdrop.classList.remove('active');
+            });
+        }
 
         // ==========================================================
         // SVG TEMPLATES

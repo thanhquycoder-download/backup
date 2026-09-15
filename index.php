@@ -1280,7 +1280,7 @@ $flash = get_flash();
      * ========================================================== -->
     <header class="app-header">
         <div class="header-left">
-            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Menu">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Đóng/Mở Menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="index.php" class="brand-logo">
@@ -1351,6 +1351,15 @@ $flash = get_flash();
                     <div class="d-flex flex-column gap-1">
                         <a href="profile.php" class="popup-menu-item">
                             <i class="fa-solid fa-id-card text-primary me-2"></i> Hồ sơ cá nhân
+                        </a>
+                        <a href="index.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gauge-high text-info me-2"></i> Bảng tổng quan
+                        </a>
+                        <a href="buy-key.php" class="popup-menu-item">
+                            <i class="fa-solid fa-key text-warning me-2"></i> Mua key bản quyền
+                        </a>
+                        <a href="cloud.php" class="popup-menu-item">
+                            <i class="fa-solid fa-cloud text-info me-2"></i> Thuê cloud
                         </a>
                         <?php if ($isAdmin): ?>
                         <button type="button" class="popup-menu-item text-start border-0 bg-transparent w-100" data-bs-toggle="modal" data-bs-target="#adminPlatformModal" onclick="closeUserPopup()">

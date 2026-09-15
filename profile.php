@@ -993,7 +993,7 @@ $flash = get_flash();
      * ========================================================== -->
     <header class="app-header">
         <div class="header-left">
-            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Menu">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Đóng/Mở Menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <a href="index.php" class="brand-logo">
@@ -1068,6 +1068,17 @@ $flash = get_flash();
                         <a href="index.php" class="popup-menu-item">
                             <i class="fa-solid fa-gauge-high text-info me-2"></i> Bảng tổng quan
                         </a>
+                        <a href="buy-key.php" class="popup-menu-item">
+                            <i class="fa-solid fa-key text-warning me-2"></i> Mua key bản quyền
+                        </a>
+                        <a href="cloud.php" class="popup-menu-item">
+                            <i class="fa-solid fa-cloud text-info me-2"></i> Thuê cloud
+                        </a>
+                        <?php if ($isAdmin): ?>
+                        <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
+                            <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
+                        </a>
+                        <?php endif; ?>
                         <hr class="my-2 border-secondary-subtle">
                         <button type="button" class="popup-menu-item text-danger text-start border-0 bg-transparent w-100" onclick="closeUserPopup(); confirmLogout();">
                             <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
