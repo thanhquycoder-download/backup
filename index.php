@@ -1196,26 +1196,6 @@ $flash = get_flash();
                 min-width: 260px !important;
             }
         }
-
-        @media (max-width: 360px) {
-            .app-header {
-                padding: 0 4px !important;
-            }
-            .brand-name {
-                font-size: 0.82rem !important;
-            }
-            .header-balance-card {
-                padding: 2px 4px !important;
-                gap: 3px !important;
-            }
-            .balance-val {
-                font-size: 0.68rem !important;
-            }
-            .user-avatar-small {
-                width: 26px !important;
-                height: 26px !important;
-            }
-        }
     </style>
     <script>
         function toggleAppSidebar(e) {
