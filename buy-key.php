@@ -71,8 +71,8 @@ $PACKAGES = [
         'name'        => 'Gói Key 1 Ngày',
         'days'        => 1,
         'price'       => 1000,
-        'badge'       => 'Trải nghiệm',
-        'badge_class' => 'bg-secondary',
+        'badge'       => 'Phổ biến',
+        'badge_class' => 'badge-popular',
         'popular'     => false,
         'features'    => [
             'Bản quyền kích hoạt Tool Golike 24 giờ',
@@ -88,7 +88,7 @@ $PACKAGES = [
         'days'        => 3,
         'price'       => 3000,
         'badge'       => 'Tiết kiệm',
-        'badge_class' => 'bg-info',
+        'badge_class' => 'badge-key-save',
         'popular'     => false,
         'features'    => [
             'Bản quyền kích hoạt Tool Golike liên tục 72 giờ (3 ngày)',
@@ -103,8 +103,8 @@ $PACKAGES = [
         'name'        => 'Gói Key 1 Tuần',
         'days'        => 7,
         'price'       => 7000,
-        'badge'       => 'Phổ biến nhất',
-        'badge_class' => 'bg-primary',
+        'badge'       => 'Phổ biến',
+        'badge_class' => 'badge-popular',
         'popular'     => true,
         'features'    => [
             'Bản quyền kích hoạt Tool Golike trọn vẹn 7 ngày',
@@ -120,7 +120,7 @@ $PACKAGES = [
         'days'        => 30,
         'price'       => 30000,
         'badge'       => 'Bán chạy',
-        'badge_class' => 'bg-success',
+        'badge_class' => 'badge-key-hot',
         'popular'     => false,
         'features'    => [
             'Bản quyền kích hoạt trọn vẹn 30 ngày (1 tháng)',
@@ -136,7 +136,7 @@ $PACKAGES = [
         'days'        => 90,
         'price'       => 90000,
         'badge'       => 'Siêu ưu đãi',
-        'badge_class' => 'bg-warning text-dark',
+        'badge_class' => 'badge-key-vip',
         'popular'     => false,
         'features'    => [
             'Bản quyền kích hoạt dài hạn 90 ngày (3 tháng)',
@@ -153,8 +153,8 @@ $PACKAGES = [
         'name'        => 'Combo 1 Ngày (Key + Treo Cloud)',
         'days'        => 1,
         'price'       => 4000,
-        'badge'       => 'Trải nghiệm Cloud',
-        'badge_class' => 'bg-secondary',
+        'badge'       => 'Hot Combo',
+        'badge_class' => 'badge-combo-hot',
         'popular'     => false,
         'features'    => [
             'Bản quyền Key Tool Golike 24 giờ',
@@ -169,8 +169,8 @@ $PACKAGES = [
         'name'        => 'Combo 3 Ngày (Key + Treo Cloud)',
         'days'        => 3,
         'price'       => 12000,
-        'badge'       => 'Tiện lợi',
-        'badge_class' => 'bg-info',
+        'badge'       => 'Hot Combo',
+        'badge_class' => 'badge-combo-hot',
         'popular'     => false,
         'features'    => [
             'Bản quyền Key + Treo máy chủ Cloud 72 giờ',
@@ -185,8 +185,8 @@ $PACKAGES = [
         'name'        => 'Combo 1 Tuần (Key + Treo Cloud)',
         'days'        => 7,
         'price'       => 28000,
-        'badge'       => 'Khuyên dùng',
-        'badge_class' => 'bg-primary',
+        'badge'       => 'Hot Combo',
+        'badge_class' => 'badge-combo-hot',
         'popular'     => true,
         'features'    => [
             'Trọn gói Key + Cloud 7 ngày tự động hoá 100%',
@@ -201,8 +201,8 @@ $PACKAGES = [
         'name'        => 'Combo 1 Tháng (Key + Treo Cloud)',
         'days'        => 30,
         'price'       => 120000,
-        'badge'       => 'Cao cấp VIP',
-        'badge_class' => 'bg-success',
+        'badge'       => 'VIP Combo',
+        'badge_class' => 'badge-combo-vip',
         'popular'     => false,
         'features'    => [
             'Treo ngầm trọn gói 30 ngày trên máy chủ riêng biệt',
@@ -217,8 +217,8 @@ $PACKAGES = [
         'name'        => 'Combo 3 Tháng (Key + Treo Cloud)',
         'days'        => 90,
         'price'       => 360000,
-        'badge'       => 'Siêu Tiết Kiệm',
-        'badge_class' => 'bg-warning text-dark',
+        'badge'       => 'VIP Combo',
+        'badge_class' => 'badge-combo-vip',
         'popular'     => false,
         'features'    => [
             '90 ngày cày sản lượng ngầm 24/7 hoàn toàn tự động',
