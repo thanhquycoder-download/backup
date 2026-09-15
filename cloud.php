@@ -689,7 +689,9 @@ $csrfToken = get_csrf_token();
             color: #dc2626;
         }
 
-        /* SIDEBAR CỐ ĐỊNH */
+        /* ==========================================================
+         * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI (CHUẨN 1:1 THEO INDEX)
+         * ========================================================== */
         .app-sidebar {
             position: fixed;
             top: 70px;
@@ -706,16 +708,38 @@ $csrfToken = get_csrf_token();
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
         }
 
-        .sidebar-category {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #94a3b8;
-            padding: 12px 14px 6px;
+        .app-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .app-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
         }
 
-        .sidebar-nav-list { list-style: none; padding: 0; margin: 0; }
+        .sidebar-category {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            padding: 12px 14px 6px;
+            margin-top: 4px;
+        }
+
+        .sidebar-nav-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
 
         .sidebar-link {
             display: flex;
@@ -735,7 +759,10 @@ $csrfToken = get_csrf_token();
             cursor: pointer;
         }
 
-        .sidebar-link:hover { background: #f1f5f9; color: var(--primary); }
+        .sidebar-link:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+        }
 
         .sidebar-link.active {
             background: #eef2ff;
@@ -744,7 +771,9 @@ $csrfToken = get_csrf_token();
             font-weight: 700;
         }
 
-        .sidebar-link.active .sidebar-icon { color: var(--primary); }
+        .sidebar-link.active .sidebar-icon {
+            color: var(--primary);
+        }
 
         .sidebar-icon {
             width: 22px;
@@ -752,6 +781,11 @@ $csrfToken = get_csrf_token();
             display: inline-flex;
             justify-content: center;
             color: #64748b;
+            transition: var(--transition);
+        }
+
+        .sidebar-link:hover .sidebar-icon {
+            color: var(--primary);
         }
 
         .sidebar-title {
@@ -761,9 +795,17 @@ $csrfToken = get_csrf_token();
             text-overflow: ellipsis;
         }
 
-        .sidebar-arrow { font-size: 0.72rem; color: #94a3b8; transition: transform 0.25s ease; }
-        .sidebar-link:not(.collapsed) .sidebar-arrow { transform: rotate(180deg); }
+        .sidebar-arrow {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            transition: transform 0.25s ease;
+        }
 
+        .sidebar-link:not(.collapsed) .sidebar-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Submenu accordion */
         .sidebar-submenu {
             list-style: none;
             padding: 4px 0 6px 14px;
@@ -788,8 +830,19 @@ $csrfToken = get_csrf_token();
             transition: var(--transition);
         }
 
-        .submenu-link:hover { color: var(--primary); background: #f8fafc; padding-left: 15px; }
+        .submenu-link:hover {
+            color: var(--primary);
+            background: #f8fafc;
+            padding-left: 15px;
+        }
 
+        .submenu-link.active {
+            color: var(--primary);
+            background: #eef2ff;
+            font-weight: 700;
+        }
+
+        /* Huy hiệu Lịch Sử */
         .badge-history {
             font-size: 0.65rem;
             font-weight: 700;
@@ -798,11 +851,22 @@ $csrfToken = get_csrf_token();
             border: 1px solid #e2e8f0;
             padding: 2px 7px;
             border-radius: 6px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
             display: inline-flex;
             align-items: center;
             gap: 3px;
+            transition: var(--transition);
         }
 
+        .submenu-link:hover .badge-history,
+        .sidebar-link:hover .badge-history {
+            background: #e0e7ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+        }
+
+        /* Backdrop cho mobile */
         .sidebar-backdrop {
             position: fixed;
             inset: 0;
@@ -814,7 +878,10 @@ $csrfToken = get_csrf_token();
             transition: opacity 0.25s ease, visibility 0.25s ease;
         }
 
-        .sidebar-backdrop.active { opacity: 1; visibility: visible; }
+        .sidebar-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
 
         /* NỘI DUNG CHÍNH (APP MAIN) */
         .app-main {
@@ -1332,14 +1399,30 @@ $csrfToken = get_csrf_token();
         .svg-warning .svg-question { stroke: #f59e0b; }
         .svg-warning .svg-question-dot { fill: #f59e0b; }
 
-        /* Mobile Responsive */
-        @media (max-width: 767.98px) {
+        /* Responsive Mobile & Tablet chuẩn index.php */
+        @media (max-width: 991.98px) {
             .app-sidebar {
                 transform: translateX(-100%);
-                top: 56px;
             }
             .app-sidebar.sidebar-open {
                 transform: translateX(0);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            }
+            .app-main {
+                margin-left: 0 !important;
+                margin-top: 56px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 16px 12px 50px !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .app-sidebar {
+                top: 56px;
             }
             .app-main {
                 margin-left: 0 !important;
