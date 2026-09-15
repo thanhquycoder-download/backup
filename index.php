@@ -1367,6 +1367,21 @@ $flash = get_flash();
      * MENU SIDEBAR CỐ ĐỊNH TRÁI
      * ========================================================== -->
     <aside class="app-sidebar" id="appSidebar">
+        <!-- Header cho Sidebar trên Mobile (Loại bỏ hoàn toàn khoảng hở trên đầu) -->
+        <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
+            <a href="index.php" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="brand-name">
+                    ThanhQuy<span>Tech</span>
+                </div>
+            </a>
+            <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
         <div class="sidebar-category">BẢNG ĐIỀU KHIỂN</div>
         <ul class="sidebar-nav-list">
             <!-- Trang chủ -->

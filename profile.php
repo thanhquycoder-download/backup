@@ -812,27 +812,52 @@ $flash = get_flash();
             }
         }
 
+        /* Nút đóng Sidebar trên Mobile */
+        .btn-close-sidebar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-close-sidebar:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
         @media (max-width: 991.98px) {
             .app-sidebar {
                 position: fixed !important;
-                top: 70px;
-                left: 0;
-                bottom: 0;
-                width: 270px !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 280px !important;
                 max-width: 85vw !important;
                 transform: translateX(-100%) !important;
                 transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                z-index: 1050 !important;
+                z-index: 1060 !important;
+                padding: 16px 14px 30px !important;
                 box-shadow: none;
             }
             .app-sidebar.sidebar-open {
                 transform: translateX(0) !important;
-                box-shadow: 4px 0 25px rgba(0, 0, 0, 0.2) !important;
+                box-shadow: 4px 0 30px rgba(0, 0, 0, 0.25) !important;
                 display: block !important;
                 visibility: visible !important;
             }
             .sidebar-backdrop {
-                z-index: 1045 !important;
+                z-index: 1055 !important;
             }
             .app-main {
                 margin-left: 0 !important;
@@ -860,99 +885,25 @@ $flash = get_flash();
                 overflow-x: hidden !important;
                 touch-action: pan-y !important;
             }
+            .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 56px !important;
+                padding: 16px 12px 50px !important;
+            }
             .app-header {
                 height: 56px !important;
                 padding: 0 8px !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                left: 0 !important;
-                right: 0 !important;
-            }
-            .app-sidebar {
-                top: 56px;
-            }
-            .header-left {
-                gap: 4px !important;
-                min-width: 0 !important;
-                flex-shrink: 1 !important;
-            }
-            .brand-logo {
-                gap: 4px !important;
-                min-width: 0 !important;
-            }
-            .brand-icon {
-                width: 26px !important;
-                height: 26px !important;
-                font-size: 0.78rem !important;
-                border-radius: 6px !important;
-                flex-shrink: 0 !important;
             }
             .brand-name {
                 font-size: 0.86rem !important;
-                letter-spacing: -0.3px !important;
-                font-weight: 700 !important;
             }
             .brand-tech-suffix {
                 display: none !important;
             }
-            .sidebar-toggle-btn {
-                width: 30px !important;
-                height: 30px !important;
-                font-size: 0.85rem !important;
-                border-radius: 7px !important;
-                flex-shrink: 0 !important;
-            }
-            .header-right {
-                gap: 5px !important;
-                flex-shrink: 0 !important;
-            }
-            .header-balance-card {
-                padding: 2px 6px !important;
-                gap: 4px !important;
-                border-radius: 20px !important;
-                background: #f0fdf4 !important;
-                border: 1px solid #bbf7d0 !important;
-            }
-            .balance-wallet-icon {
-                width: 18px !important;
-                height: 18px !important;
-                font-size: 0.62rem !important;
-                flex-shrink: 0 !important;
-            }
-            .balance-text-group {
-                display: flex !important;
-                flex-direction: column !important;
-                line-height: 1 !important;
-            }
-            .balance-title {
-                display: none !important;
-            }
-            .balance-val {
-                font-size: 0.72rem !important;
-                white-space: nowrap !important;
-                font-weight: 800 !important;
-            }
-            .balance-add-btn {
-                display: none !important;
-            }
-            .user-profile-toggle {
-                padding: 0 !important;
-                border-radius: 50% !important;
-                background: transparent !important;
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: none !important;
-                gap: 0 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                cursor: pointer !important;
-            }
             .user-avatar-small {
                 width: 28px !important;
                 height: 28px !important;
-                border-width: 1.5px !important;
-                flex-shrink: 0 !important;
-                pointer-events: none !important;
             }
             .user-profile-popup {
                 position: fixed !important;
@@ -978,26 +929,6 @@ $flash = get_flash();
             }
             .stat-box {
                 padding: 14px !important;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .app-header {
-                padding: 0 4px !important;
-            }
-            .brand-name {
-                font-size: 0.82rem !important;
-            }
-            .header-balance-card {
-                padding: 2px 4px !important;
-                gap: 3px !important;
-            }
-            .balance-val {
-                font-size: 0.68rem !important;
-            }
-            .user-avatar-small {
-                width: 26px !important;
-                height: 26px !important;
             }
         }
     </style>
@@ -1149,6 +1080,21 @@ $flash = get_flash();
      * MENU SIDEBAR CỐ ĐỊNH TRÁI
      * ========================================================== -->
     <aside class="app-sidebar" id="appSidebar">
+        <!-- Header cho Sidebar trên Mobile (Loại bỏ hoàn toàn khoảng hở trên đầu) -->
+        <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
+            <a href="index.php" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="brand-name">
+                    ThanhQuy<span>Tech</span>
+                </div>
+            </a>
+            <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
         <div class="sidebar-category">BẢNG ĐIỀU KHIỂN</div>
         <ul class="sidebar-nav-list">
             <!-- Trang chủ -->

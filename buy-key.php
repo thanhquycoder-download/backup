@@ -1445,27 +1445,52 @@ $csrfToken = get_csrf_token();
             }
         }
 
+        /* Nút đóng Sidebar trên Mobile */
+        .btn-close-sidebar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-close-sidebar:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
         @media (max-width: 991.98px) {
             .app-sidebar {
                 position: fixed !important;
-                top: 70px;
-                left: 0;
-                bottom: 0;
-                width: 270px !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 280px !important;
                 max-width: 85vw !important;
                 transform: translateX(-100%) !important;
                 transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                z-index: 1050 !important;
+                z-index: 1060 !important;
+                padding: 16px 14px 30px !important;
                 box-shadow: none;
             }
             .app-sidebar.sidebar-open {
                 transform: translateX(0) !important;
-                box-shadow: 4px 0 25px rgba(0, 0, 0, 0.2) !important;
+                box-shadow: 4px 0 30px rgba(0, 0, 0, 0.25) !important;
                 display: block !important;
                 visibility: visible !important;
             }
             .sidebar-backdrop {
-                z-index: 1045 !important;
+                z-index: 1055 !important;
             }
             .app-main {
                 margin-left: 0 !important;
@@ -1480,9 +1505,6 @@ $csrfToken = get_csrf_token();
         }
 
         @media (max-width: 767.98px) {
-            .app-sidebar {
-                top: 56px !important;
-            }
             .app-main {
                 margin-left: 0 !important;
                 width: 100% !important;
@@ -1665,6 +1687,21 @@ $csrfToken = get_csrf_token();
      * MENU SIDEBAR CỐ ĐỊNH TRÁI
      * ========================================================== -->
     <aside class="app-sidebar" id="appSidebar">
+        <!-- Header cho Sidebar trên Mobile (Loại bỏ hoàn toàn khoảng hở trên đầu) -->
+        <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
+            <a href="index.php" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="brand-name">
+                    ThanhQuy<span>Tech</span>
+                </div>
+            </a>
+            <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
         <div class="sidebar-category">BẢNG ĐIỀU KHIỂN</div>
         <ul class="sidebar-nav-list">
             <!-- Trang chủ -->
