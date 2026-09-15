@@ -9,6 +9,8 @@ USE `thanhquytech_db`;
 
 -- Vô hiệu hóa kiểm tra khóa ngoại tạm thời để xóa sạch các bảng cũ bị lệch cấu trúc (nếu có)
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `support_messages`;
+DROP TABLE IF EXISTS `support_tickets`;
 DROP TABLE IF EXISTS `referral_claims`;
 DROP TABLE IF EXISTS `referrals`;
 DROP TABLE IF EXISTS `key_orders`;
@@ -206,6 +208,55 @@ CREATE TABLE IF NOT EXISTS `referral_claims` (
     INDEX `idx_rc_status` (`status`),
     CONSTRAINT `fk_rc_user_uuid`
         FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+-- ----------------------------------------------------------
+-- 9. Bảng: support_tickets (Quản lý các phiếu yêu cầu hỗ trợ)
+-- Liên kết khóa ngoại với users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_tickets` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Người gửi yêu cầu (users.uuid)',
+    `ticket_code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã phiếu hỗ trợ (#TK-XXXXXX)',
+    `subject` VARCHAR(255) NOT NULL COMMENT 'Tiêu đề vấn đề cần trợ giúp',
+    `category` ENUM('Billing', 'LicenseKey', 'CloudServer', 'GolikeTool', 'Account', 'Other') NOT NULL DEFAULT 'Other' COMMENT 'Danh mục hỗ trợ',
+    `priority` ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium' COMMENT 'Mức độ ưu tiên',
+    `status` ENUM('Pending', 'In Progress', 'Answered', 'Closed') NOT NULL DEFAULT 'Pending' COMMENT 'Trạng thái xử lý',
+    `order_code` VARCHAR(50) DEFAULT NULL COMMENT 'Mã đơn hàng/giao dịch liên quan',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX `idx_st_user_uuid` (`user_uuid`),
+    INDEX `idx_st_ticket_code` (`ticket_code`),
+    INDEX `idx_st_status` (`status`),
+    INDEX `idx_st_category` (`category`),
+    INDEX `idx_st_priority` (`priority`),
+    INDEX `idx_st_created_at` (`created_at`),
+    CONSTRAINT `fk_support_tickets_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 10. Bảng: support_messages (Nội dung trao đổi & phản hồi ticket)
+-- Liên kết khóa ngoại với support_tickets.id và users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_messages` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` BIGINT UNSIGNED NOT NULL COMMENT 'Liên kết support_tickets.id',
+    `sender_uuid` CHAR(36) NOT NULL COMMENT 'Người gửi tin nhắn (users.uuid)',
+    `sender_role` ENUM('Member', 'Admin', 'Support') NOT NULL DEFAULT 'Member' COMMENT 'Vai trò người gửi',
+    `message` TEXT NOT NULL COMMENT 'Nội dung trao đổi',
+    `attachment` VARCHAR(255) DEFAULT NULL COMMENT 'Đường dẫn ảnh/tệp đính kèm',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX `idx_sm_ticket_id` (`ticket_id`),
+    INDEX `idx_sm_sender_uuid` (`sender_uuid`),
+    INDEX `idx_sm_created_at` (`created_at`),
+    CONSTRAINT `fk_support_messages_ticket_id`
+        FOREIGN KEY (`ticket_id`) REFERENCES `support_tickets` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_support_messages_sender_uuid`
+        FOREIGN KEY (`sender_uuid`) REFERENCES `users` (`uuid`)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
