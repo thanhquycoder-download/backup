@@ -285,8 +285,8 @@ $flash = get_flash();
             white-space: nowrap;
         }
 
-        /* Khối Avatar & Hồ Sơ (Chỉ hiện mỗi ảnh avatar tròn) */
-        .user-dropdown {
+        /* Khối Avatar & Bảng Popup Hồ Sơ */
+        .user-profile-container {
             position: relative;
             flex-shrink: 0;
         }
@@ -307,8 +307,7 @@ $flash = get_flash();
         }
 
         .user-profile-toggle:hover,
-        .user-profile-toggle:focus,
-        .user-dropdown.show .user-profile-toggle {
+        .user-profile-toggle:focus {
             border-color: #4f46e5;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
             transform: scale(1.05);
@@ -323,23 +322,62 @@ $flash = get_flash();
             flex-shrink: 0;
             pointer-events: none;
             user-select: none;
+            background: #eef2ff;
         }
 
-        .user-dropdown .dropdown-menu {
+        /* Bảng Popup Hồ Sơ */
+        .user-profile-popup {
             position: absolute;
-            top: calc(100% + 8px);
+            top: calc(100% + 12px);
             right: 0;
-            left: auto;
-            z-index: 1060 !important;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            width: 290px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.22), 0 4px 15px rgba(0, 0, 0, 0.06);
+            padding: 16px;
+            z-index: 1060;
+            display: none;
+            animation: popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        .user-dropdown.show > .dropdown-menu,
-        .user-dropdown .dropdown-menu.show {
+        @keyframes popupFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .user-profile-popup.active {
             display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
+        }
+
+        .popup-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 9px 12px;
+            border-radius: 10px;
+            color: #334155;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .popup-menu-item:hover {
+            background: #f1f5f9;
+            color: #4f46e5;
+            transform: translateX(3px);
+        }
+
+        .popup-menu-item.text-danger:hover {
+            background: #fef2f2;
+            color: #dc2626;
         }
 
         /* ==========================================================
@@ -891,9 +929,15 @@ $flash = get_flash();
                 flex-shrink: 0 !important;
                 pointer-events: none !important;
             }
-            .user-dropdown .dropdown-menu {
-                max-width: calc(100vw - 20px) !important;
-                right: 0 !important;
+            .user-profile-popup {
+                position: fixed !important;
+                top: 64px !important;
+                right: 12px !important;
+                left: 12px !important;
+                width: auto !important;
+                max-width: 360px !important;
+                margin: 0 auto !important;
+                z-index: 1060 !important;
             }
             .profile-card {
                 padding: 14px 10px !important;
@@ -974,34 +1018,62 @@ $flash = get_flash();
                 </div>
             </a>
 
-            <!-- Ảnh avatar hồ sơ & Dropdown (Chỉ hiện mỗi ảnh avatar) -->
-            <div class="dropdown user-dropdown">
-                <button type="button" class="user-profile-toggle" id="userProfileToggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="<?= htmlspecialchars($user['name']) ?>">
-                    <img src="<?= htmlspecialchars($user['avatar']) ?>" alt="Avatar" class="user-avatar-small">
+            <!-- Ảnh avatar hồ sơ & Bảng Popup Hồ Sơ -->
+            <div class="user-profile-container" id="userDropdownContainer">
+                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)" aria-expanded="false" title="<?= htmlspecialchars($user['name']) ?>">
+                    <img src="<?= htmlspecialchars($user['avatar']) ?>" 
+                         alt="Avatar" 
+                         class="user-avatar-small"
+                         onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 py-2 mt-2" style="min-width: 220px;">
-                    <li class="px-3 py-2 border-bottom">
-                        <div class="fw-bold text-dark"><?= htmlspecialchars($user['name']) ?></div>
-                        <div class="text-muted small"><?= htmlspecialchars($user['username']) ?></div>
-                        <div class="text-primary small font-monospace mt-1">UID: #<?= htmlspecialchars($user['uid']) ?></div>
-                    </li>
-                    <li>
-                        <a class="dropdown-item py-2 active" href="profile.php">
+
+                <!-- Bảng Popup Thông Tin & Chức Năng Hồ Sơ -->
+                <div class="user-profile-popup" id="userProfilePopup">
+                    <!-- Thông tin người dùng -->
+                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-3">
+                        <img src="<?= htmlspecialchars($user['avatar']) ?>" 
+                             alt="Avatar" 
+                             style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff; background: #eef2ff;"
+                             onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
+                        <div style="min-width: 0; flex-grow: 1;">
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.95rem;"><?= htmlspecialchars($user['name']) ?></div>
+                            <div class="text-muted small text-truncate"><?= htmlspecialchars($user['username']) ?></div>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge font-monospace text-primary bg-primary-subtle px-2 py-0" style="font-size: 0.7rem;">UID: #<?= htmlspecialchars($user['uid']) ?></span>
+                                <?php if ($user['role'] === 'Admin'): ?>
+                                    <span class="badge bg-danger text-white px-2 py-0" style="font-size: 0.68rem;">Admin</span>
+                                <?php else: ?>
+                                    <span class="badge bg-info-subtle text-info px-2 py-0" style="font-size: 0.68rem;">Thành viên</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khung xem số dư và nạp tiền nhanh trong popup -->
+                    <div class="p-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div>
+                            <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
+                            <div class="fw-bold" style="color: #15803d; font-size: 0.95rem;"><?= format_currency($user['balance']) ?></div>
+                        </div>
+                        <a href="/payments/deposit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-arrow-down me-1"></i> Nạp tiền
+                        </a>
+                    </div>
+
+                    <!-- Các mục điều hướng -->
+                    <div class="d-flex flex-column gap-1">
+                        <a href="profile.php" class="popup-menu-item text-primary fw-bold">
                             <i class="fa-solid fa-id-card text-primary me-2"></i> Hồ sơ cá nhân
                         </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item py-2" href="index.php">
+                        <a href="index.php" class="popup-menu-item">
                             <i class="fa-solid fa-gauge-high text-info me-2"></i> Bảng tổng quan
                         </a>
-                    </li>
-                    <li><hr class="dropdown-divider my-1"></li>
-                    <li>
-                        <button type="button" class="dropdown-item py-2 text-danger" onclick="confirmLogout()">
+                        <hr class="my-2 border-secondary-subtle">
+                        <button type="button" class="popup-menu-item text-danger text-start border-0 bg-transparent w-100" onclick="closeUserPopup(); confirmLogout();">
                             <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
                         </button>
-                    </li>
-                </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -1492,46 +1564,47 @@ $flash = get_flash();
         }
 
         // ==========================================================
-        // ĐIỀU KHIỂN TOGGLE MENU DROPDOWN AVATAR (100% ĐỘC LẬP & NHẠY)
+        // ĐIỀU KHIỂN BẬT/TẮT BẢNG POPUP HỒ SƠ (THUẦN JS 100% NHẠY)
         // ==========================================================
-        const userDropdownToggle = document.getElementById('userProfileToggle') || document.querySelector('.user-profile-toggle');
-        const userDropdownEl = document.querySelector('.user-dropdown');
-        const userDropdownMenu = userDropdownEl ? userDropdownEl.querySelector('.dropdown-menu') : null;
-
-        if (userDropdownToggle && userDropdownEl && userDropdownMenu) {
-            userDropdownToggle.addEventListener('click', function (e) {
+        function toggleUserPopup(e) {
+            if (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                const isOpen = userDropdownMenu.classList.contains('show') || userDropdownEl.classList.contains('show');
-                if (isOpen) {
-                    userDropdownMenu.classList.remove('show');
-                    userDropdownEl.classList.remove('show');
-                    userDropdownToggle.setAttribute('aria-expanded', 'false');
-                } else {
-                    userDropdownMenu.classList.add('show');
-                    userDropdownEl.classList.add('show');
-                    userDropdownToggle.setAttribute('aria-expanded', 'true');
-                }
-            });
-
-            // Đóng dropdown khi click ra ngoài màn hình
-            document.addEventListener('click', function (e) {
-                if (!userDropdownEl.contains(e.target)) {
-                    userDropdownMenu.classList.remove('show');
-                    userDropdownEl.classList.remove('show');
-                    userDropdownToggle.setAttribute('aria-expanded', 'false');
-                }
-            });
-
-            // Đóng khi bấm phím Escape
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
-                    userDropdownMenu.classList.remove('show');
-                    userDropdownEl.classList.remove('show');
-                    userDropdownToggle.setAttribute('aria-expanded', 'false');
-                }
-            });
+            }
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (!popup) return;
+            const isOpen = popup.classList.contains('active');
+            if (isOpen) {
+                popup.classList.remove('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            } else {
+                popup.classList.add('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'true');
+            }
         }
+
+        function closeUserPopup() {
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (popup) popup.classList.remove('active');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+
+        // Đóng popup khi bấm ra ngoài hoặc cuộn
+        document.addEventListener('click', function (e) {
+            const container = document.getElementById('userDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                closeUserPopup();
+            }
+        });
+
+        // Đóng khi bấm phím Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeUserPopup();
+            }
+        });
 
         <?php if (!empty($flash)): ?>
             document.addEventListener('DOMContentLoaded', () => {
