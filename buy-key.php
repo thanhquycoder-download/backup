@@ -1672,37 +1672,26 @@ $csrfToken = get_csrf_token();
 
             <!-- Banner Giới Thiệu Dịch Vụ -->
             <div class="pricing-hero-banner">
-                <div class="row align-items-center">
-                    <div class="col-lg-8">
-                        <span class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2 rounded-pill">
-                            <i class="fa-solid fa-fire-flame-curved me-1"></i> Ưu Đãi Tiết Kiệm - Chiết Khấu Đến 20% Khi Mua Dài Hạn
+                <div>
+                    <span class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2 rounded-pill">
+                        <i class="fa-solid fa-fire-flame-curved me-1"></i> Bảng Giá Bản Quyền & Dịch Vụ Cloud
+                    </span>
+                    <h2 class="fw-extrabold mb-2" style="font-weight: 800;">
+                        Mua Bản Quyền Key & Treo Cloud Tự Động
+                    </h2>
+                    <p class="text-light opacity-90 mb-3" style="font-size: 0.95rem; max-width: 820px;">
+                        Kích hoạt tự động ngay sau khi thanh toán. Hệ thống máy chủ Cloud NVMe cày ngầm 24/24 siêu tốc độ và hỗ trợ kỹ thuật tận tình 24/7.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="banner-feature-pill">
+                            <i class="fa-solid fa-shield-check text-success"></i> Kích hoạt tức thì
                         </span>
-                        <h2 class="fw-extrabold mb-2" style="font-weight: 800;">
-                            Mua Bản Quyền Key & Treo Cloud Tự Động
-                        </h2>
-                        <p class="text-light opacity-75 mb-3" style="font-size: 0.95rem;">
-                            Chỉ từ <strong>800đ/ngày</strong> cho Key Tool Golike, hoặc <strong>3.200đ/ngày</strong> cho Combo trọn gói vừa có Key vừa cày ngầm 24/24 trên Cloud VPS. Càng mua dài hạn càng được giảm thêm!
-                        </p>
-                        <div class="d-flex flex-wrap gap-2">
-                            <span class="badge bg-white bg-opacity-20 text-white py-2 px-3 rounded-pill">
-                                <i class="fa-solid fa-shield-check text-success me-1"></i> Kích hoạt tức thì
-                            </span>
-                            <span class="badge bg-white bg-opacity-20 text-white py-2 px-3 rounded-pill">
-                                <i class="fa-solid fa-bolt text-warning me-1"></i> Tự động gia hạn
-                            </span>
-                            <span class="badge bg-white bg-opacity-20 text-white py-2 px-3 rounded-pill">
-                                <i class="fa-solid fa-server text-info me-1"></i> Cloud NVMe Uptime 99.9%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-                        <div class="d-inline-block bg-white bg-opacity-10 p-3 rounded-4 border border-white border-opacity-20 text-center" style="min-width: 200px;">
-                            <div class="text-white-50 small text-uppercase fw-bold">Số dư hiện tại</div>
-                            <div class="fs-3 fw-bold text-warning my-1"><?= format_currency($currentUser['balance']) ?></div>
-                            <a href="/payments/deposit" class="btn btn-sm btn-light fw-bold rounded-pill px-3 py-1 w-100">
-                                <i class="fa-solid fa-plus me-1 text-success"></i> Nạp thêm tiền
-                            </a>
-                        </div>
+                        <span class="banner-feature-pill">
+                            <i class="fa-solid fa-bolt text-warning"></i> Tự động cấp Key
+                        </span>
+                        <span class="banner-feature-pill">
+                            <i class="fa-solid fa-server text-info"></i> Cloud NVMe Uptime 99.9%
+                        </span>
                     </div>
                 </div>
             </div>
