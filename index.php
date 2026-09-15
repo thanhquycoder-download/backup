@@ -1605,7 +1605,7 @@ $flash = get_flash();
     </aside>
 
     <!-- Lớp nền mờ cho Sidebar trên điện thoại -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAppSidebar()"></div>
 
     <!-- KHU VỰC NỘI DUNG CHÍNH (APP MAIN) -->
     <main class="app-main">
