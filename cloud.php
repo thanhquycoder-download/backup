@@ -1759,7 +1759,7 @@ $csrfToken = get_csrf_token();
         </ul>
     </aside>
 
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAppSidebar()"></div>
 
     <!-- KHU VỰC NỘI DUNG CHÍNH (APP MAIN) -->
     <main class="app-main">
