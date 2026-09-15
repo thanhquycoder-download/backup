@@ -867,6 +867,7 @@ $csrfToken = get_csrf_token();
             height: 360px;
             background: radial-gradient(circle, rgba(14, 165, 233, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
             border-radius: 50%;
+            pointer-events: none;
         }
 
         .banner-feature-pill {
@@ -894,6 +895,8 @@ $csrfToken = get_csrf_token();
             margin-bottom: 24px;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
             max-width: 100%;
+            position: relative;
+            z-index: 5;
         }
 
         .pricing-tab-btn {
@@ -910,6 +913,9 @@ $csrfToken = get_csrf_token();
             align-items: center;
             gap: 8px;
             white-space: nowrap;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         .pricing-tab-btn.active {
