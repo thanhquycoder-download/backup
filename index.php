@@ -2183,16 +2183,11 @@ $flash = get_flash();
         const appSidebar = document.getElementById('appSidebar');
         const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-        if (sidebarToggle && appSidebar && sidebarBackdrop) {
-            sidebarToggle.addEventListener('click', () => {
-                appSidebar.classList.toggle('sidebar-open');
-                sidebarBackdrop.classList.toggle('active');
-            });
-
-            sidebarBackdrop.addEventListener('click', () => {
-                appSidebar.classList.remove('sidebar-open');
-                sidebarBackdrop.classList.remove('active');
-            });
+        if (sidebarToggle) {
+            sidebarToggle.onclick = toggleAppSidebar;
+        }
+        if (sidebarBackdrop) {
+            sidebarBackdrop.onclick = closeAppSidebar;
         }
 
         // ==========================================================

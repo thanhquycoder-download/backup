@@ -799,15 +799,40 @@ $flash = get_flash();
         @keyframes scaleDot { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         /* ==========================================================
-         * RESPONSIVE MOBILE & TABLET (CHỐNG TRÀN VIỀN 100%)
+         * RESPONSIVE MOBILE, TABLET & DESKTOP SIDEBAR COLLAPSE
          * ========================================================== */
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .app-sidebar {
+                transform: translateX(-100%) !important;
+            }
+            body.sidebar-collapsed .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+
         @media (max-width: 991.98px) {
             .app-sidebar {
-                transform: translateX(-100%);
+                position: fixed !important;
+                top: 70px;
+                left: 0;
+                bottom: 0;
+                width: 270px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1050 !important;
+                box-shadow: none;
             }
             .app-sidebar.sidebar-open {
-                transform: translateX(0);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                transform: translateX(0) !important;
+                box-shadow: 4px 0 25px rgba(0, 0, 0, 0.2) !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            .sidebar-backdrop {
+                z-index: 1045 !important;
             }
             .app-main {
                 margin-left: 0 !important;
