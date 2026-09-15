@@ -9,7 +9,7 @@ USE `thanhquytech_db`;
 
 -- Vô hiệu hóa kiểm tra khóa ngoại tạm thời để xóa sạch các bảng cũ bị lệch cấu trúc (nếu có)
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS `referral_commissions`;
+DROP TABLE IF EXISTS `referral_claims`;
 DROP TABLE IF EXISTS `referrals`;
 DROP TABLE IF EXISTS `key_orders`;
 DROP TABLE IF EXISTS `transactions`;
