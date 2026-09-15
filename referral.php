@@ -481,24 +481,31 @@ $csrfToken = get_csrf_token();
             white-space: nowrap;
         }
 
-        /* Avatar & Popup Hồ Sơ */
+        /* Khối Avatar & Bảng Popup Hồ Sơ */
         .user-profile-container {
             position: relative;
+            flex-shrink: 0;
         }
 
         .user-profile-toggle {
-            background: transparent;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
             transition: var(--transition);
+            outline: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .user-profile-toggle:hover {
+        .user-profile-toggle:hover,
+        .user-profile-toggle:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
             transform: scale(1.05);
         }
 
@@ -507,14 +514,11 @@ $csrfToken = get_csrf_token();
             height: 38px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid var(--card-border);
+            display: block;
+            flex-shrink: 0;
+            pointer-events: none;
+            user-select: none;
             background: #eef2ff;
-            transition: var(--transition);
-        }
-
-        .user-profile-toggle:hover .user-avatar-small {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
 
         /* Popup Hồ Sơ */
