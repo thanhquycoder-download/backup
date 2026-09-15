@@ -401,7 +401,7 @@ $stmtOrders = $pdo->prepare("
     SELECT id, order_code, package_type, package_name, duration_days, license_key, cloud_server, amount, status, expires_at, created_at
     FROM key_orders
     WHERE user_uuid = ? AND (package_type = 'combo' OR package_type = 'cloud_only' OR cloud_server IS NOT NULL)
-    ORDER BY id DESC
+    ORDER BY created_at DESC
 ");
 $stmtOrders->execute([$currentUser['uuid']]);
 $userOrders = $stmtOrders->fetchAll();
@@ -1169,67 +1169,46 @@ $csrfToken = get_csrf_token();
             box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45) !important;
         }
 
-        /* Bảng Lịch Sử Thuê Cloud & Combo */
-        .history-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        .history-table th {
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 0.75rem;
-            font-weight: 700;
+        /* Bảng Lịch Sử Thuê Cloud */
+        .orders-table th {
+            font-size: 0.72rem;
+            font-weight: 800;
             text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
             padding: 12px 14px;
-            border-bottom: 1px solid #e2e8f0;
-            letter-spacing: 0.4px;
+            white-space: nowrap;
         }
 
-        .history-table td {
+        .orders-table td {
+            font-size: 0.86rem;
             padding: 14px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.88rem;
             vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
         }
 
-        .history-table tr:hover td {
-            background: #f8faff;
-        }
+        .orders-table tbody tr:hover { background-color: #f8fafc; }
 
-        .key-code-box {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+        .key-copy-badge {
+            font-family: monospace;
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
             padding: 4px 10px;
             border-radius: 8px;
-            font-family: monospace;
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: #0f172a;
-        }
-
-        .btn-copy-key {
-            border: none;
-            background: #e2e8f0;
-            color: #475569;
-            width: 26px;
-            height: 26px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
+            color: #1e293b;
             cursor: pointer;
             transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .btn-copy-key:hover {
-            background: var(--primary);
-            color: #ffffff;
+        .key-copy-badge:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
         }
 
         /* SVG Modal Dialog */
@@ -1802,120 +1781,107 @@ $csrfToken = get_csrf_token();
                 </div>
             </div>
 
-            <!-- ================= BẢNG LỊCH SỬ THUÊ CLOUD & COMBO ================= -->
+            <!-- ================= BẢNG LỊCH SỬ THUÊ CLOUD ================= -->
             <div class="dash-card">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <div>
                         <h4 class="fw-bold text-dark mb-1">
-                            <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Lịch Sử Đơn Hàng Thuê Cloud & Combo
+                            <i class="fa-solid fa-server text-primary me-2"></i>Lịch Sử Máy Chủ Cloud Đã Thuê
                         </h4>
-                        <p class="text-muted small mb-0">Quản lý máy chủ Cloud, mã Key kích hoạt, thời hạn sử dụng và trạng thái máy chủ của bạn</p>
+                        <p class="text-muted small mb-0">Quản lý các máy chủ Cloud đang cày ngầm và theo dõi thời hạn sử dụng của bạn</p>
                     </div>
-                    <span class="badge bg-light text-dark border px-3 py-2">
-                        Tổng đơn đã thuê: <strong><?= count($userOrders) ?></strong>
+                    <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill">
+                        Tổng cộng: <?= count($userOrders) ?> đơn hàng
                     </span>
                 </div>
 
-                <?php if (empty($userOrders)): ?>
-                    <div class="text-center py-5">
-                        <div class="p-3 bg-light rounded-circle d-inline-flex align-items-center justify-content-center text-muted mb-3" style="width: 70px; height: 70px;">
-                            <i class="fa-solid fa-server fs-2"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark">Bạn chưa có đơn hàng nào</h5>
-                        <p class="text-muted small mb-3">Hãy chọn một trong các gói phía trên để trải nghiệm công cụ tự động hóa đỉnh cao.</p>
-                        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                            <i class="fa-solid fa-cart-plus me-1"></i> Chọn gói thuê ngay
-                        </button>
-                    </div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="history-table">
-                            <thead>
+                <div class="table-responsive">
+                    <table class="table align-middle orders-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>MÃ ĐƠN</th>
+                                <th>GÓI DỊCH VỤ</th>
+                                <th>MÁY CHỦ CLOUD</th>
+                                <th>MÃ KEY BẢN QUYỀN</th>
+                                <th>THANH TOÁN</th>
+                                <th>HẠN DÙNG</th>
+                                <th>TRẠNG THÁI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($userOrders)): ?>
                                 <tr>
-                                    <th>Mã đơn</th>
-                                    <th>Gói dịch vụ</th>
-                                    <th>Mã Key bản quyền</th>
-                                    <th>Máy chủ Cloud</th>
-                                    <th class="text-end">Thanh toán</th>
-                                    <th>Thời hạn đến</th>
-                                    <th class="text-center">Trạng thái</th>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <i class="fa-solid fa-cloud-arrow-up fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                                        Bạn chưa thuê máy chủ Cloud nào. Hãy chọn gói phù hợp bên trên để kích hoạt cày ngầm 24/24!
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($userOrders as $order): ?>
+                            <?php else: ?>
+                                <?php foreach ($userOrders as $ord): ?>
                                     <?php 
-                                    $isExpired = ($order['status'] === 'Expired' || strtotime($order['expires_at']) < time());
+                                    $isExpired = ($ord['status'] === 'Expired' || strtotime($ord['expires_at']) < time());
+                                    $expireTime = strtotime($ord['expires_at']);
+                                    $nowTime = time();
+                                    $diffSec = $expireTime - $nowTime;
                                     ?>
                                     <tr>
                                         <td>
-                                            <strong class="font-monospace text-primary">#<?= htmlspecialchars($order['order_code']) ?></strong>
-                                            <div class="text-muted" style="font-size: 0.72rem;"><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></div>
+                                            <span class="fw-bold text-dark font-monospace">#<?= htmlspecialchars($ord['order_code']) ?></span>
+                                            <div class="text-muted" style="font-size: 0.72rem;"><?= date('d/m/Y H:i', strtotime($ord['created_at'])) ?></div>
                                         </td>
                                         <td>
-                                            <div class="fw-bold text-dark"><?= htmlspecialchars($order['package_name']) ?></div>
-                                            <small class="text-muted">Thời hạn: <?= $order['duration_days'] ?> ngày</small>
+                                            <div class="fw-bold text-dark"><?= htmlspecialchars($ord['package_name']) ?></div>
+                                            <span class="badge bg-secondary-subtle text-secondary px-2 py-0" style="font-size: 0.7rem;"><?= $ord['duration_days'] ?> ngày</span>
                                         </td>
                                         <td>
-                                            <?php if (!empty($order['license_key'])): ?>
-                                                <div class="key-code-box">
-                                                    <span><?= htmlspecialchars($order['license_key']) ?></span>
-                                                    <button type="button" 
-                                                            class="btn-copy-key" 
-                                                            title="Sao chép Key" 
-                                                            onclick="copyKeyText('<?= htmlspecialchars($order['license_key']) ?>')">
-                                                        <i class="fa-regular fa-copy"></i>
-                                                    </button>
-                                                </div>
+                                            <?php if (!empty($ord['cloud_server'])): ?>
+                                                <span class="badge bg-info-subtle text-info fw-semibold px-2 py-1">
+                                                    <i class="fa-solid fa-server me-1"></i><?= htmlspecialchars($ord['cloud_server']) ?>
+                                                </span>
                                             <?php else: ?>
-                                                <span class="text-muted small">Chỉ thuê Cloud</span>
+                                                <span class="text-muted small">Node-Cloud Tự Động</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php if (!empty($order['cloud_server'])): ?>
-                                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1 font-monospace">
-                                                    <i class="fa-solid fa-server me-1"></i><?= htmlspecialchars($order['cloud_server']) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 font-monospace">
-                                                    <i class="fa-solid fa-server me-1"></i>Cloud VPS Tự Động
-                                                </span>
-                                            <?php endif; ?>
+                                            <div class="key-copy-badge" onclick="copyToClipboard('<?= htmlspecialchars($ord['license_key']) ?>', this)" title="Bấm để sao chép Key">
+                                                <span><?= htmlspecialchars($ord['license_key']) ?></span>
+                                                <i class="fa-regular fa-copy text-primary"></i>
+                                            </div>
                                         </td>
-                                        <td class="text-end">
-                                            <strong class="text-dark"><?= format_currency($order['amount']) ?></strong>
+                                        <td class="fw-bold text-primary">
+                                            <?= number_format($ord['amount'], 0, ',', '.') ?> ₫
                                         </td>
                                         <td>
-                                            <div class="small fw-semibold text-dark"><?= date('d/m/Y H:i', strtotime($order['expires_at'])) ?></div>
-                                            <?php if (!$isExpired): ?>
+                                            <div class="small fw-semibold"><?= date('d/m/Y H:i', strtotime($ord['expires_at'])) ?></div>
+                                            <?php if (!$isExpired && $diffSec > 0): ?>
                                                 <?php 
-                                                $leftSeconds = strtotime($order['expires_at']) - time();
-                                                $leftDays = floor($leftSeconds / 86400);
-                                                $leftHours = floor(($leftSeconds % 86400) / 3600);
+                                                $leftDays = floor($diffSec / 86400);
+                                                $leftHours = floor(($diffSec % 86400) / 3600);
                                                 ?>
-                                                <small class="text-success fw-bold">
-                                                    <i class="fa-regular fa-clock me-1"></i>Còn <?= $leftDays ?> ngày <?= $leftHours ?>h
-                                                </small>
-                                            <?php else: ?>
-                                                <small class="text-muted">Đã kết thúc</small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-center">
-                                            <?php if (!$isExpired): ?>
-                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
-                                                    <i class="fa-solid fa-circle-check me-1"></i> Đang hoạt động
+                                                <span class="badge bg-success-subtle text-success py-0" style="font-size: 0.7rem;">
+                                                    Còn <?= $leftDays ?>n <?= $leftHours ?>g
                                                 </span>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
+                                                <span class="badge bg-danger-subtle text-danger py-0" style="font-size: 0.7rem;">Đã hết hạn</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!$isExpired): ?>
+                                                <span class="badge bg-success text-white px-3 py-1 rounded-pill">
+                                                    <i class="fa-solid fa-circle-check me-1"></i> Hoạt động
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary text-white px-3 py-1 rounded-pill">
                                                     <i class="fa-solid fa-circle-xmark me-1"></i> Đã hết hạn
                                                 </span>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         </div>
@@ -2115,42 +2081,8 @@ $csrfToken = get_csrf_token();
         }
 
         // ==========================================================
-        // THÔNG BÁO SVG & SAO CHÉP MÃ KEY VÀO CLIPBOARD
+        // SAO CHÉP VÀO CLIPBOARD
         // ==========================================================
-        function showSvgAlert(message, title = 'Thông báo', type = 'success') {
-            const overlay = document.getElementById('svgDialogOverlay');
-            const iconEl = document.getElementById('svgDialogIcon');
-            const titleEl = document.getElementById('svgDialogTitle');
-            const messageEl = document.getElementById('svgDialogMessage');
-            const actionsEl = document.getElementById('svgDialogActions');
-
-            iconEl.innerHTML = SVG_TEMPLATES[type] || SVG_TEMPLATES.success;
-            titleEl.textContent = title;
-            messageEl.innerHTML = message;
-            actionsEl.innerHTML = `
-                <button type="button" class="btn btn-primary px-4 rounded-pill" id="svgCloseBtn">
-                    <i class="fa-solid fa-check me-1"></i> Xác nhận
-                </button>
-            `;
-
-            overlay.classList.add('active');
-            document.getElementById('svgCloseBtn').onclick = () => {
-                overlay.classList.remove('active');
-            };
-        }
-
-        function copyKeyText(keyText) {
-            navigator.clipboard.writeText(keyText).then(() => {
-                showSvgAlert(
-                    'Đã sao chép mã Key bản quyền vào bộ nhớ đệm:<br><div class="mt-2 p-2 bg-light border rounded text-success font-monospace fw-bold">' + keyText + '</div><div class="mt-2 small text-muted">Dán mã này vào Tool để kích hoạt sử dụng ngay.</div>',
-                    'Sao chép thành công',
-                    'success'
-                );
-            }).catch(() => {
-                alert('Mã key của bạn: ' + keyText);
-            });
-        }
-
         function copyToClipboard(text, el) {
             navigator.clipboard.writeText(text).then(() => {
                 const oldHTML = el.innerHTML;
