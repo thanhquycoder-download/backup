@@ -277,7 +277,7 @@ $csrfToken = get_csrf_token();
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giới Thiệu Bạn Bè - Tích Lũy Key VIP - <?= htmlspecialchars(APP_NAME) ?></title>
 
     <!-- Google Fonts: Plus Jakarta Sans -->
