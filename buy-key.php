@@ -955,6 +955,7 @@ $csrfToken = get_csrf_token();
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
         }
 
         .pricing-tab-btn.active {
@@ -1428,6 +1429,22 @@ $csrfToken = get_csrf_token();
             .pricing-hero-banner {
                 padding: 20px 16px;
             }
+            .pricing-tabs {
+                display: flex !important;
+                width: 100% !important;
+                padding: 4px !important;
+                margin-bottom: 18px !important;
+            }
+            .pricing-tab-btn {
+                flex: 1 1 50% !important;
+                padding: 9px 8px !important;
+                font-size: 0.84rem !important;
+                font-weight: 700 !important;
+                justify-content: center !important;
+                white-space: nowrap !important;
+                text-align: center !important;
+                gap: 5px !important;
+            }
         }
     </style>
 </head>
@@ -1678,10 +1695,10 @@ $csrfToken = get_csrf_token();
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div class="pricing-tabs">
                     <button type="button" class="pricing-tab-btn active" id="tabKeyOnlyBtn" onclick="switchPricingTab('key_only')">
-                        <i class="fa-solid fa-key"></i> Bản Quyền Key <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 20%</span>
+                        <i class="fa-solid fa-key"></i> Bản Quyền Key
                     </button>
                     <button type="button" class="pricing-tab-btn" id="tabComboBtn" onclick="switchPricingTab('combo')">
-                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 20%</span>
+                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud
                     </button>
                 </div>
                 <div class="text-muted small">
