@@ -2085,22 +2085,62 @@ $csrfToken = get_csrf_token();
         // ==========================================================
         // SIDEBAR TOGGLE (MOBILE & DESKTOP)
         // ==========================================================
-        const sidebar = document.getElementById('appSidebar');
+        function toggleAppSidebar(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const appSidebar = document.getElementById('appSidebar');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+            if (window.innerWidth <= 991.98) {
+                // Mobile & Tablet
+                if (appSidebar) appSidebar.classList.toggle('sidebar-open');
+                if (sidebarBackdrop) sidebarBackdrop.classList.toggle('active');
+            } else {
+                // Desktop
+                document.body.classList.toggle('sidebar-collapsed');
+            }
+        }
+
+        function closeAppSidebar() {
+            const appSidebar = document.getElementById('appSidebar');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+            if (appSidebar) appSidebar.classList.remove('sidebar-open');
+            if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+        }
+
         const sidebarToggle = document.getElementById('sidebarToggle');
+        const appSidebar = document.getElementById('appSidebar');
         const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-        if (sidebar && sidebarToggle && sidebarBackdrop) {
-            sidebarToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                sidebar.classList.toggle('sidebar-open');
-                sidebarBackdrop.classList.toggle('active');
-            });
-
-            sidebarBackdrop.addEventListener('click', function() {
-                sidebar.classList.remove('sidebar-open');
-                sidebarBackdrop.classList.remove('active');
-            });
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', toggleAppSidebar);
         }
+        if (sidebarBackdrop) {
+            sidebarBackdrop.addEventListener('click', closeAppSidebar);
+        }
+
+        // Đảm bảo mở/đóng submenu (Tool Golike, Account, Payment) hoạt động trơn tru 100%
+        document.querySelectorAll('.app-sidebar [data-bs-toggle="collapse"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const targetSelector = this.getAttribute('data-bs-target');
+                if (!targetSelector) return;
+                const targetEl = document.querySelector(targetSelector);
+                if (targetEl) {
+                    setTimeout(() => {
+                        const isShown = targetEl.classList.contains('show');
+                        if (isShown) {
+                            this.classList.remove('collapsed');
+                            this.setAttribute('aria-expanded', 'true');
+                        } else {
+                            this.classList.add('collapsed');
+                            this.setAttribute('aria-expanded', 'false');
+                        }
+                    }, 50);
+                }
+            });
+        });
 
         // ==========================================================
         // POPUP HỒ SƠ (AVATAR DROPDOWN)
