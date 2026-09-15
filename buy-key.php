@@ -1010,7 +1010,7 @@ $csrfToken = get_csrf_token();
             line-height: 1.35;
         }
 
-        /* Badge Phổ biến: Màu cam vàng, chữ đen đậm chuẩn như ảnh chụp */
+        /* 1. Badge Phổ biến: Màu cam vàng, chữ đen đậm (Chuẩn ảnh mẫu gói 1 Tuần) */
         .badge-popular {
             background: #f59e0b !important;
             color: #0f172a !important;
@@ -1018,7 +1018,27 @@ $csrfToken = get_csrf_token();
             box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
         }
 
-        /* Badge Hot Combo: Dải màu Gradient Tím sang Hồng sen chuẩn như ảnh chụp */
+        /* 2. Badge Ưu đãi & Thẻ viền xanh tím (Chuẩn ảnh mẫu 1) */
+        .badge-uudai {
+            background: #4338ca !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 8px rgba(67, 56, 202, 0.3) !important;
+        }
+
+        .card-uudai {
+            border: 2px solid #4338ca !important;
+        }
+
+        /* 3. Badge Tiện lợi (Chuẩn ảnh mẫu 4: Dải màu Gradient Tím sang Hồng) */
+        .badge-tienloi {
+            background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #d946ef 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 3px 12px rgba(168, 85, 247, 0.35) !important;
+        }
+
+        /* 4. Badge Hot Combo (Chuẩn ảnh mẫu 3) */
         .badge-combo-hot {
             background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #d946ef 100%) !important;
             color: #ffffff !important;
@@ -1026,29 +1046,27 @@ $csrfToken = get_csrf_token();
             box-shadow: 0 3px 12px rgba(168, 85, 247, 0.35) !important;
         }
 
+        /* 5. Badge Siêu Tiết Kiệm (Chuẩn ảnh mẫu 2) */
+        .badge-sieutietkiem {
+            background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #d946ef 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 3px 12px rgba(168, 85, 247, 0.35) !important;
+        }
+
+        /* 6. Badge Tiết kiệm (Xanh ngọc / Cyan) */
+        .badge-tietkiem {
+            background: #0284c7 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+        }
+
         .badge-combo-vip {
             background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%) !important;
             color: #ffffff !important;
             font-weight: 800 !important;
             box-shadow: 0 3px 10px rgba(79, 70, 229, 0.35) !important;
-        }
-
-        .badge-key-save {
-            background: #0284c7 !important;
-            color: #ffffff !important;
-            font-weight: 800 !important;
-        }
-
-        .badge-key-hot {
-            background: #10b981 !important;
-            color: #ffffff !important;
-            font-weight: 800 !important;
-        }
-
-        .badge-key-vip {
-            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
-            color: #ffffff !important;
-            font-weight: 800 !important;
         }
 
         .pkg-title {
@@ -1623,7 +1641,7 @@ $csrfToken = get_csrf_token();
                     $keyPkgs = array_filter($PACKAGES, fn($p) => $p['type'] === 'key_only');
                     foreach ($keyPkgs as $pkg): 
                     ?>
-                        <div class="pkg-card <?= $pkg['popular'] ? 'popular' : '' ?>">
+                        <div class="pkg-card <?= $pkg['popular'] ? 'popular' : '' ?> <?= !empty($pkg['card_class']) ? $pkg['card_class'] : '' ?>">
                             <span class="pkg-badge <?= $pkg['badge_class'] ?>"><?= htmlspecialchars($pkg['badge']) ?></span>
                             
                             <div>
@@ -1661,7 +1679,7 @@ $csrfToken = get_csrf_token();
                     $comboPkgs = array_filter($PACKAGES, fn($p) => $p['type'] === 'combo');
                     foreach ($comboPkgs as $pkg): 
                     ?>
-                        <div class="pkg-card pkg-card-combo <?= $pkg['popular'] ? 'popular' : '' ?>">
+                        <div class="pkg-card pkg-card-combo <?= $pkg['popular'] ? 'popular' : '' ?> <?= !empty($pkg['card_class']) ? $pkg['card_class'] : '' ?>">
                             <span class="pkg-badge <?= $pkg['badge_class'] ?>"><?= htmlspecialchars($pkg['badge']) ?></span>
                             
                             <div>
