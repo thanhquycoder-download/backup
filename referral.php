@@ -425,6 +425,7 @@ $csrfToken = get_csrf_token();
             flex-shrink: 0;
         }
 
+        /* Khối Số Dư Nạp Vào (Bên Phải Header - Click chuyển nạp tiền) */
         .header-balance-card {
             display: flex;
             align-items: center;
@@ -450,13 +451,12 @@ $csrfToken = get_csrf_token();
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: #ffffff;
-            color: #16a34a;
+            background: #10b981;
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.95rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            font-size: 0.88rem;
             flex-shrink: 0;
         }
 
@@ -464,42 +464,41 @@ $csrfToken = get_csrf_token();
             display: flex;
             flex-direction: column;
             line-height: 1.2;
-            white-space: nowrap;
         }
 
         .balance-title {
-            font-size: 0.72rem;
-            color: #15803d;
-            font-weight: 700;
+            font-size: 0.68rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 700;
+            color: #15803d;
+            letter-spacing: 0.4px;
         }
 
         .balance-val {
-            font-size: 0.96rem;
+            font-size: 0.95rem;
             font-weight: 800;
-            color: #166534;
-            font-variant-numeric: tabular-nums;
+            color: #14532d;
+            white-space: nowrap;
         }
 
-        .user-profile-container { position: relative; }
+        /* Avatar & Popup Hồ Sơ */
+        .user-profile-container {
+            position: relative;
+        }
 
         .user-profile-toggle {
+            background: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2px;
-            background: #ffffff;
-            border: 2px solid #e2e8f0;
-            border-radius: 50%;
-            cursor: pointer;
             transition: var(--transition);
-            outline: none;
         }
 
         .user-profile-toggle:hover {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
             transform: scale(1.05);
         }
 
@@ -508,9 +507,14 @@ $csrfToken = get_csrf_token();
             height: 38px;
             border-radius: 50%;
             object-fit: cover;
-            display: block;
-            flex-shrink: 0;
+            border: 2px solid var(--card-border);
             background: #eef2ff;
+            transition: var(--transition);
+        }
+
+        .user-profile-toggle:hover .user-avatar-small {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
 
         /* Popup Hồ Sơ */
