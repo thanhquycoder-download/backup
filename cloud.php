@@ -1399,42 +1399,14 @@ $csrfToken = get_csrf_token();
         .svg-warning .svg-question { stroke: #f59e0b; }
         .svg-warning .svg-question-dot { fill: #f59e0b; }
 
-        /* Đóng/Mở Sidebar trên Desktop */
-        body.sidebar-desktop-collapsed .app-sidebar {
-            transform: translateX(-100%) !important;
-        }
-        body.sidebar-desktop-collapsed .app-main {
-            margin-left: 0 !important;
-            width: 100% !important;
-        }
-
-        /* Đóng/Mở Submenu trong Sidebar */
-        .collapse:not(.show) {
-            display: none !important;
-        }
-        .collapse.show {
-            display: block !important;
-        }
-
         /* Responsive Mobile & Tablet chuẩn index.php */
         @media (max-width: 991.98px) {
             .app-sidebar {
-                position: fixed !important;
-                top: 70px !important;
-                left: 0 !important;
-                bottom: 0 !important;
-                width: 260px !important;
-                transform: translateX(-100%) !important;
-                z-index: 1050 !important;
-                transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                box-shadow: none;
+                transform: translateX(-100%);
             }
             .app-sidebar.sidebar-open {
-                transform: translateX(0) !important;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
-            }
-            .sidebar-backdrop {
-                z-index: 1045 !important;
+                transform: translateX(0);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             }
             .app-main {
                 margin-left: 0 !important;
@@ -1450,7 +1422,7 @@ $csrfToken = get_csrf_token();
 
         @media (max-width: 767.98px) {
             .app-sidebar {
-                top: 56px !important;
+                top: 56px;
             }
             .app-main {
                 margin-left: 0 !important;
