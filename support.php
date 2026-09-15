@@ -1747,7 +1747,7 @@ $flash = get_flash();
         <div class="stats-grid">
             <div class="stat-card">
                 <div>
-                    <div class="stat-number"><?= number_format($stats['total']) ?></div>
+                    <div class="stat-number"><?= number_format((int)($stats['total'] ?? 0)) ?></div>
                     <div class="stat-label"><?= $isAdmin ? 'Tổng ticket hệ thống' : 'Tổng yêu cầu của bạn' ?></div>
                 </div>
                 <div class="stat-icon-wrap" style="background: #eef2ff; color: #4f46e5;">
@@ -1757,7 +1757,7 @@ $flash = get_flash();
 
             <div class="stat-card">
                 <div>
-                    <div class="stat-number" style="color: #ea580c;"><?= number_format($stats['pending']) ?></div>
+                    <div class="stat-number" style="color: #ea580c;"><?= number_format((int)($stats['pending'] ?? 0)) ?></div>
                     <div class="stat-label">Chờ tiếp nhận / Xử lý</div>
                 </div>
                 <div class="stat-icon-wrap" style="background: #fff7ed; color: #ea580c;">
@@ -1767,7 +1767,7 @@ $flash = get_flash();
 
             <div class="stat-card">
                 <div>
-                    <div class="stat-number" style="color: #16a34a;"><?= number_format($stats['answered']) ?></div>
+                    <div class="stat-number" style="color: #16a34a;"><?= number_format((int)($stats['answered'] ?? 0)) ?></div>
                     <div class="stat-label">Đã có phản hồi</div>
                 </div>
                 <div class="stat-icon-wrap" style="background: #f0fdf4; color: #16a34a;">
@@ -1777,7 +1777,7 @@ $flash = get_flash();
 
             <div class="stat-card">
                 <div>
-                    <div class="stat-number" style="color: #64748b;"><?= number_format($stats['closed']) ?></div>
+                    <div class="stat-number" style="color: #64748b;"><?= number_format((int)($stats['closed'] ?? 0)) ?></div>
                     <div class="stat-label">Đã giải quyết & đóng</div>
                 </div>
                 <div class="stat-icon-wrap" style="background: #f1f5f9; color: #64748b;">
