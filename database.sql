@@ -226,11 +226,11 @@ ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `icon` = VALUES(`icon`);
 -- + Members (@thanhquy, @hoangnam, @minhanh): User@123456
 -- Hệ thống tự động băm bảo mật Stretched Hash + Pepper khi đăng nhập lần đầu
 INSERT INTO `users` (`id`, `uid`, `uuid`, `name`, `username`, `password`, `email`, `balance`, `avatar`, `role`, `status`) VALUES
-(1, 1000001, '0191eb50-0001-7000-8000-000000000001', 'Quản Trị Viên', '@admin', 'Admin@123456', 'admin@thanhquytech.vn', 5000000.00, 'assets/images/default-avatar.svg', 'Admin', 'Active'),
-(2, 1000002, '0191eb50-0002-7000-8000-000000000002', 'Trần Thanh Quý', '@thanhquy', 'User@123456', 'thanhquy@gmail.com', 1500000.00, 'assets/images/default-avatar.svg', 'Member', 'Active'),
-(3, 1000003, '0191eb50-0003-7000-8000-000000000003', 'Nguyễn Hoàng Nam', '@hoangnam', 'User@123456', 'hoangnam@gmail.com', 850000.00, 'assets/images/default-avatar.svg', 'Member', 'Active'),
-(4, 1000004, '0191eb50-0004-7000-8000-000000000004', 'Lê Minh Anh', '@minhanh', 'User@123456', 'minhanh@gmail.com', 320000.00, 'assets/images/default-avatar.svg', 'Member', 'Active')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `role` = VALUES(`role`), `status` = VALUES(`status`);
+(1, 8492015, '0191eb50-0001-7000-8000-000000000001', 'Quản Trị Viên', '@admin', 'Admin@123456', 'admin@thanhquytech.vn', 5000000.00, 'assets/images/default-avatar.svg', 'Admin', 'Active'),
+(2, 6839204, '0191eb50-0002-7000-8000-000000000002', 'Trần Thanh Quý', '@thanhquy', 'User@123456', 'thanhquy@gmail.com', 1500000.00, 'assets/images/default-avatar.svg', 'Member', 'Active'),
+(3, 3185927, '0191eb50-0003-7000-8000-000000000003', 'Nguyễn Hoàng Nam', '@hoangnam', 'User@123456', 'hoangnam@gmail.com', 850000.00, 'assets/images/default-avatar.svg', 'Member', 'Active'),
+(4, 7524918, '0191eb50-0004-7000-8000-000000000004', 'Lê Minh Anh', '@minhanh', 'User@123456', 'minhanh@gmail.com', 320000.00, 'assets/images/default-avatar.svg', 'Member', 'Active')
+ON DUPLICATE KEY UPDATE `uid` = VALUES(`uid`), `name` = VALUES(`name`), `role` = VALUES(`role`), `status` = VALUES(`status`);
 
 -- 3. Dữ liệu bảng xếp hạng mẫu (Rankings) qua UUIDv7 và Platform ID
 INSERT INTO `rankings` (`user_uuid`, `platform_id`, `amount`, `points`, `date`) VALUES
@@ -256,17 +256,17 @@ ON DUPLICATE KEY UPDATE `amount` = VALUES(`amount`), `points` = VALUES(`points`)
 
 -- 4. Dữ liệu giao dịch nạp tiền mẫu (Transactions) qua user_uuid
 INSERT INTO `transactions` (`user_uuid`, `code`, `type`, `amount`, `balance_before`, `balance_after`, `status`, `note`) VALUES
-('0191eb50-0001-7000-8000-000000000001', 'NAP1000001-01', 'Deposit', 5000000.00, 0.00, 5000000.00, 'Success', 'Nạp tiền tài khoản Quản trị qua Ngân hàng'),
-('0191eb50-0002-7000-8000-000000000002', 'NAP1000002-01', 'Deposit', 2000000.00, 0.00, 2000000.00, 'Success', 'Nạp tiền qua chuyển khoản QR Code'),
-('0191eb50-0002-7000-8000-000000000002', 'PAY1000002-01', 'Payment', 500000.00, 2000000.00, 1500000.00, 'Success', 'Thanh toán gói dịch vụ hệ thống'),
-('0191eb50-0003-7000-8000-000000000003', 'NAP1000003-01', 'Deposit', 850000.00, 0.00, 850000.00, 'Success', 'Nạp số dư tài khoản Member'),
-('0191eb50-0004-7000-8000-000000000004', 'NAP1000004-01', 'Deposit', 320000.00, 0.00, 320000.00, 'Success', 'Nạp tiền kích hoạt tài khoản')
+('0191eb50-0001-7000-8000-000000000001', 'NAP8492015-01', 'Deposit', 5000000.00, 0.00, 5000000.00, 'Success', 'Nạp tiền tài khoản Quản trị qua Ngân hàng'),
+('0191eb50-0002-7000-8000-000000000002', 'NAP6839204-01', 'Deposit', 2000000.00, 0.00, 2000000.00, 'Success', 'Nạp tiền qua chuyển khoản QR Code'),
+('0191eb50-0002-7000-8000-000000000002', 'PAY6839204-01', 'Payment', 500000.00, 2000000.00, 1500000.00, 'Success', 'Thanh toán gói dịch vụ hệ thống'),
+('0191eb50-0003-7000-8000-000000000003', 'NAP3185927-01', 'Deposit', 850000.00, 0.00, 850000.00, 'Success', 'Nạp số dư tài khoản Member'),
+('0191eb50-0004-7000-8000-000000000004', 'NAP7524918-01', 'Deposit', 320000.00, 0.00, 320000.00, 'Success', 'Nạp tiền kích hoạt tài khoản')
 ON DUPLICATE KEY UPDATE `status` = VALUES(`status`), `note` = VALUES(`note`);
 
 -- 5. Dữ liệu quan hệ giới thiệu mẫu (Referrals) - 1 người tham gia = 1 ngày Key VIP
--- User @thanhquy (1000002) giới thiệu:
--- + User @hoangnam (1000003): Đã quy đổi nhận Key 1 ngày (is_claimed = 1)
--- + User @minhanh (1000004): Vừa tham gia, CHƯA quy đổi (is_claimed = 0) -> Sẵn sàng đổi 1 ngày Key VIP
+-- User @thanhquy (6839204) giới thiệu:
+-- + User @hoangnam (3185927): Đã quy đổi nhận Key 1 ngày (is_claimed = 1)
+-- + User @minhanh (7524918): Vừa tham gia, CHƯA quy đổi (is_claimed = 0) -> Sẵn sàng đổi 1 ngày Key VIP
 INSERT INTO `referrals` (`referrer_uuid`, `referee_uuid`, `reward_days`, `is_claimed`, `claimed_at`, `claim_order_code`, `status`, `created_at`) VALUES
 ('0191eb50-0002-7000-8000-000000000002', '0191eb50-0003-7000-8000-000000000003', 1, 1, DATE_SUB(NOW(), INTERVAL 2 DAY), 'REF-KEY-892144', 'Active', DATE_SUB(NOW(), INTERVAL 4 DAY)),
 ('0191eb50-0002-7000-8000-000000000002', '0191eb50-0004-7000-8000-000000000004', 1, 0, NULL, NULL, 'Active', DATE_SUB(NOW(), INTERVAL 1 DAY))
