@@ -73,7 +73,7 @@ $PACKAGES = [
         'price'       => 1000,
         'badge'       => 'Phổ biến',
         'badge_class' => 'badge-popular',
-        'popular'     => false,
+        'popular'     => true,
         'features'    => [
             'Bản quyền kích hoạt Tool Golike 24 giờ',
             'Đầy đủ tính năng nuôi acc & làm nhiệm vụ',
@@ -103,9 +103,9 @@ $PACKAGES = [
         'name'        => 'Gói Key 1 Tuần',
         'days'        => 7,
         'price'       => 7000,
-        'badge'       => 'Phổ biến',
-        'badge_class' => 'badge-popular',
-        'popular'     => true,
+        'badge'       => 'Tiết kiệm',
+        'badge_class' => 'badge-key-save',
+        'popular'     => false,
         'features'    => [
             'Bản quyền kích hoạt Tool Golike trọn vẹn 7 ngày',
             'Tối ưu tốc độ làm job Instagram, Threads, TikTok',
@@ -944,8 +944,8 @@ $csrfToken = get_csrf_token();
         .pkg-card {
             background: #ffffff;
             border: 2px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 22px 18px;
+            border-radius: 20px;
+            padding: 48px 18px 20px;
             transition: var(--transition);
             display: flex;
             flex-direction: column;
@@ -960,36 +960,89 @@ $csrfToken = get_csrf_token();
             box-shadow: 0 16px 32px -10px rgba(79, 70, 229, 0.18);
         }
 
+        /* Gói Phổ Biến: Viền cam đậm và hiệu ứng nổi bật như ảnh chụp */
         .pkg-card.popular {
-            border-color: #6366f1;
-            background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-            box-shadow: 0 10px 25px -8px rgba(79, 70, 229, 0.16);
+            border: 2px solid #f59e0b !important;
+            background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+            box-shadow: 0 10px 25px -8px rgba(245, 158, 11, 0.22);
+        }
+
+        .pkg-card.popular:hover {
+            border-color: #d97706 !important;
+            box-shadow: 0 16px 32px -10px rgba(245, 158, 11, 0.32);
         }
 
         .pkg-card-combo {
-            border-color: #bae6fd;
-            background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+            border-color: #e0e7ff;
+            background: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
         }
 
         .pkg-card-combo:hover {
-            border-color: #0ea5e9;
-            box-shadow: 0 16px 32px -10px rgba(14, 165, 233, 0.22);
+            border-color: #a855f7;
+            box-shadow: 0 16px 32px -10px rgba(168, 85, 247, 0.22);
         }
 
+        /* Huy hiệu nhãn gói - CỐ ĐỊNH NẰM Ở GÓC TRÁI TRÊN CỦA THẺ */
         .pkg-badge {
             position: absolute;
             top: 14px;
-            right: 14px;
-            font-size: 0.68rem;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            left: 16px;
+            right: auto;
+            font-size: 0.76rem;
+            font-weight: 800;
+            padding: 4px 16px;
+            border-radius: 50px;
+            letter-spacing: 0.2px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1.35;
+        }
+
+        /* Badge Phổ biến: Màu cam vàng, chữ đen đậm chuẩn như ảnh chụp */
+        .badge-popular {
+            background: #f59e0b !important;
+            color: #0f172a !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
+        }
+
+        /* Badge Hot Combo: Dải màu Gradient Tím sang Hồng sen chuẩn như ảnh chụp */
+        .badge-combo-hot {
+            background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #d946ef 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 3px 12px rgba(168, 85, 247, 0.35) !important;
+        }
+
+        .badge-combo-vip {
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 3px 10px rgba(79, 70, 229, 0.35) !important;
+        }
+
+        .badge-key-save {
+            background: #0284c7 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+        }
+
+        .badge-key-hot {
+            background: #10b981 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+        }
+
+        .badge-key-vip {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
         }
 
         .pkg-title {
-            font-size: 1.1rem;
+            font-size: 1.12rem;
             font-weight: 800;
             color: var(--text-heading);
             margin-bottom: 4px;
@@ -1564,12 +1617,7 @@ $csrfToken = get_csrf_token();
                             <span class="pkg-badge <?= $pkg['badge_class'] ?>"><?= htmlspecialchars($pkg['badge']) ?></span>
                             
                             <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="p-2 rounded-3 bg-primary bg-opacity-10 text-primary">
-                                        <i class="fa-solid fa-key"></i>
-                                    </span>
-                                    <h4 class="pkg-title mb-0"><?= htmlspecialchars($pkg['name']) ?></h4>
-                                </div>
+                                <h4 class="pkg-title mt-1 mb-1"><?= htmlspecialchars($pkg['name']) ?></h4>
                                 <div class="pkg-duration">
                                     <i class="fa-regular fa-clock me-1 text-muted"></i> Thời hạn: <strong><?= $pkg['days'] ?> ngày</strong> (<?= $pkg['days'] * 24 ?> giờ)
                                 </div>
@@ -1607,12 +1655,7 @@ $csrfToken = get_csrf_token();
                             <span class="pkg-badge <?= $pkg['badge_class'] ?>"><?= htmlspecialchars($pkg['badge']) ?></span>
                             
                             <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="p-2 rounded-3 bg-info bg-opacity-10 text-info">
-                                        <i class="fa-solid fa-cloud-bolt"></i>
-                                    </span>
-                                    <h4 class="pkg-title mb-0"><?= htmlspecialchars($pkg['name']) ?></h4>
-                                </div>
+                                <h4 class="pkg-title mt-1 mb-1"><?= htmlspecialchars($pkg['name']) ?></h4>
                                 <div class="pkg-duration">
                                     <i class="fa-regular fa-clock me-1 text-muted"></i> Thời hạn: <strong><?= $pkg['days'] ?> ngày</strong> (Key + Treo máy 24/7)
                                 </div>
