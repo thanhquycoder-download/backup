@@ -1216,7 +1216,7 @@ $flash = get_flash();
         <ul class="sidebar-nav-list">
             <!-- Giới thiệu -->
             <li>
-                <a href="/referral" class="sidebar-link">
+                <a href="referral.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-share-nodes"></i></span>
                     <span class="sidebar-title">Giới thiệu</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
