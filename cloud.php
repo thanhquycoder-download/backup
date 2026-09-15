@@ -2130,18 +2130,28 @@ $csrfToken = get_csrf_token();
         }
 
         // ==========================================================
-        // SAO CHÉP VÀO CLIPBOARD
+        // SAO CHÉP MÃ KEY VÀO CLIPBOARD (ĐỒNG BỘ BUY-KEY.PHP)
         // ==========================================================
-        function copyToClipboard(text, el) {
-            navigator.clipboard.writeText(text).then(() => {
-                const oldHTML = el.innerHTML;
-                el.innerHTML = `<span>Đã sao chép!</span> <i class="fa-solid fa-check text-success"></i>`;
-                setTimeout(() => {
-                    el.innerHTML = oldHTML;
-                }, 2000);
+        function copyKeyText(keyText) {
+            navigator.clipboard.writeText(keyText).then(() => {
+                const overlay = document.getElementById('svgDialogOverlay');
+                const iconEl = document.getElementById('svgDialogIcon');
+                const titleEl = document.getElementById('svgDialogTitle');
+                const messageEl = document.getElementById('svgDialogMessage');
+                const actionsEl = document.getElementById('svgDialogActions');
+
+                iconEl.innerHTML = SVG_TEMPLATES.success;
+                titleEl.textContent = 'Sao chép thành công';
+                messageEl.innerHTML = 'Đã sao chép mã Key bản quyền vào bộ nhớ đệm:<br><div class="mt-2 p-2 bg-light border rounded text-success font-monospace fw-bold">' + keyText + '</div><div class="mt-2 small text-muted">Dán mã này vào Tool để kích hoạt sử dụng ngay.</div>';
+                actionsEl.innerHTML = '<button type="button" class="btn btn-primary px-4 rounded-pill" onclick="closeSvgDialog()"><i class="fa-solid fa-check me-1"></i> Xác nhận</button>';
+                overlay.classList.add('active');
             }).catch(() => {
-                alert('Mã: ' + text);
+                alert('Mã key của bạn: ' + keyText);
             });
+        }
+
+        function copyToClipboard(text, el) {
+            copyKeyText(text);
         }
 
         function confirmLogout() {
