@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `key_orders` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `user_uuid` CHAR(36) NOT NULL COMMENT 'Liên kết bảng users.uuid',
     `order_code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã đơn hàng (#ORD-XXXXXX)',
-    `package_type` ENUM('key_only', 'combo') NOT NULL DEFAULT 'key_only' COMMENT 'Loại gói (key_only hoặc combo)',
+    `package_type` ENUM('key_only', 'combo', 'cloud_only') NOT NULL DEFAULT 'key_only' COMMENT 'Loại gói (key_only, combo hoặc cloud_only)',
     `package_name` VARCHAR(100) NOT NULL COMMENT 'Tên gói dịch vụ',
     `duration_days` INT UNSIGNED NOT NULL COMMENT 'Số ngày sử dụng (1, 3, 7, 30, 90)',
     `license_key` VARCHAR(100) NOT NULL UNIQUE COMMENT 'Chuỗi mã Key bản quyền kích hoạt',
