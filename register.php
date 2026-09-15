@@ -11,6 +11,11 @@ require_once __DIR__ . '/config/config.php';
 
 require_guest();
 
+if (isset($_GET['ref']) && !empty(trim($_GET['ref']))) {
+    $_SESSION['referral_ref'] = trim($_GET['ref']);
+}
+$refCodeVal = $_POST['ref_code'] ?? ($_SESSION['referral_ref'] ?? '');
+
 $errors = [];
 $old = [
     'name'     => '',
@@ -107,6 +112,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $defaultRole,
                 $defaultStatus
             ]);
+
+            // Ghi nhận liên kết người giới thiệu vào bảng referrals
+            $rawRefCode = trim($_POST['ref_code'] ?? ($_SESSION['referral_ref'] ?? ''));
+            if (!empty($rawRefCode)) {
+                $cleanRef = ltrim($rawRefCode, '@#');
+                $stmtRef = $pdo->prepare("SELECT uuid FROM users WHERE (uid = ? OR username = ? OR username = ?) AND uuid != ? LIMIT 1");
+                $stmtRef->execute([$cleanRef, $cleanRef, '@' . $cleanRef, $uuid]);
+                $referrer = $stmtRef->fetch();
+                if ($referrer) {
+                    try {
+                        $stmtInsertRef = $pdo->prepare("
+                            INSERT INTO referrals (referrer_uuid, referee_uuid, commission_rate, total_commission, status)
+                            VALUES (?, ?, 10.00, 0.00, 'Active')
+                        ");
+                        $stmtInsertRef->execute([$referrer['uuid'], $uuid]);
+                        unset($_SESSION['referral_ref']);
+                    } catch (Exception $eRef) {
+                        // Bỏ qua lỗi nếu có vấn đề ghi nhận ref
+                    }
+                }
+            }
 
             set_flash(
                 'success', 
@@ -525,6 +551,20 @@ $csrfToken = get_csrf_token();
                             <i class="fa-regular fa-eye"></i>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Mã giới thiệu (Tùy chọn) -->
+            <div>
+                <label for="ref_code" class="form-label d-flex justify-content-between">
+                    <span>Mã giới thiệu</span>
+                    <span class="text-muted fw-normal" style="font-size: 0.78rem;">(Tùy chọn)</span>
+                </label>
+                <div class="input-group-custom">
+                    <i class="fa-solid fa-gift input-icon"></i>
+                    <input type="text" id="ref_code" name="ref_code" class="form-control-custom" 
+                           placeholder="Nhập mã UID hoặc tên người giới thiệu" 
+                           value="<?= htmlspecialchars($refCodeVal) ?>">
                 </div>
             </div>
 

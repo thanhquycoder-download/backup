@@ -9,6 +9,9 @@ USE `thanhquytech_db`;
 
 -- Vô hiệu hóa kiểm tra khóa ngoại tạm thời để xóa sạch các bảng cũ bị lệch cấu trúc (nếu có)
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `referral_commissions`;
+DROP TABLE IF EXISTS `referrals`;
+DROP TABLE IF EXISTS `key_orders`;
 DROP TABLE IF EXISTS `transactions`;
 DROP TABLE IF EXISTS `rankings`;
 DROP TABLE IF EXISTS `password_resets`;
@@ -261,3 +264,17 @@ INSERT INTO `transactions` (`user_uuid`, `code`, `type`, `amount`, `balance_befo
 ('0191eb50-0003-7000-8000-000000000003', 'NAP1000003-01', 'Deposit', 850000.00, 0.00, 850000.00, 'Success', 'Nạp số dư tài khoản Member'),
 ('0191eb50-0004-7000-8000-000000000004', 'NAP1000004-01', 'Deposit', 320000.00, 0.00, 320000.00, 'Success', 'Nạp tiền kích hoạt tài khoản')
 ON DUPLICATE KEY UPDATE `status` = VALUES(`status`), `note` = VALUES(`note`);
+
+-- 5. Dữ liệu quan hệ giới thiệu mẫu (Referrals)
+-- User @thanhquy (1000002) giới thiệu User @hoangnam (1000003) và @minhanh (1000004)
+INSERT INTO `referrals` (`referrer_uuid`, `referee_uuid`, `commission_rate`, `total_commission`, `status`, `created_at`) VALUES
+('0191eb50-0002-7000-8000-000000000002', '0191eb50-0003-7000-8000-000000000003', 10.00, 10020.00, 'Active', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+('0191eb50-0002-7000-8000-000000000002', '0191eb50-0004-7000-8000-000000000004', 10.00, 10200.00, 'Active', DATE_SUB(NOW(), INTERVAL 3 DAY))
+ON DUPLICATE KEY UPDATE `total_commission` = VALUES(`total_commission`), `commission_rate` = VALUES(`commission_rate`);
+
+-- 6. Dữ liệu lịch sử hoa hồng mẫu (Referral Commissions)
+INSERT INTO `referral_commissions` (`referrer_uuid`, `referee_uuid`, `order_code`, `service_type`, `order_amount`, `commission_rate`, `commission_amount`, `status`, `note`, `created_at`) VALUES
+('0191eb50-0002-7000-8000-000000000002', '0191eb50-0003-7000-8000-000000000003', 'ORD-K7D-8921', 'buy_key', 25200.00, 10.00, 2520.00, 'Completed', 'Hoa hồng 10% đơn mua Key 1 Tuần', DATE_SUB(NOW(), INTERVAL 4 DAY)),
+('0191eb50-0002-7000-8000-000000000002', '0191eb50-0004-7000-8000-000000000004', 'ORD-COMBO30-4102', 'cloud', 102000.00, 10.00, 10200.00, 'Completed', 'Hoa hồng 10% đơn Combo 1 Tháng', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('0191eb50-0002-7000-8000-000000000002', '0191eb50-0003-7000-8000-000000000003', 'ORD-VPS30-1092', 'cloud', 75000.00, 10.00, 7500.00, 'Completed', 'Hoa hồng 10% đơn thuê Cloud VPS VIP 1 Tháng', DATE_SUB(NOW(), INTERVAL 1 DAY))
+ON DUPLICATE KEY UPDATE `commission_amount` = VALUES(`commission_amount`), `status` = VALUES(`status`);
