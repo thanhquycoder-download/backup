@@ -401,7 +401,7 @@ $stmtOrders = $pdo->prepare("
     SELECT id, order_code, package_type, package_name, duration_days, license_key, cloud_server, amount, status, expires_at, created_at
     FROM key_orders
     WHERE user_uuid = ? AND (package_type = 'combo' OR package_type = 'cloud_only' OR cloud_server IS NOT NULL)
-    ORDER BY created_at DESC
+    ORDER BY id DESC
 ");
 $stmtOrders->execute([$currentUser['uuid']]);
 $userOrders = $stmtOrders->fetchAll();
