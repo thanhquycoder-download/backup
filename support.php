@@ -434,7 +434,7 @@ $flash = get_flash();
         }
 
         /* ==========================================================
-         * 1. HEADER CỐ ĐỊNH (FIXED TOPBAR)
+         * 1. HEADER CỐ ĐỊNH (FIXED TOPBAR) - CHỐNG TRƯỢT TREO KHI CUỘN
          * ========================================================== */
         .app-header {
             position: fixed;
@@ -450,37 +450,41 @@ $flash = get_flash();
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--card-border);
+            box-shadow: 0 4px 20px -8px rgba(15, 23, 42, 0.07);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 24px;
-            transition: var(--transition);
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
+            min-width: 0;
+            flex-shrink: 1;
         }
 
         .sidebar-toggle-btn {
-            background: transparent;
-            border: none;
             width: 40px;
             height: 40px;
-            border-radius: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #ffffff;
             color: var(--text-heading);
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             cursor: pointer;
             transition: var(--transition);
+            flex-shrink: 0;
         }
 
         .sidebar-toggle-btn:hover {
             background: #f1f5f9;
             color: var(--primary);
+            border-color: #cbd5e1;
         }
 
         .brand-logo {
@@ -488,11 +492,12 @@ $flash = get_flash();
             align-items: center;
             gap: 10px;
             text-decoration: none;
+            min-width: 0;
         }
 
         .brand-icon {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
             background: var(--gradient-primary);
             color: #ffffff;
@@ -500,28 +505,30 @@ $flash = get_flash();
             align-items: center;
             justify-content: center;
             font-size: 1.15rem;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            flex-shrink: 0;
         }
 
         .brand-name {
-            font-weight: 800;
             font-size: 1.25rem;
-            letter-spacing: -0.5px;
-            color: #1e1b4b;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.3px;
+            white-space: nowrap;
         }
 
         .brand-name span {
-            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--primary);
         }
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
+            flex-shrink: 0;
         }
 
+        /* Khối Số Dư Nạp Vào (Bên Phải Header - Click chuyển nạp tiền) */
         .header-balance-card {
             display: flex;
             align-items: center;
@@ -547,13 +554,12 @@ $flash = get_flash();
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: #ffffff;
-            color: #16a34a;
+            background: #10b981;
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.95rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            font-size: 0.88rem;
             flex-shrink: 0;
         }
 
@@ -561,42 +567,41 @@ $flash = get_flash();
             display: flex;
             flex-direction: column;
             line-height: 1.2;
-            white-space: nowrap;
         }
 
         .balance-title {
-            font-size: 0.72rem;
-            color: #15803d;
-            font-weight: 700;
+            font-size: 0.68rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: 700;
+            color: #15803d;
+            letter-spacing: 0.4px;
         }
 
         .balance-val {
-            font-size: 0.96rem;
+            font-size: 0.95rem;
             font-weight: 800;
-            color: #166534;
-            font-variant-numeric: tabular-nums;
+            color: #14532d;
+            white-space: nowrap;
         }
 
-        .user-profile-container { position: relative; }
+        /* Avatar & Popup Hồ Sơ */
+        .user-profile-container {
+            position: relative;
+        }
 
         .user-profile-toggle {
+            background: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2px;
-            background: #ffffff;
-            border: 2px solid #e2e8f0;
-            border-radius: 50%;
-            cursor: pointer;
             transition: var(--transition);
-            outline: none;
         }
 
         .user-profile-toggle:hover {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
             transform: scale(1.05);
         }
 
@@ -605,9 +610,14 @@ $flash = get_flash();
             height: 38px;
             border-radius: 50%;
             object-fit: cover;
-            display: block;
-            flex-shrink: 0;
+            border: 2px solid var(--card-border);
             background: #eef2ff;
+            transition: var(--transition);
+        }
+
+        .user-profile-toggle:hover .user-avatar-small {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
 
         /* Popup Hồ Sơ */
@@ -1398,13 +1408,13 @@ $flash = get_flash();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span>Tech</span>
+                    ThanhQuy<span>Tech</span>
                 </div>
             </a>
         </div>
 
         <div class="header-right">
-            <!-- Khối Số dư -->
+            <!-- Số dư tài khoản: Bấm vào khung để chuyển qua nạp tiền -->
             <a href="/payments/deposit" class="header-balance-card" title="Nạp tiền vào tài khoản">
                 <div class="balance-wallet-icon">
                     <i class="fa-solid fa-wallet"></i>
@@ -1415,22 +1425,30 @@ $flash = get_flash();
                 </div>
             </a>
 
-            <!-- Khối Người Dùng & Avatar -->
-            <div class="user-profile-container">
-                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)" title="Xem tài khoản">
-                    <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" alt="Avatar" class="user-avatar-small" onerror="this.src='assets/images/default-avatar.svg'">
+            <!-- Ảnh avatar hồ sơ & Bảng Popup Hồ Sơ -->
+            <div class="user-profile-container" id="userDropdownContainer">
+                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)" aria-expanded="false" title="<?= htmlspecialchars($currentUser['name']) ?>">
+                    <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
+                         alt="Avatar" 
+                         class="user-avatar-small"
+                         onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
                 </button>
 
-                <!-- Popup Hồ Sơ & Đăng Xuất -->
+                <!-- Bảng Popup Thông Tin & Chức Năng Hồ Sơ -->
                 <div class="user-profile-popup" id="userProfilePopup">
-                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-2">
-                        <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" alt="Avatar" class="user-avatar-small" style="width: 44px; height: 44px;" onerror="this.src='assets/images/default-avatar.svg'">
-                        <div class="overflow-hidden">
+                    <!-- Thông tin người dùng -->
+                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-3">
+                        <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
+                             alt="Avatar" 
+                             style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff; background: #eef2ff;"
+                             onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
+                        <div style="min-width: 0; flex-grow: 1;">
                             <div class="fw-bold text-dark text-truncate" style="font-size: 0.95rem;"><?= htmlspecialchars($currentUser['name']) ?></div>
-                            <div class="text-muted text-truncate" style="font-size: 0.78rem;"><?= htmlspecialchars($currentUser['username']) ?></div>
-                            <div class="mt-1">
+                            <div class="text-muted small text-truncate"><?= htmlspecialchars($currentUser['username']) ?></div>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge font-monospace text-primary bg-primary-subtle px-2 py-0" style="font-size: 0.7rem;">UID: #<?= htmlspecialchars($currentUser['uid']) ?></span>
                                 <?php if ($isAdmin): ?>
-                                    <span class="badge bg-danger px-2 py-0" style="font-size: 0.68rem;">Quản trị viên</span>
+                                    <span class="badge bg-danger text-white px-2 py-0" style="font-size: 0.68rem;">Admin</span>
                                 <?php else: ?>
                                     <span class="badge bg-info-subtle text-info px-2 py-0" style="font-size: 0.68rem;">Thành viên</span>
                                 <?php endif; ?>
@@ -1463,6 +1481,12 @@ $flash = get_flash();
                         <a href="cloud.php" class="popup-menu-item">
                             <i class="fa-solid fa-cloud text-info me-2"></i> Thuê cloud
                         </a>
+                        <a href="referral.php" class="popup-menu-item">
+                            <i class="fa-solid fa-share-nodes text-primary me-2"></i> Giới thiệu bạn bè
+                        </a>
+                        <a href="support.php" class="popup-menu-item">
+                            <i class="fa-solid fa-headset text-success me-2"></i> Hỗ trợ kỹ thuật
+                        </a>
                         <?php if ($isAdmin): ?>
                         <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
                             <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
@@ -1489,7 +1513,7 @@ $flash = get_flash();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span>Tech</span>
+                    ThanhQuy<span>Tech</span>
                 </div>
             </a>
             <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">

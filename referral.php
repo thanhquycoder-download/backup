@@ -1364,13 +1364,13 @@ $csrfToken = get_csrf_token();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span class="brand-tech-suffix">Tech</span>
+                    ThanhQuy<span>Tech</span>
                 </div>
             </a>
         </div>
 
         <div class="header-right">
-            <!-- Khối Số dư -->
+            <!-- Số dư tài khoản: Bấm vào khung để chuyển qua nạp tiền -->
             <a href="/payments/deposit" class="header-balance-card" title="Nạp tiền vào tài khoản">
                 <div class="balance-wallet-icon">
                     <i class="fa-solid fa-wallet"></i>
@@ -1436,6 +1436,12 @@ $csrfToken = get_csrf_token();
                         <a href="cloud.php" class="popup-menu-item">
                             <i class="fa-solid fa-cloud text-info me-2"></i> Thuê cloud
                         </a>
+                        <a href="referral.php" class="popup-menu-item">
+                            <i class="fa-solid fa-share-nodes text-primary me-2"></i> Giới thiệu bạn bè
+                        </a>
+                        <a href="support.php" class="popup-menu-item">
+                            <i class="fa-solid fa-headset text-success me-2"></i> Hỗ trợ kỹ thuật
+                        </a>
                         <?php if ($isAdmin): ?>
                         <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
                             <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
@@ -1462,7 +1468,7 @@ $csrfToken = get_csrf_token();
                     <i class="fa-solid fa-bolt"></i>
                 </div>
                 <div class="brand-name">
-                    <span>ThanhQuy</span><span class="brand-tech-suffix">Tech</span>
+                    ThanhQuy<span>Tech</span>
                 </div>
             </a>
             <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
