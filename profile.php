@@ -1093,14 +1093,14 @@ $flash = get_flash();
             </li>
             <!-- Mua key -->
             <li>
-                <a href="#buy-key" class="sidebar-link">
+                <a href="buy-key.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-key"></i></span>
                     <span class="sidebar-title">Mua key</span>
                 </a>
             </li>
             <!-- Thuê cloud -->
             <li>
-                <a href="#cloud" class="sidebar-link">
+                <a href="buy-key.php?tab=combo" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-cloud"></i></span>
                     <span class="sidebar-title">Thuê cloud</span>
                 </a>

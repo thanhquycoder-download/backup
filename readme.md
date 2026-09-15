@@ -59,6 +59,19 @@ Mọi bảng nghiệp vụ được liên kết chặt chẽ với bảng `users
    - `status`: Trạng thái (`Success`, `Pending`, `Failed`, `Cancelled`).
    - `note`: Ghi chú nội dung giao dịch.
 
+6. **`key_orders` (Lịch sử mua bản quyền Key & Thuê Cloud)**:
+   - `id`: Khóa chính tự tăng.
+   - `user_uuid`: Khóa ngoại liên kết tới `users.uuid`.
+   - `order_code`: Mã đơn hàng duy nhất (`#ORD-XXXXXX`).
+   - `package_type`: Loại gói (`key_only` hoặc `combo`).
+   - `package_name`: Tên gói dịch vụ (Key 1d, 3d, 7d, 30d, 90d, Combo 1d, 3d, 7d, 30d, 90d).
+   - `duration_days`: Thời gian sử dụng (ngày).
+   - `license_key`: Mã key bản quyền kích hoạt công cụ tool.
+   - `cloud_server`: Máy chủ Cloud treo ngầm 24/7 (cho gói Combo).
+   - `amount`: Số tiền thanh toán (VND).
+   - `status`: Trạng thái (`Active`, `Expired`).
+   - `expires_at`, `created_at`: Thời gian hết hạn và tạo đơn.
+
 ---
 
 ## 2. Tài Khoản Thử Nghiệm Mẫu (Seed Data)
