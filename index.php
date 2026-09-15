@@ -1106,99 +1106,28 @@ $flash = get_flash();
                 overflow-x: hidden !important;
                 touch-action: pan-y !important;
             }
+            .app-sidebar {
+                top: 56px !important;
+            }
+            .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 56px !important;
+                padding: 16px 12px 50px !important;
+            }
             .app-header {
                 height: 56px !important;
                 padding: 0 8px !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                left: 0 !important;
-                right: 0 !important;
-            }
-            .app-sidebar {
-                top: 56px;
-            }
-            .header-left {
-                gap: 4px !important;
-                min-width: 0 !important;
-                flex-shrink: 1 !important;
-            }
-            .brand-logo {
-                gap: 4px !important;
-                min-width: 0 !important;
-            }
-            .brand-icon {
-                width: 26px !important;
-                height: 26px !important;
-                font-size: 0.78rem !important;
-                border-radius: 6px !important;
-                flex-shrink: 0 !important;
             }
             .brand-name {
                 font-size: 0.86rem !important;
-                letter-spacing: -0.3px !important;
-                font-weight: 700 !important;
             }
             .brand-tech-suffix {
                 display: none !important;
             }
-            .sidebar-toggle-btn {
-                width: 30px !important;
-                height: 30px !important;
-                font-size: 0.85rem !important;
-                border-radius: 7px !important;
-                flex-shrink: 0 !important;
-            }
-            .header-right {
-                gap: 5px !important;
-                flex-shrink: 0 !important;
-            }
-            .header-balance-card {
-                padding: 2px 6px !important;
-                gap: 4px !important;
-                border-radius: 20px !important;
-                background: #f0fdf4 !important;
-                border: 1px solid #bbf7d0 !important;
-            }
-            .balance-wallet-icon {
-                width: 18px !important;
-                height: 18px !important;
-                font-size: 0.62rem !important;
-                flex-shrink: 0 !important;
-            }
-            .balance-text-group {
-                display: flex !important;
-                flex-direction: column !important;
-                line-height: 1 !important;
-            }
-            .balance-title {
-                display: none !important;
-            }
-            .balance-val {
-                font-size: 0.72rem !important;
-                white-space: nowrap !important;
-                font-weight: 800 !important;
-            }
-            .balance-add-btn {
-                display: none !important;
-            }
-            .user-profile-toggle {
-                padding: 0 !important;
-                border-radius: 50% !important;
-                background: transparent !important;
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: none !important;
-                gap: 0 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                cursor: pointer !important;
-            }
             .user-avatar-small {
                 width: 28px !important;
                 height: 28px !important;
-                border-width: 1.5px !important;
-                flex-shrink: 0 !important;
-                pointer-events: none !important;
             }
             .user-profile-popup {
                 position: fixed !important;
