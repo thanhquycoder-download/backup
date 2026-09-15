@@ -1885,55 +1885,15 @@ $csrfToken = get_csrf_token();
 
     <script>
         // ==========================================================
-        // SIDEBAR TOGGLE (MOBILE & DESKTOP)
-        // ==========================================================
-        const sidebar = document.getElementById('appSidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-        sidebarToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            sidebar.classList.toggle('sidebar-open');
-            sidebarBackdrop.classList.toggle('active');
-        });
-
-        sidebarBackdrop.addEventListener('click', function() {
-            sidebar.classList.remove('sidebar-open');
-            sidebarBackdrop.classList.remove('active');
-        });
-
-        // ==========================================================
-        // POPUP HỒ SƠ (AVATAR DROPDOWN)
-        // ==========================================================
-        function toggleUserPopup(e) {
-            e.stopPropagation();
-            const popup = document.getElementById('userProfilePopup');
-            popup.classList.toggle('active');
-        }
-
-        function closeUserPopup() {
-            const popup = document.getElementById('userProfilePopup');
-            if (popup) popup.classList.remove('active');
-        }
-
-        document.addEventListener('click', function(e) {
-            const popup = document.getElementById('userProfilePopup');
-            const toggle = document.getElementById('userProfileToggle');
-            if (popup && popup.classList.contains('active')) {
-                if (!popup.contains(e.target) && !toggle.contains(e.target)) {
-                    popup.classList.remove('active');
-                }
-            }
-        });
-
-        // ==========================================================
-        // TAB CHUYỂN ĐỔI: COMBO TRỌN GÓI VS CLOUD VPS RIÊNG
+        // TAB CHUYỂN ĐỔI: CLOUD VPS RIÊNG VS COMBO TRỌN GÓI
         // ==========================================================
         function switchCloudTab(type) {
             const tabComboBtn = document.getElementById('tabComboBtn');
             const tabCloudOnlyBtn = document.getElementById('tabCloudOnlyBtn');
             const sectionCombo = document.getElementById('sectionCombo');
             const sectionCloudOnly = document.getElementById('sectionCloudOnly');
+
+            if (!tabComboBtn || !tabCloudOnlyBtn || !sectionCombo || !sectionCloudOnly) return;
 
             if (type === 'combo') {
                 tabComboBtn.classList.add('active');
@@ -1947,6 +1907,80 @@ $csrfToken = get_csrf_token();
                 sectionCloudOnly.style.display = 'block';
             }
         }
+        window.switchCloudTab = switchCloudTab;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabComboBtn = document.getElementById('tabComboBtn');
+            const tabCloudOnlyBtn = document.getElementById('tabCloudOnlyBtn');
+
+            if (tabCloudOnlyBtn) {
+                tabCloudOnlyBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchCloudTab('cloud_only');
+                });
+            }
+            if (tabComboBtn) {
+                tabComboBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchCloudTab('combo');
+                });
+            }
+
+            // Hỗ trợ tham số URL ?tab=combo hoặc ?tab=cloud_only
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'combo') {
+                switchCloudTab('combo');
+            } else {
+                switchCloudTab('cloud_only');
+            }
+        });
+
+        // ==========================================================
+        // SIDEBAR TOGGLE (MOBILE & DESKTOP)
+        // ==========================================================
+        const sidebar = document.getElementById('appSidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+        if (sidebar && sidebarToggle && sidebarBackdrop) {
+            sidebarToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('sidebar-open');
+                sidebarBackdrop.classList.toggle('active');
+            });
+
+            sidebarBackdrop.addEventListener('click', function() {
+                sidebar.classList.remove('sidebar-open');
+                sidebarBackdrop.classList.remove('active');
+            });
+        }
+
+        // ==========================================================
+        // POPUP HỒ SƠ (AVATAR DROPDOWN)
+        // ==========================================================
+        function toggleUserPopup(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const popup = document.getElementById('userProfilePopup');
+            if (popup) popup.classList.toggle('active');
+        }
+
+        function closeUserPopup() {
+            const popup = document.getElementById('userProfilePopup');
+            if (popup) popup.classList.remove('active');
+        }
+
+        document.addEventListener('click', function(e) {
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (popup && popup.classList.contains('active')) {
+                if (!popup.contains(e.target) && (!toggle || !toggle.contains(e.target))) {
+                    popup.classList.remove('active');
+                }
+            }
+        });
 
         // ==========================================================
         // SVG TEMPLATES
