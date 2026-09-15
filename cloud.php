@@ -1353,6 +1353,28 @@ $csrfToken = get_csrf_token();
             }
         }
     </style>
+    <script>
+        function switchCloudTab(type) {
+            var tabCloudOnlyBtn = document.getElementById('tabCloudOnlyBtn');
+            var tabComboBtn = document.getElementById('tabComboBtn');
+            var sectionCloudOnly = document.getElementById('sectionCloudOnly');
+            var sectionCombo = document.getElementById('sectionCombo');
+
+            if (!tabCloudOnlyBtn || !tabComboBtn || !sectionCloudOnly || !sectionCombo) return;
+
+            if (type === 'combo') {
+                tabCloudOnlyBtn.classList.remove('active');
+                tabComboBtn.classList.add('active');
+                sectionCloudOnly.style.display = 'none';
+                sectionCombo.style.display = 'block';
+            } else {
+                tabComboBtn.classList.remove('active');
+                tabCloudOnlyBtn.classList.add('active');
+                sectionCombo.style.display = 'none';
+                sectionCloudOnly.style.display = 'block';
+            }
+        }
+    </script>
 </head>
 <body>
 
@@ -1892,52 +1914,31 @@ $csrfToken = get_csrf_token();
         // TAB CHUYỂN ĐỔI: CLOUD VPS RIÊNG VS COMBO TRỌN GÓI
         // ==========================================================
         function switchCloudTab(type) {
-            const tabComboBtn = document.getElementById('tabComboBtn');
             const tabCloudOnlyBtn = document.getElementById('tabCloudOnlyBtn');
-            const sectionCombo = document.getElementById('sectionCombo');
+            const tabComboBtn = document.getElementById('tabComboBtn');
             const sectionCloudOnly = document.getElementById('sectionCloudOnly');
+            const sectionCombo = document.getElementById('sectionCombo');
 
-            if (!tabComboBtn || !tabCloudOnlyBtn || !sectionCombo || !sectionCloudOnly) return;
+            if (!tabCloudOnlyBtn || !tabComboBtn || !sectionCloudOnly || !sectionCombo) return;
 
             if (type === 'combo') {
-                tabComboBtn.classList.add('active');
                 tabCloudOnlyBtn.classList.remove('active');
-                sectionCombo.style.display = 'block';
+                tabComboBtn.classList.add('active');
                 sectionCloudOnly.style.display = 'none';
+                sectionCombo.style.display = 'block';
             } else {
-                tabCloudOnlyBtn.classList.add('active');
                 tabComboBtn.classList.remove('active');
+                tabCloudOnlyBtn.classList.add('active');
                 sectionCombo.style.display = 'none';
                 sectionCloudOnly.style.display = 'block';
             }
         }
-        window.switchCloudTab = switchCloudTab;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabComboBtn = document.getElementById('tabComboBtn');
-            const tabCloudOnlyBtn = document.getElementById('tabCloudOnlyBtn');
-
-            if (tabCloudOnlyBtn) {
-                tabCloudOnlyBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    switchCloudTab('cloud_only');
-                });
-            }
-            if (tabComboBtn) {
-                tabComboBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    switchCloudTab('combo');
-                });
-            }
-
-            // Hỗ trợ tham số URL ?tab=combo hoặc ?tab=cloud_only
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('tab') === 'combo') {
-                switchCloudTab('combo');
-            } else {
-                switchCloudTab('cloud_only');
-            }
-        });
+        // Kiểm tra URL param để tự động mở tab Combo nếu có ?tab=combo
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'combo') {
+            switchCloudTab('combo');
+        }
 
         // ==========================================================
         // SIDEBAR TOGGLE (MOBILE & DESKTOP)
