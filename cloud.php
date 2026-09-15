@@ -507,13 +507,16 @@ $csrfToken = get_csrf_token();
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.1rem;
             cursor: pointer;
             transition: var(--transition);
+            flex-shrink: 0;
         }
 
         .sidebar-toggle-btn:hover {
             background: #f1f5f9;
             color: var(--primary);
+            border-color: #cbd5e1;
         }
 
         .brand-logo {
@@ -534,85 +537,88 @@ $csrfToken = get_csrf_token();
             align-items: center;
             justify-content: center;
             font-size: 1.15rem;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
             flex-shrink: 0;
         }
 
         .brand-name {
-            font-size: 1.15rem;
+            font-size: 1.25rem;
             font-weight: 800;
             color: var(--text-heading);
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             white-space: nowrap;
         }
 
-        .brand-tech-suffix {
+        .brand-name span {
             color: var(--primary);
         }
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             flex-shrink: 0;
         }
 
+        /* Khối Số Dư Nạp Vào (Bấm vào chuyển nạp tiền) */
         .header-balance-card {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 7px 16px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+            padding: 6px 14px;
             border-radius: 50px;
-            background: #f1f5f9;
-            border: 1px solid var(--card-border);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+            transition: var(--transition);
+            flex-shrink: 0;
             text-decoration: none;
             cursor: pointer;
-            transition: var(--transition);
         }
 
         .header-balance-card:hover {
-            background: #e2e8f0;
-            border-color: #cbd5e1;
+            border-color: #86efac;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
             transform: translateY(-1px);
         }
 
         .balance-wallet-icon {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #ffffff;
-            color: var(--warning);
+            background: #10b981;
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            font-size: 0.88rem;
             flex-shrink: 0;
         }
 
         .balance-text-group {
             display: flex;
             flex-direction: column;
-            line-height: 1.15;
-            white-space: nowrap;
+            line-height: 1.2;
         }
 
         .balance-title {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--text-muted);
+            color: #15803d;
             letter-spacing: 0.4px;
         }
 
         .balance-val {
             font-size: 0.95rem;
             font-weight: 800;
-            color: var(--text-heading);
+            color: #14532d;
+            white-space: nowrap;
         }
 
         .user-profile-container {
             position: relative;
+            flex-shrink: 0;
         }
 
         .user-profile-toggle {
