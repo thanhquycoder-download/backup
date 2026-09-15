@@ -1642,13 +1642,13 @@ $csrfToken = get_csrf_token();
                 <div class="row align-items-center">
                     <div class="col-lg-8">
                         <span class="badge bg-warning text-dark fw-bold px-3 py-1 mb-2 rounded-pill">
-                            <i class="fa-solid fa-fire-flame-curved me-1"></i> Ưu Đãi Cực Lớn - Giảm Đến 40% Khi Mua Dài Hạn
+                            <i class="fa-solid fa-fire-flame-curved me-1"></i> Ưu Đãi Tiết Kiệm - Chiết Khấu Đến 20% Khi Mua Dài Hạn
                         </span>
                         <h2 class="fw-extrabold mb-2" style="font-weight: 800;">
                             Mua Bản Quyền Key & Treo Cloud Tự Động
                         </h2>
                         <p class="text-light opacity-75 mb-3" style="font-size: 0.95rem;">
-                            Chỉ từ <strong>600đ/ngày</strong> cho Key Tool Golike, hoặc <strong>2.400đ/ngày</strong> cho Combo trọn gói vừa có Key vừa cày ngầm 24/24 trên Cloud VPS. Càng mua dài hạn càng được giảm sâu!
+                            Chỉ từ <strong>800đ/ngày</strong> cho Key Tool Golike, hoặc <strong>3.200đ/ngày</strong> cho Combo trọn gói vừa có Key vừa cày ngầm 24/24 trên Cloud VPS. Càng mua dài hạn càng được giảm thêm!
                         </p>
                         <div class="d-flex flex-wrap gap-2">
                             <span class="badge bg-white bg-opacity-20 text-white py-2 px-3 rounded-pill">
@@ -1678,10 +1678,10 @@ $csrfToken = get_csrf_token();
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div class="pricing-tabs">
                     <button type="button" class="pricing-tab-btn active" id="tabKeyOnlyBtn" onclick="switchPricingTab('key_only')">
-                        <i class="fa-solid fa-key"></i> Bản Quyền Key <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 40%</span>
+                        <i class="fa-solid fa-key"></i> Bản Quyền Key <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 20%</span>
                     </button>
                     <button type="button" class="pricing-tab-btn" id="tabComboBtn" onclick="switchPricingTab('combo')">
-                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 40%</span>
+                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud <span class="badge bg-danger text-white ms-1 px-2 py-0" style="font-size: 0.68rem;">Giảm đến 20%</span>
                     </button>
                 </div>
                 <div class="text-muted small">
