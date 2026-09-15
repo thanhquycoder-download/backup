@@ -1542,6 +1542,11 @@ $csrfToken = get_csrf_token();
                 <div class="collapse" id="submenuPayment">
                     <ul class="sidebar-submenu">
                         <li>
+                            <a href="/payments" class="submenu-link fw-bold text-dark">
+                                <span><i class="fa-solid fa-wallet me-1 text-success"></i> Thanh toán</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="/payments/deposit" class="submenu-link">
                                 <span><i class="fa-solid fa-circle-arrow-down me-1 text-success"></i> Nạp tiền</span>
                                 <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
@@ -1574,6 +1579,16 @@ $csrfToken = get_csrf_token();
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
             </li>
+            <?php if ($isAdmin): ?>
+            <!-- Admin Panel (Chỉ hiển thị cho Admin) -->
+            <li>
+                <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
+                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span class="sidebar-title">Admin Panel</span>
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-auto" style="font-size: 0.65rem; padding: 2px 7px;">Admin</span>
+                </a>
+            </li>
+            <?php endif; ?>
         </ul>
     </aside>
 
