@@ -1399,13 +1399,23 @@ $csrfToken = get_csrf_token();
         .svg-warning .svg-question { stroke: #f59e0b; }
         .svg-warning .svg-question-dot { fill: #f59e0b; }
 
+        /* Hỗ trợ Đóng/Mở Sidebar trên Desktop (Màn hình lớn) */
+        body.sidebar-collapsed .app-sidebar {
+            transform: translateX(-100%) !important;
+        }
+        body.sidebar-collapsed .app-main {
+            margin-left: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
         /* Responsive Mobile & Tablet chuẩn index.php */
         @media (max-width: 991.98px) {
             .app-sidebar {
                 transform: translateX(-100%);
             }
             .app-sidebar.sidebar-open {
-                transform: translateX(0);
+                transform: translateX(0) !important;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             }
             .app-main {
