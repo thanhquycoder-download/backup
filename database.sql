@@ -156,6 +156,58 @@ CREATE TABLE IF NOT EXISTS `key_orders` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 7. Bảng: referrals (Quản lý liên kết người giới thiệu & thành viên F1)
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `referrals` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `referrer_uuid` CHAR(36) NOT NULL COMMENT 'Người giới thiệu (bảng users.uuid)',
+    `referee_uuid` CHAR(36) NOT NULL UNIQUE COMMENT 'Người được giới thiệu (bảng users.uuid - mỗi người chỉ có 1 người giới thiệu)',
+    `commission_rate` DECIMAL(5, 2) NOT NULL DEFAULT 10.00 COMMENT 'Tỉ lệ hoa hồng mặc định (%)',
+    `total_commission` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Tổng hoa hồng tích lũy đã nhận từ thành viên này (VND)',
+    `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái hoạt động',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm đăng ký qua mã giới thiệu',
+    
+    INDEX `idx_ref_referrer` (`referrer_uuid`),
+    INDEX `idx_ref_referee` (`referee_uuid`),
+    INDEX `idx_ref_status` (`status`),
+    CONSTRAINT `fk_referrals_referrer`
+        FOREIGN KEY (`referrer_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_referrals_referee`
+        FOREIGN KEY (`referee_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 8. Bảng: referral_commissions (Lịch sử nhận hoa hồng chi tiết)
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `referral_commissions` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `referrer_uuid` CHAR(36) NOT NULL COMMENT 'Người nhận hoa hồng (users.uuid)',
+    `referee_uuid` CHAR(36) NOT NULL COMMENT 'Người phát sinh đơn hàng (users.uuid)',
+    `order_code` VARCHAR(50) DEFAULT NULL COMMENT 'Mã đơn hàng phát sinh hoa hồng (VD: #ORD-..., PAY-...)',
+    `service_type` ENUM('buy_key', 'cloud', 'deposit', 'other') NOT NULL DEFAULT 'buy_key' COMMENT 'Dịch vụ phát sinh giao dịch',
+    `order_amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Giá trị đơn hàng gốc (VND)',
+    `commission_rate` DECIMAL(5, 2) NOT NULL DEFAULT 10.00 COMMENT 'Tỉ lệ hoa hồng áp dụng (%)',
+    `commission_amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Số tiền hoa hồng nhận được (VND)',
+    `status` ENUM('Pending', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Completed' COMMENT 'Trạng thái cộng hoa hồng',
+    `note` VARCHAR(255) DEFAULT NULL COMMENT 'Ghi chú giao dịch hoa hồng',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm phát sinh',
+    
+    INDEX `idx_rc_referrer` (`referrer_uuid`),
+    INDEX `idx_rc_referee` (`referee_uuid`),
+    INDEX `idx_rc_order_code` (`order_code`),
+    INDEX `idx_rc_status` (`status`),
+    INDEX `idx_rc_created_at` (`created_at`),
+    CONSTRAINT `fk_rc_referrer`
+        FOREIGN KEY (`referrer_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_rc_referee`
+        FOREIGN KEY (`referee_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- DỮ LIỆU KHỞI TẠO MẪU (SEED DATA)
 -- ==========================================================
