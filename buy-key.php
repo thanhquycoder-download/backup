@@ -932,6 +932,22 @@ $csrfToken = get_csrf_token();
             border-radius: 50%;
         }
 
+        .banner-feature-pill {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.28) !important;
+            color: #ffffff !important;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        }
+
         /* Tabs chuyển đổi gói (Key vs Combo) */
         .pricing-tabs {
             display: inline-flex;
