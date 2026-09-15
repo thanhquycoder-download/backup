@@ -1624,14 +1624,14 @@ $csrfToken = get_csrf_token();
                 </div>
             </div>
 
-            <!-- Khối Tabs Chuyển Đổi: Combo Trọn Gói vs Cloud VPS Riêng -->
+            <!-- Khối Tabs Chuyển Đổi: Cloud VPS Riêng vs Combo Trọn Gói -->
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div class="pricing-tabs">
-                    <button type="button" class="pricing-tab-btn active" id="tabComboBtn" onclick="switchCloudTab('combo')">
-                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud
-                    </button>
-                    <button type="button" class="pricing-tab-btn" id="tabCloudOnlyBtn" onclick="switchCloudTab('cloud_only')">
+                    <button type="button" class="pricing-tab-btn active" id="tabCloudOnlyBtn" onclick="switchCloudTab('cloud_only')">
                         <i class="fa-solid fa-server text-info"></i> Máy Chủ Cloud VPS
+                    </button>
+                    <button type="button" class="pricing-tab-btn" id="tabComboBtn" onclick="switchCloudTab('combo')">
+                        <i class="fa-solid fa-cloud-bolt text-warning"></i> Combo Key + Cloud
                     </button>
                 </div>
                 <div class="text-muted small">
@@ -1639,8 +1639,63 @@ $csrfToken = get_csrf_token();
                 </div>
             </div>
 
-            <!-- ================= DANH SÁCH GÓI COMBO KEY + CLOUD ================= -->
-            <div id="sectionCombo">
+            <!-- ================= DANH SÁCH GÓI CLOUD VPS RIÊNG (HIỂN THỊ ĐẦU TIÊN) ================= -->
+            <div id="sectionCloudOnly" style="display: block;">
+                <div class="pkg-grid">
+                    <?php 
+                    $cloudPkgs = array_filter($CLOUD_PACKAGES, fn($p) => $p['type'] === 'cloud_only');
+                    foreach ($cloudPkgs as $pkg): 
+                    ?>
+                        <div class="pkg-card <?= $pkg['popular'] ? 'popular' : '' ?> <?= !empty($pkg['card_class']) ? $pkg['card_class'] : '' ?>">
+                            <span class="pkg-badge <?= $pkg['badge_class'] ?>"><?= htmlspecialchars($pkg['badge']) ?></span>
+                            
+                            <div>
+                                <h4 class="pkg-title mt-1 mb-1"><?= htmlspecialchars($pkg['name']) ?></h4>
+                                <div class="pkg-duration">
+                                    <i class="fa-regular fa-clock me-1 text-muted"></i> Thời hạn: <strong><?= $pkg['days'] ?> ngày</strong> (Máy chủ Cloud VPS)
+                                </div>
+
+                                <div class="pkg-price-box">
+                                    <?php if (!empty($pkg['discount_pct'])): ?>
+                                        <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                                             <span class="pkg-old-price"><?= number_format($pkg['original_price'], 0, ',', '.') ?> ₫</span>
+                                            <span class="pkg-discount-pill">-<?= $pkg['discount_pct'] ?>%</span>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="d-flex align-items-center justify-content-center mb-1">
+                                            <span class="badge bg-light text-muted border px-2 py-0" style="font-size: 0.68rem;">Gói cơ bản</span>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <div class="pkg-price"><?= number_format($pkg['price'], 0, ',', '.') ?> <span style="font-size: 1rem;">₫</span></div>
+                                    <div class="pkg-price-unit">Chỉ <strong><?= number_format(round($pkg['price'] / $pkg['days']), 0, ',', '.') ?>đ</strong> / 24h máy chủ</div>
+
+                                    <?php if (!empty($pkg['discount_pct'])): ?>
+                                        <div class="pkg-save-label">
+                                            <i class="fa-solid fa-piggy-bank me-1"></i> Tiết kiệm <?= number_format($pkg['original_price'] - $pkg['price'], 0, ',', '.') ?>đ
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <ul class="pkg-features">
+                                    <?php foreach ($pkg['features'] as $ft): ?>
+                                        <li><i class="fa-solid fa-server text-primary"></i> <span><?= htmlspecialchars($ft) ?></span></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+
+                            <button type="button" 
+                                    class="btn-buy-pkg" 
+                                    onclick="openPurchaseModal('<?= $pkg['id'] ?>', '<?= htmlspecialchars($pkg['name']) ?>', '<?= $pkg['days'] ?> ngày', <?= $pkg['price'] ?>)">
+                                <i class="fa-solid fa-server me-1"></i> Thuê Cloud Ngay
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- ================= DANH SÁCH GÓI COMBO KEY + CLOUD (NẰM PHÍA SAU) ================= -->
+            <div id="sectionCombo" style="display: none;">
                 <div class="pkg-grid">
                     <?php 
                     $comboPkgs = array_filter($CLOUD_PACKAGES, fn($p) => $p['type'] === 'combo');
@@ -1688,61 +1743,6 @@ $csrfToken = get_csrf_token();
                                     class="btn-buy-pkg btn-buy-combo" 
                                     onclick="openPurchaseModal('<?= $pkg['id'] ?>', '<?= htmlspecialchars($pkg['name']) ?>', '<?= $pkg['days'] ?> ngày', <?= $pkg['price'] ?>)">
                                 <i class="fa-solid fa-bolt-lightning me-1"></i> Thuê Combo Ngay
-                            </button>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <!-- ================= DANH SÁCH GÓI CLOUD VPS RIÊNG ================= -->
-            <div id="sectionCloudOnly" style="display: none;">
-                <div class="pkg-grid">
-                    <?php 
-                    $cloudPkgs = array_filter($CLOUD_PACKAGES, fn($p) => $p['type'] === 'cloud_only');
-                    foreach ($cloudPkgs as $pkg): 
-                    ?>
-                        <div class="pkg-card <?= $pkg['popular'] ? 'popular' : '' ?> <?= !empty($pkg['card_class']) ? $pkg['card_class'] : '' ?>">
-                            <span class="pkg-badge <?= $pkg['badge_class'] ?>"><?= htmlspecialchars($pkg['badge']) ?></span>
-                            
-                            <div>
-                                <h4 class="pkg-title mt-1 mb-1"><?= htmlspecialchars($pkg['name']) ?></h4>
-                                <div class="pkg-duration">
-                                    <i class="fa-regular fa-clock me-1 text-muted"></i> Thời hạn: <strong><?= $pkg['days'] ?> ngày</strong> (Máy chủ Cloud VPS)
-                                </div>
-
-                                <div class="pkg-price-box">
-                                    <?php if (!empty($pkg['discount_pct'])): ?>
-                                        <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
-                                            <span class="pkg-old-price"><?= number_format($pkg['original_price'], 0, ',', '.') ?> ₫</span>
-                                            <span class="pkg-discount-pill">-<?= $pkg['discount_pct'] ?>%</span>
-                                        </div>
-                                    <?php else: ?>
-                                        <div class="d-flex align-items-center justify-content-center mb-1">
-                                            <span class="badge bg-light text-muted border px-2 py-0" style="font-size: 0.68rem;">Gói cơ bản</span>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="pkg-price"><?= number_format($pkg['price'], 0, ',', '.') ?> <span style="font-size: 1rem;">₫</span></div>
-                                    <div class="pkg-price-unit">Chỉ <strong><?= number_format(round($pkg['price'] / $pkg['days']), 0, ',', '.') ?>đ</strong> / 24h máy chủ</div>
-
-                                    <?php if (!empty($pkg['discount_pct'])): ?>
-                                        <div class="pkg-save-label">
-                                            <i class="fa-solid fa-piggy-bank me-1"></i> Tiết kiệm <?= number_format($pkg['original_price'] - $pkg['price'], 0, ',', '.') ?>đ
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <ul class="pkg-features">
-                                    <?php foreach ($pkg['features'] as $ft): ?>
-                                        <li><i class="fa-solid fa-server text-primary"></i> <span><?= htmlspecialchars($ft) ?></span></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </div>
-
-                            <button type="button" 
-                                    class="btn-buy-pkg" 
-                                    onclick="openPurchaseModal('<?= $pkg['id'] ?>', '<?= htmlspecialchars($pkg['name']) ?>', '<?= $pkg['days'] ?> ngày', <?= $pkg['price'] ?>)">
-                                <i class="fa-solid fa-server me-1"></i> Thuê Cloud Ngay
                             </button>
                         </div>
                     <?php endforeach; ?>
