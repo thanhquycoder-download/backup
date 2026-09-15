@@ -258,10 +258,10 @@ if (!$isAdmin) {
     $stmtCount = $pdo->prepare("
         SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
-            SUM(CASE WHEN status = 'Answered' THEN 1 ELSE 0 END) as answered,
-            SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) as closed
+            COALESCE(SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END), 0) as pending,
+            COALESCE(SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END), 0) as in_progress,
+            COALESCE(SUM(CASE WHEN status = 'Answered' THEN 1 ELSE 0 END), 0) as answered,
+            COALESCE(SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END), 0) as closed
         FROM support_tickets 
         WHERE user_uuid = ?
     ");
@@ -270,14 +270,21 @@ if (!$isAdmin) {
     $stmtCount = $pdo->query("
         SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
-            SUM(CASE WHEN status = 'Answered' THEN 1 ELSE 0 END) as answered,
-            SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) as closed
+            COALESCE(SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END), 0) as pending,
+            COALESCE(SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END), 0) as in_progress,
+            COALESCE(SUM(CASE WHEN status = 'Answered' THEN 1 ELSE 0 END), 0) as answered,
+            COALESCE(SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END), 0) as closed
         FROM support_tickets
     ");
 }
-$stats = $stmtCount->fetch() ?: ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'answered' => 0, 'closed' => 0];
+$rawStats = $stmtCount->fetch() ?: [];
+$stats = [
+    'total'       => (int)($rawStats['total'] ?? 0),
+    'pending'     => (int)($rawStats['pending'] ?? 0),
+    'in_progress' => (int)($rawStats['in_progress'] ?? 0),
+    'answered'    => (int)($rawStats['answered'] ?? 0),
+    'closed'      => (int)($rawStats['closed'] ?? 0)
+];
 
 // Danh sách các tickets
 $sqlList = "
