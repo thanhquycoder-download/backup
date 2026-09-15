@@ -128,6 +128,34 @@ CREATE TABLE IF NOT EXISTS `transactions` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 6. Bảng: key_orders (Lịch sử đơn hàng mua bản quyền Key & Combo Cloud)
+-- Liên kết khóa ngoại với users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `key_orders` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Liên kết bảng users.uuid',
+    `order_code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã đơn hàng (#ORD-XXXXXX)',
+    `package_type` ENUM('key_only', 'combo') NOT NULL DEFAULT 'key_only' COMMENT 'Loại gói (key_only hoặc combo)',
+    `package_name` VARCHAR(100) NOT NULL COMMENT 'Tên gói dịch vụ',
+    `duration_days` INT UNSIGNED NOT NULL COMMENT 'Số ngày sử dụng (1, 3, 7, 30, 90)',
+    `license_key` VARCHAR(100) NOT NULL UNIQUE COMMENT 'Chuỗi mã Key bản quyền kích hoạt',
+    `cloud_server` VARCHAR(100) DEFAULT NULL COMMENT 'Máy chủ Cloud treo ngầm (cho gói Combo)',
+    `amount` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Số tiền thanh toán (VND)',
+    `status` ENUM('Active', 'Expired') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái bản quyền',
+    `expires_at` DATETIME NOT NULL COMMENT 'Thời hạn hết hạn của Key',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm mua đơn hàng',
+    
+    INDEX `idx_ko_user_uuid` (`user_uuid`),
+    INDEX `idx_ko_order_code` (`order_code`),
+    INDEX `idx_ko_license_key` (`license_key`),
+    INDEX `idx_ko_status` (`status`),
+    INDEX `idx_ko_expires_at` (`expires_at`),
+    CONSTRAINT `fk_key_orders_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- DỮ LIỆU KHỞI TẠO MẪU (SEED DATA)
 -- ==========================================================
