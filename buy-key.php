@@ -161,11 +161,11 @@ $PACKAGES = [
         ]
     ],
 
-    // 2. Nhóm Combo Key + Treo Cloud (Giá gốc 4.000đ / ngày, chiết khấu 5% - 20% giữ vững biên lợi nhuận & chi phí VPS)
+    // 2. Nhóm Combo Key + Treo Cloud (Chiết khấu 5% - 20% giữ vững biên lợi nhuận & chi phí VPS)
     'combo_1d' => [
         'id'             => 'combo_1d',
         'type'           => 'combo',
-        'name'           => 'Combo 1 Ngày (Key + Treo Cloud)',
+        'name'           => 'Combo 1 Ngày',
         'days'           => 1,
         'original_price' => 4000,
         'price'          => 4000,
@@ -184,7 +184,7 @@ $PACKAGES = [
     'combo_3d' => [
         'id'             => 'combo_3d',
         'type'           => 'combo',
-        'name'           => 'Combo 3 Ngày (Key + Treo Cloud)',
+        'name'           => 'Combo 3 Ngày',
         'days'           => 3,
         'original_price' => 12000,
         'price'          => 11400,
@@ -203,7 +203,7 @@ $PACKAGES = [
     'combo_7d' => [
         'id'             => 'combo_7d',
         'type'           => 'combo',
-        'name'           => 'Combo 1 Tuần (Key + Treo Cloud)',
+        'name'           => 'Combo 1 Tuần',
         'days'           => 7,
         'original_price' => 28000,
         'price'          => 25200,
@@ -222,7 +222,7 @@ $PACKAGES = [
     'combo_30d' => [
         'id'             => 'combo_30d',
         'type'           => 'combo',
-        'name'           => 'Combo 1 Tháng (Key + Treo Cloud)',
+        'name'           => 'Combo 1 Tháng',
         'days'           => 30,
         'original_price' => 120000,
         'price'          => 102000,
@@ -241,7 +241,7 @@ $PACKAGES = [
     'combo_90d' => [
         'id'             => 'combo_90d',
         'type'           => 'combo',
-        'name'           => 'Combo 3 Tháng (Key + Treo Cloud)',
+        'name'           => 'Combo 3 Tháng',
         'days'           => 90,
         'original_price' => 360000,
         'price'          => 288000,
