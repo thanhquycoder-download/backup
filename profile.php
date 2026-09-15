@@ -1311,7 +1311,7 @@ $flash = get_flash();
     </aside>
 
     <!-- Lớp nền mờ cho Sidebar trên điện thoại -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAppSidebar()"></div>
 
     <!-- KHU VỰC NỘI DUNG CHÍNH (APP MAIN) -->
     <main class="app-main">
@@ -1672,6 +1672,20 @@ $flash = get_flash();
                 closeUserPopup();
             }
         });
+
+        // ==========================================================
+        // ĐIỀU KHIỂN ĐÓNG/MỞ SIDEBAR (MOBILE & DESKTOP)
+        // ==========================================================
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const appSidebar = document.getElementById('appSidebar');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+        if (sidebarToggle) {
+            sidebarToggle.onclick = toggleAppSidebar;
+        }
+        if (sidebarBackdrop) {
+            sidebarBackdrop.onclick = closeAppSidebar;
+        }
 
         <?php if (!empty($flash)): ?>
             document.addEventListener('DOMContentLoaded', () => {
