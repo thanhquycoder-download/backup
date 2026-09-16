@@ -1338,9 +1338,31 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         .svg-warning .svg-exclamation-dot { fill: #f59e0b; }
 
         /* Responsive Mobile */
-        @media (max-width: 991px) {
-            .app-sidebar { transform: translateX(-100%); }
-            .app-sidebar.sidebar-open { transform: translateX(0); }
+        @media (max-width: 991.98px) {
+            .app-sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 280px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1060 !important;
+                padding: 16px 14px 30px !important;
+                box-shadow: none;
+            }
+            .app-sidebar.sidebar-open {
+                transform: translateX(0) !important;
+                box-shadow: 4px 0 30px rgba(0, 0, 0, 0.25) !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            .sidebar-backdrop {
+                z-index: 1055 !important;
+            }
             .app-main { margin-left: 0 !important; padding: 20px 14px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .withdraw-hero { padding: 22px 20px; }
@@ -1445,35 +1467,55 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
     </header>
 
     <!-- ==========================================================
-     * 2. THANH MENU BÊN TRÁI (SIDEBAR CHUẨN 1:1 DEPOSIT.PHP)
+     * 2. THANH MENU BÊN TRÁI (SIDEBAR CHUẨN 1:1 INDEX.PHP)
      * ========================================================== -->
     <aside class="app-sidebar" id="appSidebar">
-        <div class="sidebar-category">TỔNG QUAN</div>
+        <!-- Header cho Sidebar trên Mobile (Loại bỏ hoàn toàn khoảng hở trên đầu) -->
+        <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
+            <a href="index.php" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="brand-name">
+                    ThanhQuy<span>Tech</span>
+                </div>
+            </a>
+            <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="sidebar-category">BẢNG ĐIỀU KHIỂN</div>
         <ul class="sidebar-nav-list">
+            <!-- Trang chủ -->
             <li>
                 <a href="index.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-house"></i></span>
-                    <span class="sidebar-title">Bảng điều khiển</span>
+                    <span class="sidebar-title">Trang chủ</span>
                 </a>
             </li>
+            <!-- Mua key -->
             <li>
                 <a href="buy-key.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-key"></i></span>
                     <span class="sidebar-title">Mua key</span>
                 </a>
             </li>
+            <!-- Thuê cloud -->
             <li>
                 <a href="cloud.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-cloud"></i></span>
                     <span class="sidebar-title">Thuê cloud</span>
                 </a>
             </li>
+            <!-- Access Token -->
             <li>
                 <a href="token.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-fingerprint"></i></span>
                     <span class="sidebar-title">Access Token</span>
                 </a>
             </li>
+            <!-- Cấu hình -->
             <li>
                 <a href="settings.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-gear"></i></span>
@@ -1484,7 +1526,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
 
         <div class="sidebar-category">CÔNG CỤ & DỊCH VỤ</div>
         <ul class="sidebar-nav-list">
-            <!-- Tool Golike -->
+            <!-- Tool Golike (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuGolike" aria-expanded="false">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-robot"></i></span>
@@ -1520,7 +1562,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 </div>
             </li>
 
-            <!-- Account -->
+            <!-- Account (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuAccount" aria-expanded="false">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-users-gear"></i></span>
@@ -1589,6 +1631,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
 
         <div class="sidebar-category">TIỆN ÍCH & HỆ THỐNG</div>
         <ul class="sidebar-nav-list">
+            <!-- Giới thiệu -->
             <li>
                 <a href="referral.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-share-nodes"></i></span>
@@ -1596,6 +1639,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
             </li>
+            <!-- Hỗ trợ -->
             <li>
                 <a href="support.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-headset"></i></span>
@@ -1604,6 +1648,14 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 </a>
             </li>
             <?php if ($isAdmin): ?>
+            <!-- Quản trị nền tảng (Admin) -->
+            <li>
+                <a href="index.php" class="sidebar-link text-primary">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-sliders"></i></span>
+                    <span class="sidebar-title">Quản trị nền tảng</span>
+                </a>
+            </li>
+            <!-- Admin Panel (Chỉ hiển thị cho Admin - nằm dưới Quản trị nền tảng) -->
             <li>
                 <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
                     <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
