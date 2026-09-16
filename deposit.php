@@ -2849,16 +2849,44 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                         <td class="text-center" style="text-align: center !important;">
                                             <div class="d-inline-flex gap-2 justify-content-center align-items-center flex-wrap">
                                                 <?php if ($st === 'Pending'): ?>
-                                                        <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
+                                                    <!-- Khi Đang chờ: Chỉ hiện Quét QR và Hủy đơn (KHÔNG hiện nút Chi tiết) -->
+                                                    <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" 
+                                                       class="btn-action-qr" 
+                                                       title="Mở thông tin và quét mã VietQR chuyển tiền">
+                                                        <i class="fa-solid fa-qrcode"></i>
+                                                        <span>Quét QR</span>
                                                     </a>
-                                                    <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
+                                                    <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền #<?= htmlspecialchars($item['deposit_code']) ?>?');">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                         <input type="hidden" name="action" value="cancel_deposit">
                                                         <input type="hidden" name="deposit_id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" style="font-size: 0.76rem;" title="Hủy lệnh nạp">
-                                                            <i class="fa-solid fa-xmark"></i> Hủy
+                                                        <button type="submit" class="btn-action-cancel" title="Hủy lệnh nạp này">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                            <span>Hủy đơn</span>
                                                         </button>
                                                     </form>
+                                                <?php else: ?>
+                                                    <!-- Chỉ hiện Chi tiết khi đơn đã Hoàn thành, Đã hủy hoặc Thất bại -->
+                                                    <button type="button" 
+                                                            class="btn-action-view" 
+                                                            title="Xem hóa đơn chi tiết & xuất file PDF" 
+                                                            onclick='showDepositInvoice(<?= htmlspecialchars(json_encode([
+                                                                'code' => $item['deposit_code'],
+                                                                'amount' => (float)$item['amount'],
+                                                                'amount_formatted' => format_currency($item['amount']),
+                                                                'bank_name' => $item['bank_name'],
+                                                                'account_number' => $item['account_number'],
+                                                                'account_name' => $item['account_name'],
+                                                                'transfer_content' => $item['transfer_content'],
+                                                                'created_at' => date('d/m/Y H:i:s', strtotime($item['created_at'])),
+                                                                'status' => $item['status'],
+                                                                'customer_name' => !empty($currentUser['name']) ? $currentUser['name'] : (!empty($currentUser['username']) ? ltrim($currentUser['username'], '@') : 'Khách hàng'),
+                                                                'customer_username' => ltrim($currentUser['username'] ?? '', '@'),
+                                                                'customer_email' => $currentUser['email'] ?? '',
+                                                            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)'>
+                                                        <i class="fa-solid fa-file-invoice"></i>
+                                                        <span>Chi tiết</span>
+                                                    </button>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -2916,7 +2944,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         <div class="d-flex justify-content-between align-items-start pb-2 border-bottom" style="gap: 15px;">
                             <div class="text-start" style="flex: 1 1 auto; min-width: 0;">
                                 <div class="fw-bold text-primary text-uppercase" style="font-size: 0.88rem; letter-spacing: 0.3px; line-height: 1.25; margin-bottom: 2px;">
-                                    CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
+                                    CÔNG TY TNHH CÔNG NGHỆ SỐ THÀNH QUÝ TECH
                                 </div>
                                 <div style="font-size: 0.76rem; color: #475569; margin-bottom: 2px;">Mã số thuế (Tax Code): <strong class="text-dark">0318954321</strong></div>
                                 <div style="font-size: 0.75rem; color: #475569; margin-bottom: 2px;">Địa chỉ: Tầng 12, Tòa nhà Công Nghệ Số, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
@@ -3066,7 +3094,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                             <path id="curveTop" d="M 22,80 A 58,58 0 1,1 138,80" fill="none" />
                                             <text font-size="9.5" font-weight="900" fill="#dc2626" letter-spacing="0.5">
                                                 <textPath href="#curveTop" startOffset="50%" text-anchor="middle">
-                                                    CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
+                                                    CÔNG TY TNHH CÔNG NGHỆ SỐ THÀNH QUÝ TECH
                                                 </textPath>
                                             </text>
                                             
