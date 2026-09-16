@@ -2205,7 +2205,7 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <i class="fa-solid fa-check platform-item-check"></i>
+                                            <i class="fa-solid fa-circle-check platform-item-check"></i>
                                         </div>
                                     </div>
 
@@ -2220,7 +2220,7 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <i class="fa-solid fa-check platform-item-check"></i>
+                                            <i class="fa-solid fa-circle-check platform-item-check"></i>
                                         </div>
                                     </div>
 
@@ -2235,7 +2235,7 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <i class="fa-solid fa-check platform-item-check"></i>
+                                            <i class="fa-solid fa-circle-check platform-item-check"></i>
                                         </div>
                                     </div>
 
@@ -2250,7 +2250,7 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <i class="fa-solid fa-check platform-item-check"></i>
+                                            <i class="fa-solid fa-circle-check platform-item-check"></i>
                                         </div>
                                     </div>
                                 </div>
