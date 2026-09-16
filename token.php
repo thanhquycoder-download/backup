@@ -529,7 +529,9 @@ $flash = get_flash();
             color: #dc2626;
         }
 
-        /* SIDEBAR */
+        /* ==========================================================
+         * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI (CHUẨN 1:1 THEO BUY-KEY & INDEX)
+         * ========================================================== */
         .app-sidebar {
             position: fixed;
             top: 70px;
@@ -540,27 +542,43 @@ $flash = get_flash();
             border-right: 1px solid var(--card-border);
             z-index: 1030;
             overflow-y: auto;
-            padding: 20px 14px;
-            transition: var(--transition);
+            overflow-x: hidden;
+            padding: 18px 12px 30px;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .app-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .app-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
         }
 
         .sidebar-category {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 800;
-            color: #94a3b8;
             letter-spacing: 0.8px;
             text-transform: uppercase;
-            padding: 10px 12px 6px;
-            margin-top: 6px;
+            color: #94a3b8;
+            padding: 12px 14px 6px;
+            margin-top: 4px;
         }
 
         .sidebar-nav-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 10px 0;
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 4px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
 
         .sidebar-link {
@@ -568,30 +586,33 @@ $flash = get_flash();
             align-items: center;
             gap: 12px;
             padding: 10px 14px;
-            border-radius: var(--radius-md);
-            color: #475569;
-            text-decoration: none;
+            border-radius: 12px;
+            color: var(--text-body);
             font-size: 0.9rem;
             font-weight: 600;
+            text-decoration: none;
             transition: var(--transition);
             border: 1px solid transparent;
-            cursor: pointer;
             width: 100%;
             background: transparent;
             text-align: left;
+            cursor: pointer;
         }
 
         .sidebar-link:hover {
-            color: var(--primary);
             background: #f1f5f9;
-            border-color: #e2e8f0;
+            color: var(--primary);
         }
 
         .sidebar-link.active {
-            color: var(--primary);
             background: #eef2ff;
+            color: var(--primary);
             border-color: #c7d2fe;
             font-weight: 700;
+        }
+
+        .sidebar-link.active .sidebar-icon {
+            color: var(--primary);
         }
 
         /* 1:1 Bounding Box & Đồng bộ khoảng cách, độ đậm nhạt Icon */
@@ -637,57 +658,103 @@ $flash = get_flash();
             font-size: 1.05rem;
         }
 
-        .sidebar-link.active .sidebar-icon { color: var(--primary); }
-        .sidebar-title { flex-grow: 1; }
-        .sidebar-arrow { font-size: 0.75rem; color: #94a3b8; transition: transform 0.25s ease; }
-        .sidebar-link:not(.collapsed) .sidebar-arrow { transform: rotate(180deg); }
+        .sidebar-link:hover .sidebar-icon {
+            color: var(--primary);
+        }
 
+        .sidebar-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-arrow {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            transition: transform 0.25s ease;
+        }
+
+        .sidebar-link:not(.collapsed) .sidebar-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Submenu accordion */
         .sidebar-submenu {
             list-style: none;
-            padding: 4px 0 4px 28px;
-            margin: 0;
+            padding: 4px 0 6px 14px;
+            margin: 4px 0 4px 16px;
+            border-left: 2px solid #e2e8f0;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
         }
 
         .submenu-link {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 7px 12px;
+            gap: 8px;
+            padding: 8px 12px;
             border-radius: 8px;
-            color: #64748b;
-            text-decoration: none;
+            color: var(--text-muted);
             font-size: 0.84rem;
-            font-weight: 500;
+            font-weight: 600;
+            text-decoration: none;
             transition: var(--transition);
         }
 
         .submenu-link:hover {
             color: var(--primary);
             background: #f8fafc;
+            padding-left: 15px;
         }
 
+        .submenu-link.active {
+            color: var(--primary);
+            background: #eef2ff;
+            font-weight: 700;
+        }
+
+        /* Huy hiệu Lịch Sử */
         .badge-history {
-            font-size: 0.7rem;
-            background: #f1f5f9;
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: #f8fafc;
             color: #64748b;
+            border: 1px solid #e2e8f0;
             padding: 2px 7px;
             border-radius: 6px;
-            font-weight: 600;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            transition: var(--transition);
         }
 
+        .submenu-link:hover .badge-history,
+        .sidebar-link:hover .badge-history {
+            background: #e0e7ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+        }
+
+        /* Backdrop cho mobile */
         .sidebar-backdrop {
-            display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: rgba(15, 23, 42, 0.4);
             backdrop-filter: blur(4px);
             z-index: 1025;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .sidebar-backdrop.active {
+            opacity: 1;
+            visibility: visible;
         }
 
         /* MAIN CONTENT */
