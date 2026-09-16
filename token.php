@@ -317,6 +317,8 @@ $flash = get_flash();
             display: flex;
             align-items: center;
             gap: 14px;
+            min-width: 0;
+            flex-shrink: 1;
         }
 
         .sidebar-toggle-btn {
@@ -332,6 +334,7 @@ $flash = get_flash();
             font-size: 1.1rem;
             cursor: pointer;
             transition: var(--transition);
+            flex-shrink: 0;
         }
 
         .sidebar-toggle-btn:hover {
@@ -345,6 +348,7 @@ $flash = get_flash();
             align-items: center;
             gap: 10px;
             text-decoration: none;
+            min-width: 0;
         }
 
         .brand-icon {
@@ -356,15 +360,17 @@ $flash = get_flash();
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            font-size: 1.15rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            flex-shrink: 0;
         }
 
         .brand-name {
             font-size: 1.25rem;
             font-weight: 800;
             color: var(--text-heading);
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
         }
 
         .brand-name span {
