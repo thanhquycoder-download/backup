@@ -392,95 +392,159 @@ $flash = get_flash();
         .header-right {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
+            flex-shrink: 0;
         }
 
-        .user-balance-pill {
-            background: #f8fafc;
-            border: 1px solid var(--card-border);
-            padding: 6px 14px;
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: #059669;
-        }
-
-        .user-profile-btn {
+        /* Khối Số Dư Nạp Vào (Bên Phải Header - Click chuyển nạp tiền) */
+        .header-balance-card {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 5px 12px 5px 5px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+            padding: 6px 14px;
             border-radius: 50px;
-            border: 1px solid var(--card-border);
-            background: #ffffff;
-            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
             transition: var(--transition);
+            flex-shrink: 0;
+            text-decoration: none;
+            cursor: pointer;
         }
 
-        .user-profile-btn:hover {
-            border-color: #cbd5e1;
-            background: #f8fafc;
+        .header-balance-card:hover {
+            border-color: #86efac;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
         }
 
-        .user-avatar-sm {
+        .balance-wallet-icon {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #e0e7ff;
-        }
-
-        .user-name-text {
+            background: #10b981;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 0.88rem;
+            flex-shrink: 0;
+        }
+
+        .balance-text-group {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .balance-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
             font-weight: 700;
-            color: var(--text-heading);
-            max-width: 120px;
+            color: #15803d;
+            letter-spacing: 0.4px;
+        }
+
+        .balance-val {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #14532d;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        /* POPUP USER MENU */
-        .user-popup-menu {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 20px;
-            width: 270px;
+        /* Khối Avatar & Bảng Popup Hồ Sơ */
+        .user-profile-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .user-profile-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
             background: #ffffff;
-            border: 1px solid var(--card-border);
-            border-radius: var(--radius-md);
-            box-shadow: 0 15px 35px -5px rgba(15, 23, 42, 0.15);
-            padding: 14px;
-            display: none;
-            z-index: 1050;
-            animation: fadeInMenu 0.15s ease-out;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .user-popup-menu.show { display: block; }
+        .user-profile-toggle:hover,
+        .user-profile-toggle:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
+            transform: scale(1.05);
+        }
 
-        @keyframes fadeInMenu {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
+        .user-avatar-small {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            flex-shrink: 0;
+            pointer-events: none;
+            user-select: none;
+            background: #eef2ff;
+        }
+
+        /* Bảng Popup Hồ Sơ */
+        .user-profile-popup {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 290px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.22), 0 4px 15px rgba(0, 0, 0, 0.06);
+            padding: 16px;
+            z-index: 1060;
+            display: none;
+            animation: popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes popupFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .user-profile-popup.active {
+            display: block !important;
         }
 
         .popup-menu-item {
             display: flex;
             align-items: center;
             padding: 9px 12px;
-            border-radius: 8px;
-            color: var(--text-body);
+            border-radius: 10px;
+            color: #334155;
             font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
             transition: var(--transition);
+            cursor: pointer;
         }
 
         .popup-menu-item:hover {
             background: #f1f5f9;
-            color: var(--primary);
+            color: #4f46e5;
+            transform: translateX(3px);
+        }
+
+        .popup-menu-item.text-danger:hover {
+            background: #fef2f2;
+            color: #dc2626;
         }
 
         /* SIDEBAR */
@@ -548,13 +612,47 @@ $flash = get_flash();
             font-weight: 700;
         }
 
+        /* 1:1 Bounding Box & Đồng bộ khoảng cách, độ đậm nhạt Icon */
         .sidebar-icon {
             width: 24px;
-            display: flex;
+            height: 24px;
+            min-width: 24px;
+            max-width: 24px;
+            font-size: 1.05rem;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.05rem;
+            text-align: center;
+            color: #64748b;
             flex-shrink: 0;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .sidebar-icon i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+
+        /* Đồng bộ độ đậm (stroke) để icon nét mảnh (fingerprint, headset) có cùng tỷ trọng quang học với icon khối đặc */
+        .sidebar-icon .fa-fingerprint {
+            font-size: 1.15rem;
+            stroke: currentColor;
+            stroke-width: 22px;
+        }
+
+        .sidebar-icon .fa-headset {
+            font-size: 1.1rem;
+            stroke: currentColor;
+            stroke-width: 18px;
+        }
+
+        .sidebar-icon .fa-gear {
+            font-size: 1.05rem;
         }
 
         .sidebar-link.active .sidebar-icon { color: var(--primary); }
@@ -883,28 +981,60 @@ $flash = get_flash();
         </div>
 
         <div class="header-right">
-            <div class="user-balance-pill d-none d-sm-flex" title="Số dư ví tài khoản">
-                <i class="fa-solid fa-wallet text-success"></i>
-                <span><?= format_currency($user['balance']) ?></span>
-            </div>
+            <!-- Số dư tài khoản: Bấm vào khung để chuyển qua nạp tiền -->
+            <a href="/payments/deposit" class="header-balance-card" title="Nạp tiền vào tài khoản">
+                <div class="balance-wallet-icon">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="balance-text-group">
+                    <span class="balance-title">Số dư</span>
+                    <span class="balance-val"><?= !empty($hideBalance) ? '****** đ' : format_currency($currentUser['balance']) ?></span>
+                </div>
+            </a>
 
-            <div class="position-relative">
-                <button type="button" class="user-profile-btn" onclick="toggleUserPopup(event)">
-                    <img src="<?= htmlspecialchars($user['avatar']) ?>" alt="Avatar" class="user-avatar-sm" onerror="this.src='assets/images/default-avatar.svg'">
-                    <span class="user-name-text d-none d-md-inline"><?= htmlspecialchars($user['name']) ?></span>
-                    <i class="fa-solid fa-chevron-down text-muted" style="font-size: 0.75rem;"></i>
+            <!-- Ảnh avatar hồ sơ & Bảng Popup Hồ Sơ -->
+            <div class="user-profile-container" id="userDropdownContainer">
+                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)" aria-expanded="false" title="<?= htmlspecialchars($currentUser['name']) ?>">
+                    <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
+                         alt="Avatar" 
+                         class="user-avatar-small"
+                         onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
                 </button>
 
-                <div class="user-popup-menu" id="userPopupMenu">
-                    <div class="d-flex align-items-center gap-3 pb-3 mb-2 border-bottom">
-                        <img src="<?= htmlspecialchars($user['avatar']) ?>" alt="Avatar" class="user-avatar-sm" style="width: 42px; height: 42px;" onerror="this.src='assets/images/default-avatar.svg'">
-                        <div class="overflow-hidden">
-                            <div class="fw-bold text-dark text-truncate"><?= htmlspecialchars($user['name']) ?></div>
-                            <div class="text-muted small text-truncate"><?= htmlspecialchars($user['username']) ?></div>
-                            <div class="badge bg-primary-subtle text-primary mt-1" style="font-size: 0.7rem;"><?= htmlspecialchars($user['role']) ?></div>
+                <!-- Bảng Popup Thông Tin & Chức Năng Hồ Sơ -->
+                <div class="user-profile-popup" id="userProfilePopup">
+                    <!-- Thông tin người dùng -->
+                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-3">
+                        <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
+                             alt="Avatar" 
+                             style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff; background: #eef2ff;"
+                             onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
+                        <div style="min-width: 0; flex-grow: 1;">
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.95rem;"><?= htmlspecialchars($currentUser['name']) ?></div>
+                            <div class="text-muted small text-truncate"><?= htmlspecialchars($currentUser['username']) ?></div>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge font-monospace text-primary bg-primary-subtle px-2 py-0" style="font-size: 0.7rem;">UID: #<?= htmlspecialchars($currentUser['uid']) ?></span>
+                                <?php if ($isAdmin): ?>
+                                    <span class="badge bg-danger text-white px-2 py-0" style="font-size: 0.68rem;">Admin</span>
+                                <?php else: ?>
+                                    <span class="badge bg-info-subtle text-info px-2 py-0" style="font-size: 0.68rem;">Thành viên</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Khung xem số dư và nạp tiền nhanh trong popup -->
+                    <div class="p-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div>
+                            <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
+                            <div class="fw-bold" style="color: #15803d; font-size: 0.95rem;"><?= !empty($hideBalance) ? '****** đ' : format_currency($currentUser['balance']) ?></div>
+                        </div>
+                        <a href="/payments/deposit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-arrow-down me-1"></i> Nạp tiền
+                        </a>
+                    </div>
+
+                    <!-- Các mục điều hướng -->
                     <div class="d-flex flex-column gap-1">
                         <a href="profile.php" class="popup-menu-item">
                             <i class="fa-solid fa-id-card text-primary me-2"></i> Hồ sơ cá nhân
@@ -930,7 +1060,7 @@ $flash = get_flash();
                         </a>
                         <?php endif; ?>
                         <hr class="my-2 border-secondary-subtle">
-                        <button type="button" class="popup-menu-item text-danger text-start border-0 bg-transparent w-100" onclick="confirmLogout()">
+                        <button type="button" class="popup-menu-item text-danger text-start border-0 bg-transparent w-100" onclick="closeUserPopup(); confirmLogout();">
                             <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
                         </button>
                     </div>
@@ -961,33 +1091,33 @@ $flash = get_flash();
         <ul class="sidebar-nav-list">
             <li>
                 <a href="index.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-house"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-house"></i></span>
                     <span class="sidebar-title">Trang chủ</span>
                 </a>
             </li>
             <li>
                 <a href="buy-key.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-key"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-key"></i></span>
                     <span class="sidebar-title">Mua key</span>
                 </a>
             </li>
             <li>
                 <a href="cloud.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-cloud"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-cloud"></i></span>
                     <span class="sidebar-title">Thuê cloud</span>
                 </a>
             </li>
             <!-- Access Token -->
             <li>
                 <a href="token.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-fingerprint"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-fingerprint"></i></span>
                     <span class="sidebar-title">Access Token</span>
                 </a>
             </li>
             <!-- Cấu hình (Active) -->
             <li>
                 <a href="settings.php" class="sidebar-link active">
-                    <span class="sidebar-icon"><i class="fa-solid fa-gear"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-gear"></i></span>
                     <span class="sidebar-title">Cấu hình</span>
                 </a>
             </li>
@@ -997,7 +1127,7 @@ $flash = get_flash();
         <ul class="sidebar-nav-list">
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuGolike" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-robot"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-robot"></i></span>
                     <span class="sidebar-title">Tool Golike</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1032,7 +1162,7 @@ $flash = get_flash();
 
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuAccount" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-users-gear"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-users-gear"></i></span>
                     <span class="sidebar-title">Account</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1067,7 +1197,7 @@ $flash = get_flash();
 
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuPayment" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-credit-card"></i></span>
                     <span class="sidebar-title">Payment</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1099,14 +1229,14 @@ $flash = get_flash();
         <ul class="sidebar-nav-list">
             <li>
                 <a href="referral.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-share-nodes"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-share-nodes"></i></span>
                     <span class="sidebar-title">Giới thiệu</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
             </li>
             <li>
                 <a href="support.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-headset"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-headset"></i></span>
                     <span class="sidebar-title">Hỗ trợ</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
@@ -1114,7 +1244,7 @@ $flash = get_flash();
             <?php if ($isAdmin): ?>
             <li>
                 <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
-                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
                     <span class="sidebar-title">Admin Panel</span>
                     <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-auto" style="font-size: 0.65rem; padding: 2px 7px;">Admin</span>
                 </a>
@@ -1563,20 +1693,40 @@ $flash = get_flash();
 
         // 2. User Popup Menu
         function toggleUserPopup(e) {
-            if (e) e.stopPropagation();
-            var menu = document.getElementById('userPopupMenu');
-            if (menu) menu.classList.toggle('show');
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (!popup) return;
+            const isOpen = popup.classList.contains('active');
+            if (isOpen) {
+                popup.classList.remove('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            } else {
+                popup.classList.add('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'true');
+            }
         }
 
         function closeUserPopup() {
-            var menu = document.getElementById('userPopupMenu');
-            if (menu) menu.classList.remove('show');
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (popup) popup.classList.remove('active');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
         }
 
-        document.addEventListener('click', function(e) {
-            var menu = document.getElementById('userPopupMenu');
-            if (menu && !menu.contains(e.target)) {
-                menu.classList.remove('show');
+        document.addEventListener('click', function (e) {
+            const container = document.getElementById('userDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                closeUserPopup();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeUserPopup();
             }
         });
 

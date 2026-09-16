@@ -1466,7 +1466,7 @@ $flash = get_flash();
             <!-- Tool Golike (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuGolike" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-robot"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-robot"></i></span>
                     <span class="sidebar-title">Tool Golike</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1502,7 +1502,7 @@ $flash = get_flash();
             <!-- Account (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuAccount" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-users-gear"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-users-gear"></i></span>
                     <span class="sidebar-title">Account</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1538,7 +1538,7 @@ $flash = get_flash();
             <!-- Payment (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuPayment" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-credit-card"></i></span>
                     <span class="sidebar-title">Payment</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1588,14 +1588,14 @@ $flash = get_flash();
             <!-- Quản trị nền tảng (Admin) -->
             <li>
                 <button type="button" class="sidebar-link text-primary" data-bs-toggle="modal" data-bs-target="#adminPlatformModal">
-                    <span class="sidebar-icon"><i class="fa-solid fa-sliders"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-sliders"></i></span>
                     <span class="sidebar-title">Quản trị nền tảng</span>
                 </button>
             </li>
             <!-- Admin Panel (Chỉ hiển thị cho Admin - nằm dưới Quản trị nền tảng) -->
             <li>
                 <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
-                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
                     <span class="sidebar-title">Admin Panel</span>
                     <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-auto" style="font-size: 0.65rem; padding: 2px 7px;">Admin</span>
                 </a>

@@ -745,13 +745,47 @@ $flash = get_flash();
             font-weight: 700;
         }
 
+        /* 1:1 Bounding Box & Đồng bộ khoảng cách, độ đậm nhạt Icon */
         .sidebar-icon {
             width: 24px;
-            display: flex;
+            height: 24px;
+            min-width: 24px;
+            max-width: 24px;
+            font-size: 1.05rem;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.05rem;
+            text-align: center;
+            color: #64748b;
             flex-shrink: 0;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .sidebar-icon i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+
+        /* Đồng bộ độ đậm (stroke) để icon nét mảnh (fingerprint, headset) có cùng tỷ trọng quang học với icon khối đặc */
+        .sidebar-icon .fa-fingerprint {
+            font-size: 1.15rem;
+            stroke: currentColor;
+            stroke-width: 22px;
+        }
+
+        .sidebar-icon .fa-headset {
+            font-size: 1.1rem;
+            stroke: currentColor;
+            stroke-width: 18px;
+        }
+
+        .sidebar-icon .fa-gear {
+            font-size: 1.05rem;
         }
 
         .sidebar-link.active .sidebar-icon {
@@ -1536,35 +1570,35 @@ $flash = get_flash();
             <!-- Trang chủ -->
             <li>
                 <a href="index.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-house"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-house"></i></span>
                     <span class="sidebar-title">Trang chủ</span>
                 </a>
             </li>
             <!-- Mua key -->
             <li>
                 <a href="buy-key.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-key"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-key"></i></span>
                     <span class="sidebar-title">Mua key</span>
                 </a>
             </li>
             <!-- Thuê cloud -->
             <li>
                 <a href="cloud.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-cloud"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-cloud"></i></span>
                     <span class="sidebar-title">Thuê cloud</span>
                 </a>
             </li>
             <!-- Access Token -->
             <li>
                 <a href="token.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-fingerprint"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-fingerprint"></i></span>
                     <span class="sidebar-title">Access Token</span>
                 </a>
             </li>
             <!-- Cấu hình -->
             <li>
                 <a href="settings.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-gear"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-gear"></i></span>
                     <span class="sidebar-title">Cấu hình</span>
                 </a>
             </li>
@@ -1575,7 +1609,7 @@ $flash = get_flash();
             <!-- Tool Golike (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuGolike" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-robot"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-robot"></i></span>
                     <span class="sidebar-title">Tool Golike</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1623,7 +1657,7 @@ $flash = get_flash();
             <!-- Account (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuAccount" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-users-gear"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-users-gear"></i></span>
                     <span class="sidebar-title">Account</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1671,7 +1705,7 @@ $flash = get_flash();
             <!-- Payment (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuPayment" aria-expanded="false">
-                    <span class="sidebar-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-credit-card"></i></span>
                     <span class="sidebar-title">Payment</span>
                     <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
                 </button>
@@ -1704,7 +1738,7 @@ $flash = get_flash();
             <!-- Giới thiệu -->
             <li>
                 <a href="referral.php" class="sidebar-link">
-                    <span class="sidebar-icon"><i class="fa-solid fa-share-nodes"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-share-nodes"></i></span>
                     <span class="sidebar-title">Giới thiệu</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
@@ -1712,7 +1746,7 @@ $flash = get_flash();
             <!-- Hỗ trợ (Active) -->
             <li>
                 <a href="support.php" class="sidebar-link active">
-                    <span class="sidebar-icon"><i class="fa-solid fa-headset"></i></span>
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-headset"></i></span>
                     <span class="sidebar-title">Hỗ trợ</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
@@ -1721,7 +1755,7 @@ $flash = get_flash();
             <!-- Admin Panel (Chỉ hiển thị cho Admin) -->
             <li>
                 <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
-                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
                     <span class="sidebar-title">Admin Panel</span>
                     <span class="badge bg-danger-subtle text-danger px-2 py-0 ms-auto" style="font-size: 0.7rem;">Admin</span>
                 </a>
