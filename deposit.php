@@ -1724,10 +1724,15 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 6mm 8mm;
+                margin: 5mm 8mm;
             }
-            body {
+            html, body {
+                height: auto !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 background: #ffffff !important;
+                overflow: visible !important;
             }
             body * {
                 visibility: hidden !important;
@@ -1737,32 +1742,53 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 visibility: visible !important;
             }
             #depositInvoiceModal {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
+                position: static !important;
+                display: block !important;
                 width: 100% !important;
-                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: transparent !important;
                 box-shadow: none !important;
-                margin: 0 !important;
-                padding: 0 !important;
+                overflow: visible !important;
             }
-            .modal-header, .modal-footer, .btn-close {
-                display: none !important;
-            }
-            .modal-dialog {
+            #depositInvoiceModal .modal-dialog {
                 max-width: 100% !important;
+                width: 100% !important;
                 margin: 0 !important;
-            }
-            .modal-body {
                 padding: 0 !important;
-                background: #ffffff !important;
+                min-height: 0 !important;
+                display: block !important;
+                transform: none !important;
             }
-            .invoice-card {
+            #depositInvoiceModal .modal-content {
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 !important;
+                margin: 0 !important;
+                background: transparent !important;
+                border-radius: 0 !important;
+            }
+            #depositInvoiceModal .modal-header, 
+            #depositInvoiceModal .modal-footer, 
+            #depositInvoiceModal .btn-close {
+                display: none !important;
+            }
+            #depositInvoiceModal .modal-body {
+                padding: 0 !important;
+                margin: 0 !important;
+                background: transparent !important;
+                overflow: visible !important;
+            }
+            #invoiceCardPrintArea {
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 8px !important;
+                box-shadow: none !important;
+                padding: 10px 14px !important;
+                width: 100% !important;
                 max-width: 100% !important;
+                margin: 0 !important;
                 page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
         }
 
