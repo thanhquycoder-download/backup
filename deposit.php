@@ -957,6 +957,8 @@ $csrfToken = get_csrf_token();
             font-weight: 800;
             color: var(--text-heading);
             white-space: nowrap;
+        }
+
         /* BỐ CỤC CÁC CARD NẠP TIỀN (MỖI HÀNG 1 CARD ĐỘC LẬP) */
         .deposit-layout {
             display: flex;
@@ -992,43 +994,70 @@ $csrfToken = get_csrf_token();
             gap: 10px;
         }
 
-        /* DANH SÁCH NGÂN HÀNG RADIO CARD */
-        .bank-options-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 22px;
+        /* THẺ NGÂN HÀNG TPBANK HIỆN ĐẠI */
+        .bank-card-premium {
+            background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
+            border: 2px solid #4f46e5;
+            border-radius: 16px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12);
+            transition: var(--transition);
         }
 
-        .bank-radio-label {
-            position: relative;
+        .bank-badge-code {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 14px;
-            background: #f8fafc;
-            border: 2px solid var(--card-border);
-            border-radius: 12px;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.05rem;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+            flex-shrink: 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* NÚT CHỌN NHANH SỐ TIỀN CHUẨN PILL BO TRÒN */
+        .amount-quick-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .amount-pill-btn {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #334155;
             cursor: pointer;
-            transition: var(--transition);
-            user-select: none;
+            transition: all 0.2s ease;
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .bank-radio-label:hover {
-            border-color: #a5b4fc;
-            background: #fdfefe;
-        }
-
-        .bank-radio-input {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .bank-radio-input:checked + .bank-radio-label {
-            border-color: var(--primary);
+        .amount-pill-btn:hover {
             background: #eef2ff;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+            color: #4f46e5;
+            border-color: #c7d2fe;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .amount-pill-btn.active {
+            background: #4f46e5 !important;
+            color: #ffffff !important;
+            border-color: #4f46e5 !important;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
         }
 
         .bank-badge-code {
