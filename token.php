@@ -2198,6 +2198,7 @@ $flash = get_flash();
                                             </div>
                                             <div>
                                                 <div class="dropdown-platform-item-title">Golike</div>
+                                                <div class="dropdown-platform-item-sub">JWT Bearer Token</div>
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
@@ -2212,7 +2213,7 @@ $flash = get_flash();
                                             </div>
                                             <div>
                                                 <div class="dropdown-platform-item-title">Trao Đổi Sub</div>
-                                                <div class="dropdown-platform-item-sub">Access Token cá nhân</div>
+                                                <div class="dropdown-platform-item-sub">Access Token tài khoản</div>
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
