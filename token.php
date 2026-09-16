@@ -1200,14 +1200,17 @@ $flash = get_flash();
         }
 
         .platform-item-check {
-            font-size: 0.85rem;
-            color: #4f46e5;
+            font-size: 1rem;
+            color: #10b981;
             opacity: 0;
-            transition: opacity 0.15s ease;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            transform: scale(0.85);
         }
 
         .dropdown-platform-item.active .platform-item-check {
             opacity: 1;
+            transform: scale(1);
+            color: #10b981;
         }
 
         .platform-tag-pill {
