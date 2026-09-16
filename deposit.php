@@ -62,15 +62,13 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
-    // Tự động chèn ngân hàng mẫu của Admin nếu bảng chưa có dữ liệu
-    $stmtCheckBanks = $pdo->query("SELECT COUNT(*) FROM bank_accounts");
-    if ($stmtCheckBanks->fetchColumn() == 0) {
+    // Tự động đảm bảo ngân hàng Admin chỉ có duy nhất TPBank
+    $stmtCheckTpb = $pdo->query("SELECT COUNT(*) FROM bank_accounts WHERE bank_code = 'TPB'");
+    if ($stmtCheckTpb->fetchColumn() == 0) {
         $pdo->exec("
+            DELETE FROM `bank_accounts`;
             INSERT INTO `bank_accounts` (`id`, `bank_code`, `bank_name`, `account_number`, `account_name`, `branch`, `qr_template`, `min_deposit`, `max_deposit`, `is_default`, `status`) VALUES
-            (1, 'MB', 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active'),
-            (2, 'VCB', 'Vietcombank (Ngoại Thương Việt Nam)', '1018899889', 'TRAN THANH QUY', 'Chi Nhánh Ba Đình', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
-            (3, 'TCB', 'Techcombank (Kỹ Thương Việt Nam)', '19036688990011', 'TRAN THANH QUY', 'Chi Nhánh Thăng Long', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
-            (4, 'MOMO', 'Ví Điện Tử MoMo', '0987654321', 'TRAN THANH QUY', 'Toàn Quốc', 'compact2', 10000.00, 20000000.00, 0, 'Active');
+            (1, 'TPB', 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active');
         ");
     }
 } catch (Exception $e) {
@@ -93,12 +91,13 @@ if (!$currentUser) {
 
 $isAdmin = ($currentUser['role'] === 'Admin');
 
-// Lấy danh sách ngân hàng Admin đang hoạt động
-$stmtBanks = $pdo->query("SELECT * FROM bank_accounts WHERE status = 'Active' ORDER BY is_default DESC, id ASC");
+// Lấy duy nhất ngân hàng TPBank của Admin đang hoạt động
+$stmtBanks = $pdo->query("SELECT * FROM bank_accounts WHERE bank_code = 'TPB' AND status = 'Active' ORDER BY is_default DESC, id ASC LIMIT 1");
 $bankAccounts = $stmtBanks->fetchAll();
-
-// Cú pháp chuyển khoản mặc định dựa trên UID: NAP + UID (VD: NAP 6839204)
-$defaultTransferContent = 'NAP ' . $currentUser['uid'];
+if (empty($bankAccounts)) {
+    $stmtBanks = $pdo->query("SELECT * FROM bank_accounts WHERE status = 'Active' ORDER BY is_default DESC, id ASC LIMIT 1");
+    $bankAccounts = $stmtBanks->fetchAll();
+}
 
 // ----------------------------------------------------------
 // 3. XỬ LÝ POST: TẠO LỆNH NẠP TIỀN HOẶC HỦY LỆNH
@@ -129,6 +128,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$selectedBank && !empty($bankAccounts)) {
+            $selectedBank = $bankAccounts[0];
+        }
+
         if (!$selectedBank) {
             set_flash('warning', 'Vui lòng chọn ngân hàng bạn muốn chuyển tiền vào.', 'Chưa Chọn Ngân Hàng');
             header("Location: deposit.php");
@@ -150,9 +153,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Tạo mã nạp tiền duy nhất
-        $depositCode = 'NAP' . $currentUser['uid'] . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 4));
-        $transferContent = 'NAP ' . $currentUser['uid'];
+        // Tạo mã ngẫu nhiên 7 số: Cú pháp ThanhQuyTech(mã 7 số random)
+        $random7Digits = (string)mt_rand(1000000, 9999999);
+        $depositCode = $random7Digits;
+        $transferContent = 'ThanhQuyTech' . $random7Digits;
 
         try {
             $stmtInsert = $pdo->prepare("
@@ -170,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $transferContent
             ]);
 
-            set_flash('success', 'Đã tạo lệnh nạp ' . format_currency($amount) . ' thành công! Vui lòng quét mã VietQR hoặc chuyển khoản đúng nội dung bên dưới.', 'Lệnh Nạp Sẵn Sàng');
+            set_flash('success', 'Đã tạo lệnh nạp #' . $depositCode . ' thành công! Vui lòng quét mã VietQR TPBank bên phải để hoàn tất chuyển tiền.', 'Lệnh Nạp Sẵn Sàng');
             header("Location: deposit.php?code=" . urlencode($depositCode));
             exit;
 
@@ -204,6 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ----------------------------------------------------------
 // 4. LẤY LỆNH NẠP TIỀN HIỆN TẠI ĐỂ HIỂN THỊ VIETQR
 // ----------------------------------------------------------
+// CHỈ HIỂN THỊ MÃ VIETQR KHI NGƯỜI DÙNG BẤM TẠO LỆNH HOẶC TRUYỀN CODE CỤ THỂ
+$activeDeposit = null;
 $requestedCode = trim($_GET['code'] ?? '');
 if (!empty($requestedCode)) {
     $stmtFindDep = $pdo->prepare("
@@ -217,20 +223,6 @@ if (!empty($requestedCode)) {
     $activeDeposit = $stmtFindDep->fetch();
 }
 
-// Nếu không chỉ định code cụ thể, tìm lệnh nạp Pending gần nhất
-if (!$activeDeposit) {
-    $stmtLatestPending = $pdo->prepare("
-        SELECT d.*, b.bank_code, b.qr_template 
-        FROM deposits d
-        LEFT JOIN bank_accounts b ON d.bank_id = b.id
-        WHERE d.user_uuid = ? AND d.status = 'Pending'
-        ORDER BY d.id DESC LIMIT 1
-    ");
-    $stmtLatestPending->execute([$currentUser['uuid']]);
-    $activeDeposit = $stmtLatestPending->fetch();
-}
-
-// Mặc định chọn ngân hàng đầu tiên nếu chưa có lệnh nạp active
 $defaultBank = !empty($bankAccounts) ? $bankAccounts[0] : null;
 
 // ----------------------------------------------------------
@@ -1834,30 +1826,22 @@ $csrfToken = get_csrf_token();
                             <i class="fa-solid fa-money-bill-transfer text-primary"></i>
                             <span>Tạo Yêu Cầu Nạp Tiền</span>
                         </div>
-                        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1">Khuyên dùng VietQR</span>
+                        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1">Tự động VietQR 24/7</span>
                     </div>
 
                     <form action="deposit.php" method="POST" id="depositForm">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                         <input type="hidden" name="action" value="create_deposit">
 
-                        <!-- BƯỚC 1: CHỌN NGÂN HÀNG THỤ HƯỞNG CỦA ADMIN -->
+                        <!-- BƯỚC 1: CHỌN NGÂN HÀNG THỤ HƯỞNG CỦA ADMIN (CHỈ CÓ TPBANK) -->
                         <div class="mb-4">
                             <label class="form-label fw-bold text-dark mb-2">
                                 1. Chọn ngân hàng / phương thức thanh toán: <span class="text-danger">*</span>
                             </label>
                             
-                            <div class="bank-options-grid">
+                            <div class="bank-options-grid" style="grid-template-columns: 1fr;">
                                 <?php if (!empty($bankAccounts)): ?>
                                     <?php foreach ($bankAccounts as $idx => $bank): ?>
-                                        <?php 
-                                            $isChecked = false;
-                                            if ($activeDeposit && $activeDeposit['bank_id'] == $bank['id']) {
-                                                $isChecked = true;
-                                            } elseif (!$activeDeposit && $idx === 0) {
-                                                $isChecked = true;
-                                            }
-                                        ?>
                                         <div>
                                             <input type="radio" 
                                                    name="bank_id" 
@@ -1869,21 +1853,23 @@ $csrfToken = get_csrf_token();
                                                    data-acc-name="<?= htmlspecialchars($bank['account_name']) ?>"
                                                    data-min="<?= (float)$bank['min_deposit'] ?>"
                                                    data-max="<?= (float)$bank['max_deposit'] ?>"
-                                                   <?= $isChecked ? 'checked' : '' ?>
-                                                   onchange="onSelectBank(this)">
-                                            <label for="bank_<?= $bank['id'] ?>" class="bank-radio-label">
-                                                <div class="bank-badge-code">
-                                                    <?= htmlspecialchars($bank['bank_code']) ?>
+                                                   checked>
+                                            <label for="bank_<?= $bank['id'] ?>" class="bank-radio-label selected" style="cursor: default; border-color: #4f46e5; background: #faf5ff;">
+                                                <div class="bank-badge-code" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; font-weight: 800;">
+                                                    TPB
                                                 </div>
                                                 <div style="min-width: 0;">
-                                                    <div class="bank-name-text text-truncate"><?= htmlspecialchars($bank['bank_name']) ?></div>
-                                                    <div class="bank-acc-sub text-truncate">STK: <?= htmlspecialchars($bank['account_number']) ?></div>
+                                                    <div class="bank-name-text text-truncate fw-bold text-dark"><?= htmlspecialchars($bank['bank_name']) ?></div>
+                                                    <div class="bank-acc-sub text-truncate text-muted">STK: <strong class="text-primary font-monospace"><?= htmlspecialchars($bank['account_number']) ?></strong> (<?= htmlspecialchars($bank['account_name']) ?>)</div>
+                                                </div>
+                                                <div class="ms-auto d-none d-sm-block">
+                                                    <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i> Tự động 24/7</span>
                                                 </div>
                                             </label>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <div class="col-12 text-muted small">Chưa có ngân hàng nào được thiết lập. Vui lòng liên hệ Admin.</div>
+                                    <div class="col-12 text-muted small">Đang nạp thông tin ngân hàng TPBank...</div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -1917,8 +1903,7 @@ $csrfToken = get_csrf_token();
                                        value="100.000" 
                                        placeholder="Nhập số tiền (tối thiểu 10.000đ)" 
                                        required
-                                       oninput="formatCurrencyInput(this)"
-                                       onchange="updateLiveQR()">
+                                       oninput="formatCurrencyInput(this)">
                                 <span class="input-group-text bg-light text-muted fw-bold">VND</span>
                             </div>
                             <div class="d-flex justify-content-between text-muted small mt-1">
@@ -1930,54 +1915,43 @@ $csrfToken = get_csrf_token();
                         <!-- BƯỚC 3: CÚ PHÁP CHUYỂN KHOẢN TỰ ĐỘNG -->
                         <div class="p-3 rounded-3 mb-4" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="small fw-bold text-muted text-uppercase">Nội dung chuyển khoản mặc định:</span>
-                                <span class="badge bg-danger text-white" style="font-size: 0.68rem;">Bắt buộc chính xác</span>
+                                <span class="small fw-bold text-muted text-uppercase">Nội dung chuyển khoản tự động:</span>
+                                <span class="badge bg-danger text-white" style="font-size: 0.68rem;">Khớp mã tự động</span>
                             </div>
                             <div class="d-flex align-items-center justify-content-between">
-                                <span class="fw-extrabold text-danger fs-5 font-monospace" id="displayTransferContent"><?= htmlspecialchars($defaultTransferContent) ?></span>
-                                <button type="button" class="btn-copy-mini" onclick="copyText('<?= htmlspecialchars($defaultTransferContent) ?>', this)">
-                                    <i class="fa-regular fa-copy"></i> Sao chép
-                                </button>
+                                <?php if ($activeDeposit): ?>
+                                    <span class="fw-extrabold text-danger fs-5 font-monospace" id="displayTransferContent"><?= htmlspecialchars($activeDeposit['transfer_content']) ?></span>
+                                    <button type="button" class="btn-copy-mini" onclick="copyText('<?= htmlspecialchars($activeDeposit['transfer_content']) ?>', this)">
+                                        <i class="fa-regular fa-copy"></i> Sao chép
+                                    </button>
+                                <?php else: ?>
+                                    <span class="fw-extrabold text-primary fs-5 font-monospace" id="displayTransferContent">ThanhQuyTech<span class="text-muted" style="font-size: 0.88rem; font-weight: 500;">(mã 7 số random)</span></span>
+                                    <span class="badge bg-primary-subtle text-primary small">Tự sinh khi tạo lệnh</span>
+                                <?php endif; ?>
                             </div>
                             <div class="small text-muted mt-2" style="font-size: 0.8rem; line-height: 1.4;">
                                 <i class="fa-solid fa-circle-info text-primary me-1"></i>
-                                Quý khách vui lòng điền đúng <strong><?= htmlspecialchars($defaultTransferContent) ?></strong> khi chuyển khoản từ app ngân hàng để bot đối soát và cộng tiền ngay tức thì.
+                                Mỗi lệnh nạp sẽ có một mã 7 số ngẫu nhiên dạng <strong>ThanhQuyTech + [7 số]</strong>. Hệ thống tự động kiểm tra sao kê TPBank và cộng tiền ngay tức thì.
                             </div>
                         </div>
 
                         <!-- NÚT TẠO LỆNH -->
                         <button type="submit" class="btn-gradient-primary">
-                            <i class="fa-solid fa-qrcode fs-5"></i> Tạo Lệnh Nạp Tiền & Lấy Mã VietQR
+                            <i class="fa-solid fa-bolt fs-5"></i> Tạo Lệnh Nạp Tiền & Lấy Mã VietQR
                         </button>
                     </form>
                 </div>
 
-                <!-- CỘT PHẢI: KHUNG MÃ VIETQR VÀ THÔNG TIN CHUYỂN KHOẢN -->
-                <div class="qr-display-card" id="qrDisplayCard">
+                <!-- CỘT PHẢI: KHUNG MÃ VIETQR (CHỈ HIỆN KHI NGƯỜI DÙNG BẤM TẠO LỆNH) -->
+                <?php if ($activeDeposit): ?>
                     <?php 
-                        // Xác định dữ liệu hiển thị QR
-                        $qrBankCode = 'MB';
-                        $qrAccNum = '0987654321';
-                        $qrAccName = 'TRAN THANH QUY';
-                        $qrAmount = 100000;
-                        $qrContent = $defaultTransferContent;
-                        $qrBankName = 'MBBank';
+                        $qrBankCode = !empty($activeDeposit['bank_code']) ? $activeDeposit['bank_code'] : 'TPB';
+                        $qrAccNum = $activeDeposit['account_number'];
+                        $qrAccName = $activeDeposit['account_name'];
+                        $qrAmount = (float)$activeDeposit['amount'];
+                        $qrContent = $activeDeposit['transfer_content'];
+                        $qrBankName = $activeDeposit['bank_name'];
 
-                        if ($activeDeposit) {
-                            $qrBankCode = !empty($activeDeposit['bank_code']) ? $activeDeposit['bank_code'] : 'MB';
-                            $qrAccNum = $activeDeposit['account_number'];
-                            $qrAccName = $activeDeposit['account_name'];
-                            $qrAmount = (float)$activeDeposit['amount'];
-                            $qrContent = $activeDeposit['transfer_content'];
-                            $qrBankName = $activeDeposit['bank_name'];
-                        } elseif ($defaultBank) {
-                            $qrBankCode = $defaultBank['bank_code'];
-                            $qrAccNum = $defaultBank['account_number'];
-                            $qrAccName = $defaultBank['account_name'];
-                            $qrBankName = $defaultBank['bank_name'];
-                        }
-
-                        // Link tạo mã QR chuẩn VietQR
                         $vietQrUrl = sprintf(
                             "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%d&addInfo=%s&accountName=%s",
                             urlencode($qrBankCode),
@@ -1987,84 +1961,125 @@ $csrfToken = get_csrf_token();
                             urlencode($qrAccName)
                         );
                     ?>
-
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="text-start">
-                            <h5 class="fw-bold mb-0 text-dark">Quét Mã VietQR Chuyển Khoản</h5>
-                            <div class="small text-muted">Mở app Ngân hàng hoặc MoMo để quét mã</div>
-                        </div>
-                        <?php if ($activeDeposit && $activeDeposit['status'] === 'Pending'): ?>
-                            <span class="badge bg-warning text-dark px-2 py-1 fw-bold">
-                                <i class="fa-solid fa-spinner fa-spin me-1"></i> Đang chờ chuyển
-                            </span>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Khung ảnh QR VietQR -->
-                    <div class="qr-image-wrapper">
-                        <img src="<?= htmlspecialchars($vietQrUrl) ?>" 
-                             alt="VietQR Chuyển Khoản" 
-                             id="vietQrImage"
-                             loading="lazy">
-                    </div>
-
-                    <!-- Bảng chi tiết chuyển khoản -->
-                    <div class="transfer-details-box">
-                        <!-- Ngân hàng -->
-                        <div class="transfer-row">
-                            <span class="transfer-label">Ngân hàng thụ hưởng:</span>
-                            <span class="transfer-val" id="detailBankName"><?= htmlspecialchars($qrBankName) ?></span>
+                    <div class="qr-display-card" id="qrDisplayCard">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="text-start">
+                                <h5 class="fw-bold mb-0 text-dark">Quét Mã VietQR Chuyển Khoản</h5>
+                                <div class="small text-muted">Mã đơn: <strong class="text-primary font-monospace">#<?= htmlspecialchars($activeDeposit['deposit_code']) ?></strong></div>
+                            </div>
+                            <?php if ($activeDeposit['status'] === 'Pending'): ?>
+                                <span class="badge bg-warning text-dark px-2 py-1 fw-bold">
+                                    <i class="fa-solid fa-clock me-1"></i> Chờ chuyển tiền
+                                </span>
+                            <?php endif; ?>
                         </div>
 
-                        <!-- Số tài khoản -->
-                        <div class="transfer-row">
-                            <span class="transfer-label">Số tài khoản Admin:</span>
-                            <div class="transfer-val">
-                                <span class="font-monospace text-primary fw-bold fs-6" id="detailAccNum"><?= htmlspecialchars($qrAccNum) ?></span>
-                                <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailAccNum').innerText, this)">
-                                    <i class="fa-regular fa-copy"></i> Chép
-                                </button>
+                        <!-- Khung ảnh QR VietQR -->
+                        <div class="qr-image-wrapper">
+                            <img src="<?= htmlspecialchars($vietQrUrl) ?>" 
+                                 alt="VietQR TPBank Chuyển Khoản" 
+                                 id="vietQrImage"
+                                 loading="lazy">
+                        </div>
+
+                        <!-- Bảng chi tiết chuyển khoản -->
+                        <div class="transfer-details-box">
+                            <!-- Ngân hàng -->
+                            <div class="transfer-row">
+                                <span class="transfer-label">Ngân hàng thụ hưởng:</span>
+                                <span class="transfer-val" id="detailBankName"><?= htmlspecialchars($qrBankName) ?></span>
+                            </div>
+
+                            <!-- Số tài khoản -->
+                            <div class="transfer-row">
+                                <span class="transfer-label">Số tài khoản:</span>
+                                <div class="transfer-val">
+                                    <span class="font-monospace text-primary fw-bold fs-6" id="detailAccNum"><?= htmlspecialchars($qrAccNum) ?></span>
+                                    <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailAccNum').innerText, this)">
+                                        <i class="fa-regular fa-copy"></i> Chép
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Chủ tài khoản -->
+                            <div class="transfer-row">
+                                <span class="transfer-label">Chủ tài khoản:</span>
+                                <span class="transfer-val" id="detailAccName"><?= htmlspecialchars($qrAccName) ?></span>
+                            </div>
+
+                            <!-- Số tiền -->
+                            <div class="transfer-row">
+                                <span class="transfer-label">Số tiền chuyển:</span>
+                                <div class="transfer-val">
+                                    <span class="text-success fw-bold" id="detailAmount"><?= format_currency($qrAmount) ?></span>
+                                    <button type="button" class="btn-copy-mini" onclick="copyText('<?= (int)$qrAmount ?>', this)">
+                                        <i class="fa-regular fa-copy"></i> Chép
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Nội dung chuyển khoản -->
+                            <div class="transfer-row">
+                                <span class="transfer-label">Nội dung CK (bắt buộc):</span>
+                                <div class="transfer-val">
+                                    <span class="transfer-val highlight-code" id="detailContent"><?= htmlspecialchars($qrContent) ?></span>
+                                    <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailContent').innerText, this)">
+                                        <i class="fa-regular fa-copy"></i> Chép
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Chủ tài khoản -->
-                        <div class="transfer-row">
-                            <span class="transfer-label">Chủ tài khoản:</span>
-                            <span class="transfer-val" id="detailAccName"><?= htmlspecialchars($qrAccName) ?></span>
-                        </div>
-
-                        <!-- Số tiền -->
-                        <div class="transfer-row">
-                            <span class="transfer-label">Số tiền chuyển:</span>
-                            <div class="transfer-val">
-                                <span class="text-success fw-bold" id="detailAmount"><?= format_currency($qrAmount) ?></span>
-                                <button type="button" class="btn-copy-mini" onclick="copyText('<?= (int)$qrAmount ?>', this)">
-                                    <i class="fa-regular fa-copy"></i> Chép
-                                </button>
+                        <!-- Thông báo hệ thống kiểm tra tự động (Bỏ nút Tôi đã chuyển khoản) -->
+                        <div class="p-3 rounded-3 mb-3 text-start" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                            <div class="d-flex align-items-center gap-2 text-success fw-bold mb-1" style="font-size: 0.88rem;">
+                                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
+                                <span>Hệ thống TPBank đang kiểm tra tự động 24/7</span>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.78rem; line-height: 1.45;">
+                                Quý khách mở App ngân hàng quét mã QR trên và xác nhận chuyển. Khi nhận được tiền, hệ thống sẽ tự động cộng số dư vào tài khoản trong <strong>30s - 1 phút</strong>.
                             </div>
                         </div>
 
-                        <!-- Nội dung chuyển khoản -->
-                        <div class="transfer-row">
-                            <span class="transfer-label">Nội dung chuyển khoản:</span>
-                            <div class="transfer-val">
-                                <span class="transfer-val highlight-code" id="detailContent"><?= htmlspecialchars($qrContent) ?></span>
-                                <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailContent').innerText, this)">
-                                    <i class="fa-regular fa-copy"></i> Chép
-                                </button>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="<?= htmlspecialchars($vietQrUrl) ?>" download="VietQR-TPBank-<?= htmlspecialchars($activeDeposit['deposit_code']) ?>.png" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+                                <i class="fa-solid fa-download me-1"></i> Tải ảnh QR
+                            </a>
+                            <a href="deposit.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                                <i class="fa-solid fa-plus me-1"></i> Tạo lệnh nạp mới
+                            </a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <!-- KHI CHƯA BẤM TẠO LỆNH: KHÔNG HIỆN MÃ QR, HIỆN HƯỚNG DẪN & TRẠNG THÁI CHỜ -->
+                    <div class="qr-display-card text-center d-flex flex-column align-items-center justify-content-center py-5" style="min-height: 480px; background: #ffffff;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 84px; height: 84px; background: #f8fafc; border: 2px dashed #cbd5e1;">
+                            <i class="fa-solid fa-qrcode text-muted opacity-50" style="font-size: 2.6rem;"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1">Chưa Có Lệnh Nạp Tiền</h5>
+                        <p class="text-muted small mb-4 px-3" style="max-width: 340px; line-height: 1.55;">
+                            Mã VietQR TPBank và cú pháp chuyển tiền sẽ hiển thị tại đây sau khi bạn bấm <strong>"Tạo Lệnh Nạp Tiền & Lấy Mã VietQR"</strong>.
+                        </p>
+
+                        <div class="w-100 p-3 rounded-3 text-start mb-2" style="background: #f8fafc; border: 1px solid #e2e8f0; max-width: 360px;">
+                            <div class="fw-bold text-dark small mb-2 d-flex align-items-center gap-1" style="font-size: 0.76rem; letter-spacing: 0.3px; text-transform: uppercase;">
+                                <i class="fa-solid fa-shield-halved text-success"></i> Quy trình nạp tự động:
+                            </div>
+                            <div class="d-flex align-items-start gap-2 mb-2">
+                                <span class="badge bg-primary rounded-circle" style="width: 20px; height: 20px; min-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">1</span>
+                                <span class="small text-secondary" style="font-size: 0.8rem;">Nhập số tiền muốn nạp (tối thiểu 10.000 ₫).</span>
+                            </div>
+                            <div class="d-flex align-items-start gap-2 mb-2">
+                                <span class="badge bg-primary rounded-circle" style="width: 20px; height: 20px; min-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">2</span>
+                                <span class="small text-secondary" style="font-size: 0.8rem;">Bấm <strong>Tạo Lệnh Nạp Tiền & Lấy Mã VietQR</strong>.</span>
+                            </div>
+                            <div class="d-flex align-items-start gap-2">
+                                <span class="badge bg-primary rounded-circle" style="width: 20px; height: 20px; min-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">3</span>
+                                <span class="small text-secondary" style="font-size: 0.8rem;">Quét mã VietQR TPBank, hệ thống tự động cộng số dư 24/7.</span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="d-flex gap-2 justify-content-center">
-                        <a href="<?= htmlspecialchars($vietQrUrl) ?>" download="VietQR-ThanhQuyTech.png" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
-                            <i class="fa-solid fa-download me-1"></i> Tải ảnh QR
-                        </a>
-                        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 fw-bold" onclick="checkDepositSuccess()">
-                            <i class="fa-solid fa-circle-check me-1"></i> Tôi đã chuyển khoản
-                        </button>
-                    </div>
-                </div>
+                <?php endif; ?>
             </div>
 
             <!-- ======================================================
@@ -2089,7 +2104,7 @@ $csrfToken = get_csrf_token();
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light text-muted small text-uppercase">
                             <tr>
-                                <th style="width: 140px;">Mã Giao Dịch</th>
+                                <th style="width: 150px;">Mã Đơn</th>
                                 <th>Ngân Hàng Nhận</th>
                                 <th>Số Tiền</th>
                                 <th>Nội Dung CK</th>
@@ -2103,7 +2118,7 @@ $csrfToken = get_csrf_token();
                                 <?php foreach ($depositHistory as $item): ?>
                                     <tr>
                                         <td>
-                                            <span class="font-monospace fw-bold text-dark"><?= htmlspecialchars($item['deposit_code']) ?></span>
+                                            <span class="font-monospace fw-bold text-primary" style="font-size: 0.95rem;">#<?= htmlspecialchars($item['deposit_code']) ?></span>
                                         </td>
                                         <td>
                                             <div class="fw-bold text-dark" style="font-size: 0.9rem;"><?= htmlspecialchars($item['bank_name']) ?></div>
@@ -2281,7 +2296,6 @@ $csrfToken = get_csrf_token();
             }
             let formatted = new Intl.NumberFormat('vi-VN').format(val);
             input.value = formatted;
-            updateLiveQR();
         }
 
         // 5. Nút chọn nhanh số tiền
@@ -2291,66 +2305,7 @@ $csrfToken = get_csrf_token();
             var input = document.getElementById('amountInput');
             if (input) {
                 input.value = new Intl.NumberFormat('vi-VN').format(amount);
-                updateLiveQR();
             }
-        }
-
-        // 6. Chọn ngân hàng thụ hưởng
-        function onSelectBank(radio) {
-            updateLiveQR();
-        }
-
-        // 7. Cập nhật xem trước VietQR trực tiếp theo Form
-        function updateLiveQR() {
-            var selectedRadio = document.querySelector('input[name="bank_id"]:checked');
-            var amountInput = document.getElementById('amountInput');
-            if (!selectedRadio || !amountInput) return;
-
-            var bankCode = selectedRadio.getAttribute('data-bank-code') || 'MB';
-            var accNum = selectedRadio.getAttribute('data-acc-num') || '0987654321';
-            var accName = selectedRadio.getAttribute('data-acc-name') || 'TRAN THANH QUY';
-            var bankName = selectedRadio.parentElement.querySelector('.bank-name-text').innerText || 'MBBank';
-            
-            var rawAmount = parseInt(amountInput.value.replace(/\D/g, '') || '0', 10);
-            if (rawAmount < 10000) rawAmount = 10000;
-
-            var content = 'NAP ' + <?= json_encode($currentUser['uid']) ?>;
-
-            // Cập nhật thông tin chi tiết trên card bên phải
-            document.getElementById('detailBankName').innerText = bankName;
-            document.getElementById('detailAccNum').innerText = accNum;
-            document.getElementById('detailAccName').innerText = accName;
-            document.getElementById('detailAmount').innerText = new Intl.NumberFormat('vi-VN').format(rawAmount) + ' ₫';
-            document.getElementById('detailContent').innerText = content;
-
-            // Tạo link VietQR động
-            var qrUrl = 'https://img.vietqr.io/image/' + encodeURIComponent(bankCode) + '-' + encodeURIComponent(accNum) + '-compact2.png'
-                + '?amount=' + encodeURIComponent(rawAmount)
-                + '&addInfo=' + encodeURIComponent(content)
-                + '&accountName=' + encodeURIComponent(accName);
-
-            var img = document.getElementById('vietQrImage');
-            if (img) {
-                img.src = qrUrl;
-            }
-        }
-
-        // 8. Báo hoàn tất chuyển khoản
-        function checkDepositSuccess() {
-            Swal.fire({
-                title: 'Đã hoàn tất chuyển khoản?',
-                html: 'Hệ thống đang tự động kiểm tra sao kê ngân hàng.<br>Số dư sẽ được cộng trong <strong>30 giây đến 2 phút</strong> nếu quý khách điền đúng nội dung chuyển khoản.',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: '<i class="fa-solid fa-rotate me-1"></i> Tải lại trang kiểm tra',
-                cancelButtonText: 'Đóng'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.reload();
-                }
-            });
         }
 
         // Thông báo Flash nếu có
