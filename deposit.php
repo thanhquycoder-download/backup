@@ -1421,14 +1421,18 @@ $csrfToken = get_csrf_token();
 
         .history-table th {
             background: #f8fafc;
-            color: #64748b;
-            font-size: 0.75rem;
+            color: #475569;
+            font-size: 0.78rem;
             font-weight: 700;
-            text-transform: uppercase;
-            padding: 12px 14px;
-            border-bottom: 1px solid #e2e8f0;
-            letter-spacing: 0.4px;
+            padding: 13px 14px;
+            border-bottom: 2px solid #e2e8f0;
+            letter-spacing: 0.3px;
             white-space: nowrap;
+        }
+
+        .history-table th i {
+            font-size: 0.82rem;
+            vertical-align: middle;
         }
 
         .history-table td {
@@ -2386,13 +2390,13 @@ $csrfToken = get_csrf_token();
                         <table class="history-table">
                             <thead>
                                 <tr>
-                                    <th>Mã đơn</th>
-                                    <th>Ngân hàng nhận</th>
-                                    <th class="text-end">Số tiền nạp</th>
-                                    <th>Nội dung chuyển khoản</th>
-                                    <th>Thời gian tạo</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-end">Thao tác</th>
+                                    <th><i class="fa-solid fa-hashtag text-primary me-1"></i> Mã đơn</th>
+                                    <th><i class="fa-solid fa-building-columns text-primary me-1"></i> Ngân hàng nhận</th>
+                                    <th class="text-end"><i class="fa-solid fa-coins text-primary me-1"></i> Số tiền nạp</th>
+                                    <th><i class="fa-solid fa-message text-primary me-1"></i> Nội dung chuyển khoản</th>
+                                    <th><i class="fa-regular fa-clock text-primary me-1"></i> Thời gian tạo</th>
+                                    <th class="text-center"><i class="fa-solid fa-circle-check text-primary me-1"></i> Trạng thái</th>
+                                    <th class="text-end"><i class="fa-solid fa-gear text-primary me-1"></i> Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
