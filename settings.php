@@ -1941,12 +1941,6 @@ $flash = get_flash();
             </li>
             <?php if ($isAdmin): ?>
             <li>
-                <a href="/admin/platforms" class="sidebar-link text-primary">
-                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-sliders"></i></span>
-                    <span class="sidebar-title">Quản trị nền tảng</span>
-                </a>
-            </li>
-            <li>
                 <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
                     <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
                     <span class="sidebar-title">Admin Panel</span>
