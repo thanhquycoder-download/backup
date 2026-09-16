@@ -1697,6 +1697,20 @@ $flash = get_flash();
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
             </li>
+            <!-- Access Token -->
+            <li>
+                <a href="token.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fingerprint"></i></span>
+                    <span class="sidebar-title">Access Token</span>
+                </a>
+            </li>
+            <!-- Cấu hình -->
+            <li>
+                <a href="settings.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-gear"></i></span>
+                    <span class="sidebar-title">Cấu hình</span>
+                </a>
+            </li>
             <?php if ($isAdmin): ?>
             <!-- Admin Panel (Chỉ hiển thị cho Admin) -->
             <li>

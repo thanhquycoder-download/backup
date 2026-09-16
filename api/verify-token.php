@@ -39,8 +39,62 @@ if (empty($token)) {
 // Giải mã và kiểm tra tính hợp lệ của Token
 $payload = jwt_decode($token);
 
+// Nếu không phải JWT, kiểm tra Personal Access Token trong bảng token
 if (!$payload || empty($payload['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'JWT Token không hợp lệ hoặc đã hết hạn']);
+    try {
+        $stmtToken = $pdo->prepare("
+            SELECT t.id as token_id, t.name as token_name, t.token, t.abilities, t.expires_at, t.status as token_status,
+                   u.id, u.uid, u.uuid, u.name, u.username, u.email, u.balance, u.avatar, u.role, u.status as user_status, u.created_at
+            FROM token t 
+            JOIN users u ON t.user_uuid = u.uuid 
+            WHERE t.token = ? 
+            LIMIT 1
+        ");
+        $stmtToken->execute([$token]);
+        $pat = $stmtToken->fetch();
+
+        if ($pat) {
+            if ($pat['token_status'] !== 'Active') {
+                echo json_encode(['success' => false, 'message' => 'Access Token đã bị thu hồi (Revoked)']);
+                exit;
+            }
+            if (!empty($pat['expires_at']) && strtotime($pat['expires_at']) < time()) {
+                echo json_encode(['success' => false, 'message' => 'Access Token đã hết hạn sử dụng']);
+                exit;
+            }
+            if ($pat['user_status'] !== 'Active') {
+                echo json_encode(['success' => false, 'message' => 'Tài khoản chủ sở hữu Token đang bị khóa']);
+                exit;
+            }
+
+            // Cập nhật thời điểm sử dụng token gần nhất
+            $stmtUpdate = $pdo->prepare("UPDATE token SET last_used_at = NOW() WHERE id = ?");
+            $stmtUpdate->execute([$pat['token_id']]);
+
+            echo json_encode([
+                'success'    => true,
+                'token_type' => 'personal_access_token',
+                'message'    => 'Xác thực Access Token thành công!',
+                'token_name' => $pat['token_name'],
+                'abilities'  => json_decode($pat['abilities'], true) ?: [$pat['abilities']],
+                'user'       => [
+                    'id'       => $pat['id'],
+                    'uid'      => $pat['uid'],
+                    'uuid'     => $pat['uuid'],
+                    'name'     => $pat['name'],
+                    'username' => $pat['username'],
+                    'email'    => $pat['email'],
+                    'balance'  => (float)$pat['balance'],
+                    'role'     => $pat['role']
+                ]
+            ]);
+            exit;
+        }
+    } catch (Exception $e) {
+        // Bỏ qua nếu bảng chưa tồn tại
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Access Token không hợp lệ hoặc đã hết hạn']);
     exit;
 }
 

@@ -264,6 +264,53 @@ CREATE TABLE IF NOT EXISTS `support_messages` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 11. Bảng: token (Quản lý Access Token / API Key kết nối hệ thống)
+-- Liên kết khóa ngoại với users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `token` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Liên kết bảng users.uuid',
+    `name` VARCHAR(100) NOT NULL COMMENT 'Tên gợi nhớ của Token (VD: Tool Golike VPS 1, Python Automation...)',
+    `token` VARCHAR(100) NOT NULL UNIQUE COMMENT 'Chuỗi mã Access Token bảo mật (chuẩn tiền tố tqt_...)',
+    `abilities` TEXT NOT NULL COMMENT 'Danh sách quyền hạn JSON (VD: ["all"], ["read"], ["jobs"])',
+    `last_used_at` DATETIME DEFAULT NULL COMMENT 'Thời điểm token được sử dụng gần nhất',
+    `expires_at` DATETIME DEFAULT NULL COMMENT 'Thời hạn hết hạn (NULL = Không giới hạn / Vĩnh viễn)',
+    `status` ENUM('Active', 'Revoked') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái token',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm khởi tạo token',
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Thời điểm cập nhật gần nhất',
+    
+    INDEX `idx_token_user_uuid` (`user_uuid`),
+    INDEX `idx_token_key` (`token`),
+    INDEX `idx_token_status` (`status`),
+    INDEX `idx_token_expires_at` (`expires_at`),
+    CONSTRAINT `fk_token_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 12. Bảng: settings (Quản lý cấu hình tài khoản cá nhân & hệ thống)
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `settings` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+    `user_uuid` CHAR(36) DEFAULT NULL COMMENT 'Liên kết bảng users.uuid (NULL nếu là cấu hình chung toàn hệ thống)',
+    `setting_key` VARCHAR(100) NOT NULL COMMENT 'Mã định danh cấu hình (key)',
+    `setting_value` LONGTEXT DEFAULT NULL COMMENT 'Giá trị cấu hình (chuỗi, số hoặc JSON)',
+    `setting_group` VARCHAR(50) NOT NULL DEFAULT 'general' COMMENT 'Nhóm cài đặt: general, security, notifications, api, system',
+    `description` VARCHAR(255) DEFAULT NULL COMMENT 'Mô tả cài đặt',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX `idx_settings_user_uuid` (`user_uuid`),
+    INDEX `idx_settings_key` (`setting_key`),
+    INDEX `idx_settings_group` (`setting_group`),
+    UNIQUE KEY `uq_user_setting_key` (`user_uuid`, `setting_key`),
+    CONSTRAINT `fk_settings_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- DỮ LIỆU KHỞI TẠO MẪU (SEED DATA)
 -- ==========================================================
@@ -348,4 +395,34 @@ INSERT INTO `support_messages` (`id`, `ticket_id`, `sender_uuid`, `sender_role`,
 (5, 3, '0191eb50-0004-7000-8000-000000000004', 'Member', 'Mình muốn thuê gói cloud treo 100 nick Golike cùng lúc thì nên chọn cấu hình nào tối ưu nhất ạ?', DATE_SUB(NOW(), INTERVAL 2 DAY)),
 (6, 3, '0191eb50-0001-7000-8000-000000000001', 'Admin', 'Chào bạn, với 100 luồng Golike bạn nên chọn gói Cloud Pro (4 vCPU, 8GB RAM) tại mục Thuê Cloud để chạy ổn định 24/7 mượt mà không bị nghẽn CPU nhé.', DATE_SUB(NOW(), INTERVAL 2 DAY))
 ON DUPLICATE KEY UPDATE `message` = VALUES(`message`);
+
+-- 9. Dữ liệu Access Token mẫu (token)
+INSERT INTO `token` (`id`, `user_uuid`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `status`, `created_at`) VALUES
+(1, '0191eb50-0001-7000-8000-000000000001', 'Admin Master Key API', 'tqt_live_9a7d8e2f1c5b4e3a0d9e8f7a6c5b4d3e', '["all"]', DATE_SUB(NOW(), INTERVAL 10 MINUTE), NULL, 'Active', DATE_SUB(NOW(), INTERVAL 15 DAY)),
+(2, '0191eb50-0002-7000-8000-000000000002', 'Golike Automation Server 1', 'tqt_live_4b8f2c1e7a9d3e5f0b6a8c4e2d7f1a9b', '["jobs","read"]', DATE_SUB(NOW(), INTERVAL 2 HOUR), DATE_ADD(NOW(), INTERVAL 60 DAY), 'Active', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(3, '0191eb50-0002-7000-8000-000000000002', 'Auto Bot TraoDoiSub', 'tqt_live_1f3e5a7b9c2d4e6f8a0b2c4d6e8f0a2c', '["jobs"]', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY), 'Active', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(4, '0191eb50-0003-7000-8000-000000000003', 'VPS Cloud Worker 01', 'tqt_live_7e9a1b3c5d7f9a1b3c5d7f9a1b3c5d7f', '["jobs","read"]', DATE_SUB(NOW(), INTERVAL 6 HOUR), DATE_ADD(NOW(), INTERVAL 90 DAY), 'Active', DATE_SUB(NOW(), INTERVAL 10 DAY))
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `abilities` = VALUES(`abilities`), `status` = VALUES(`status`);
+
+-- 10. Dữ liệu Cấu hình hệ thống & người dùng mẫu (settings)
+INSERT INTO `settings` (`user_uuid`, `setting_key`, `setting_value`, `setting_group`, `description`) VALUES
+-- Cấu hình toàn hệ thống (user_uuid = NULL)
+(NULL, 'site_name', 'ThanhQuyTech - Nền Tảng Tool & Cloud Bản Quyền', 'system', 'Tên thương hiệu website hiển thị'),
+(NULL, 'site_contact_telegram', 'https://t.me/thanhquytech_support', 'system', 'Kênh hỗ trợ Telegram'),
+(NULL, 'site_contact_zalo', '0987654321', 'system', 'Số điện thoại Zalo hỗ trợ'),
+(NULL, 'maintenance_mode', '0', 'system', 'Chế độ bảo trì hệ thống (0: Tắt, 1: Bật)'),
+(NULL, 'announcement_marquee', '🎉 Chào mừng đến với ThanhQuyTech! Hệ thống tự động kích hoạt Key và Cloud 24/7 siêu tốc.', 'system', 'Thông báo chạy chữ đầu trang'),
+(NULL, 'referral_bonus_days', '1', 'system', 'Số ngày thưởng Key VIP cho mỗi lượt giới thiệu thành công'),
+-- Cấu hình cá nhân của Quản trị viên (@admin)
+('0191eb50-0001-7000-8000-000000000001', 'notification_email', '1', 'notifications', 'Nhận email thông báo hệ thống'),
+('0191eb50-0001-7000-8000-000000000001', 'notification_telegram', '1', 'notifications', 'Nhận thông báo đơn hàng qua Telegram'),
+('0191eb50-0001-7000-8000-000000000001', 'telegram_chat_id', '589214782', 'notifications', 'ID Chat Telegram nhận tin'),
+('0191eb50-0001-7000-8000-000000000001', 'default_platform', 'golike', 'general', 'Nền tảng mặc định khi xem bảng điều khiển'),
+-- Cấu hình cá nhân của User @thanhquy
+('0191eb50-0002-7000-8000-000000000002', 'notification_email', '1', 'notifications', 'Nhận email thông báo hệ thống'),
+('0191eb50-0002-7000-8000-000000000002', 'notification_telegram', '1', 'notifications', 'Nhận thông báo qua Telegram'),
+('0191eb50-0002-7000-8000-000000000002', 'telegram_chat_id', '629831441', 'notifications', 'ID Chat Telegram'),
+('0191eb50-0002-7000-8000-000000000002', 'auto_renew_key', '0', 'general', 'Tự động gia hạn key khi hết hạn'),
+('0191eb50-0002-7000-8000-000000000002', 'hide_balance_header', '0', 'general', 'Ẩn hiển thị số dư trên thanh tiêu đề')
+ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
 

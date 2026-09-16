@@ -1673,6 +1673,12 @@ $csrfToken = get_csrf_token();
                         <a href="index.php" class="popup-menu-item">
                             <i class="fa-solid fa-gauge-high text-info me-2"></i> Bảng tổng quan
                         </a>
+                        <a href="token.php" class="popup-menu-item">
+                            <i class="fa-solid fa-fingerprint text-primary me-2"></i> Access Token
+                        </a>
+                        <a href="settings.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gear text-secondary me-2"></i> Cấu hình
+                        </a>
                         <hr class="my-2 border-secondary-subtle">
                         <button type="button" class="popup-menu-item text-danger text-start border-0 bg-transparent w-100" onclick="closeUserPopup(); confirmLogout();">
                             <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
@@ -1848,6 +1854,20 @@ $csrfToken = get_csrf_token();
                     <span class="sidebar-icon"><i class="fa-solid fa-headset"></i></span>
                     <span class="sidebar-title">Hỗ trợ</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                </a>
+            </li>
+            <!-- Access Token -->
+            <li>
+                <a href="token.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fingerprint"></i></span>
+                    <span class="sidebar-title">Access Token</span>
+                </a>
+            </li>
+            <!-- Cấu hình -->
+            <li>
+                <a href="settings.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-gear"></i></span>
+                    <span class="sidebar-title">Cấu hình</span>
                 </a>
             </li>
             <?php if ($isAdmin): ?>
