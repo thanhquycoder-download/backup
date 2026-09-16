@@ -3495,7 +3495,150 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         }
 
         function printCurrentInvoice() {
-            window.print();
+            const card = document.getElementById('invoiceCardPrintArea');
+            if (!card) {
+                window.print();
+                return;
+            }
+
+            // In qua iframe ẩn chuyên dụng để triệt tiêu hoàn toàn trang trắng thừa
+            let printFrame = document.getElementById('invoicePrintIframe');
+            if (!printFrame) {
+                printFrame = document.createElement('iframe');
+                printFrame.id = 'invoicePrintIframe';
+                printFrame.style.position = 'fixed';
+                printFrame.style.right = '0';
+                printFrame.style.bottom = '0';
+                printFrame.style.width = '0';
+                printFrame.style.height = '0';
+                printFrame.style.border = '0';
+                printFrame.style.visibility = 'hidden';
+                document.body.appendChild(printFrame);
+            }
+
+            const doc = printFrame.contentWindow.document;
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Hoa_Don_${currentInvoiceData ? currentInvoiceData.code : ''}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+                    <style>
+                        @page { size: A4 portrait; margin: 6mm 8mm; }
+                        * { box-sizing: border-box; }
+                        html, body {
+                            margin: 0;
+                            padding: 0;
+                            background: #ffffff;
+                            font-family: system-ui, -apple-system, sans-serif;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        .invoice-card {
+                            background: #ffffff !important;
+                            border: 1px solid #cbd5e1 !important;
+                            border-radius: 8px !important;
+                            padding: 14px 18px !important;
+                            color: #0f172a !important;
+                            width: 100% !important;
+                            margin: 0 !important;
+                            font-size: 0.82rem !important;
+                            line-height: 1.35 !important;
+                        }
+                        .invoice-barcode-wrap {
+                            text-align: center;
+                            background: #f8fafc;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 6px;
+                            padding: 4px 10px;
+                            margin: 4px auto 6px auto;
+                            max-width: 260px;
+                        }
+                        .invoice-barcode-img, .invoice-barcode-svg {
+                            width: 180px;
+                            height: 24px;
+                            display: inline-block;
+                            image-rendering: pixelated;
+                        }
+                        .invoice-meta-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 10px;
+                            margin-bottom: 8px;
+                        }
+                        .meta-col {
+                            background: #f8fafc;
+                            border: 1px solid #cbd5e1;
+                            border-radius: 6px;
+                            padding: 7px 10px;
+                        }
+                        .meta-title {
+                            font-size: 0.78rem;
+                            font-weight: 800;
+                            color: #1e3a8a;
+                            border-bottom: 1px solid #cbd5e1;
+                            padding-bottom: 3px;
+                            margin-bottom: 5px;
+                            text-transform: uppercase;
+                        }
+                        .meta-table { width: 100%; font-size: 0.77rem; border-collapse: collapse; }
+                        .meta-table td { padding: 2px 2px; vertical-align: top; border: none !important; }
+                        .meta-label { width: 38%; color: #64748b; white-space: nowrap; }
+                        .meta-val { color: #0f172a; }
+                        .invoice-table {
+                            width: 100% !important;
+                            border-collapse: collapse !important;
+                            border: 1.5px solid #475569 !important;
+                            margin: 6px 0 !important;
+                            font-size: 0.78rem !important;
+                        }
+                        .invoice-table th {
+                            background: #f1f5f9 !important;
+                            color: #0f172a !important;
+                            font-weight: 700 !important;
+                            padding: 5px 6px !important;
+                            border: 1px solid #64748b !important;
+                            text-align: center !important;
+                        }
+                        .invoice-table td {
+                            padding: 4px 6px !important;
+                            border: 1px solid #94a3b8 !important;
+                            color: #1e293b !important;
+                        }
+                        .red-stamp-seal {
+                            width: 105px;
+                            height: 105px;
+                            position: absolute;
+                            left: 50%;
+                            top: 50%;
+                            transform: translate(-50%, -50%) rotate(-6deg);
+                            opacity: 0.9;
+                        }
+                        .signature-stroke-img {
+                            max-height: 60px;
+                            max-width: 155px;
+                            mix-blend-mode: multiply;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${card.outerHTML}
+                </body>
+                </html>
+            `);
+            doc.close();
+
+            setTimeout(() => {
+                try {
+                    printFrame.contentWindow.focus();
+                    printFrame.contentWindow.print();
+                } catch (e) {
+                    window.print();
+                }
+            }, 250);
         }
 
         // Thông báo Flash nếu có
