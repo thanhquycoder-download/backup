@@ -1435,6 +1435,21 @@ $csrfToken = get_csrf_token();
             vertical-align: middle;
         }
 
+        .history-table th.text-center,
+        .history-table td.text-center {
+            text-align: center !important;
+        }
+
+        .history-table th.text-start,
+        .history-table td.text-start {
+            text-align: left !important;
+        }
+
+        .history-table th.text-end,
+        .history-table td.text-end {
+            text-align: right !important;
+        }
+
         .history-table td {
             padding: 14px;
             border-bottom: 1px solid #f1f5f9;
@@ -2410,45 +2425,44 @@ $csrfToken = get_csrf_token();
                         <table class="history-table">
                             <thead>
                                 <tr>
-                                    <th><i class="fa-solid fa-hashtag text-primary me-1"></i> Mã đơn</th>
-                                    <th><i class="fa-solid fa-building-columns text-primary me-1"></i> Ngân hàng nhận</th>
-                                    <th class="text-end"><i class="fa-solid fa-coins text-primary me-1"></i> Số tiền nạp</th>
-                                    <th><i class="fa-solid fa-message text-primary me-1"></i> Nội dung chuyển khoản</th>
-                                    <th><i class="fa-regular fa-clock text-primary me-1"></i> Thời gian tạo</th>
-                                    <th class="text-center"><i class="fa-solid fa-circle-check text-primary me-1"></i> Trạng thái</th>
-                                    <th class="text-end"><i class="fa-solid fa-gear text-primary me-1"></i> Thao tác</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-hashtag text-primary me-1"></i> Mã đơn</th>
+                                    <th class="text-start" style="text-align: left !important;"><i class="fa-solid fa-building-columns text-primary me-1"></i> Ngân hàng nhận</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-coins text-primary me-1"></i> Số tiền nạp</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-message text-primary me-1"></i> Nội dung chuyển khoản</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-regular fa-clock text-primary me-1"></i> Thời gian tạo</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-circle-check text-primary me-1"></i> Trạng thái</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-gear text-primary me-1"></i> Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($depositHistory as $item): ?>
                                     <tr>
-                                        <td>
-                                            <strong class="font-monospace text-primary fs-6">#<?= htmlspecialchars($item['deposit_code']) ?></strong>
-                                            <div class="text-muted" style="font-size: 0.72rem;"><?= date('d/m/Y H:i', strtotime($item['created_at'])) ?></div>
+                                        <td class="text-center" style="text-align: center !important;">
+                                            <strong class="font-monospace text-primary" style="font-size: 0.95rem;">#<?= htmlspecialchars($item['deposit_code']) ?></strong>
                                         </td>
-                                        <td>
+                                        <td class="text-start" style="text-align: left !important;">
                                             <div class="fw-bold text-dark"><?= htmlspecialchars($item['bank_name']) ?></div>
                                             <small class="text-muted font-monospace">STK: <?= htmlspecialchars($item['account_number']) ?> (<?= htmlspecialchars($item['account_name']) ?>)</small>
                                         </td>
-                                        <td class="text-end">
-                                            <strong class="text-success fs-6">+<?= format_currency($item['amount']) ?></strong>
+                                        <td class="text-center" style="text-align: center !important;">
+                                            <strong class="text-success" style="font-size: 0.88rem; font-weight: 700;">+<?= format_currency($item['amount']) ?></strong>
                                         </td>
-                                        <td>
-                                            <div class="key-code-box">
+                                        <td class="text-center" style="text-align: center !important;">
+                                            <div class="d-inline-flex align-items-center justify-content-center gap-1">
                                                 <span class="text-danger fw-bold font-monospace"><?= htmlspecialchars($item['transfer_content']) ?></span>
                                                 <button type="button" 
-                                                        class="btn-copy-key" 
+                                                        class="btn-copy-minimal" 
                                                         title="Sao chép nội dung chuyển khoản" 
                                                         onclick="copyText('<?= htmlspecialchars($item['transfer_content']) ?>', this)">
                                                     <i class="fa-regular fa-copy"></i>
                                                 </button>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td class="text-center" style="text-align: center !important;">
                                             <div class="small fw-semibold text-dark"><?= date('d/m/Y H:i', strtotime($item['created_at'])) ?></div>
                                             <small class="text-muted"><?= time_ago($item['created_at']) ?></small>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center" style="text-align: center !important;">
                                             <?php 
                                             $st = ucfirst(strtolower($item['status'] ?? 'Pending'));
                                             ?>
@@ -2470,9 +2484,9 @@ $csrfToken = get_csrf_token();
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-center" style="text-align: center !important;">
                                             <?php if ($st === 'Pending'): ?>
-                                                <div class="d-inline-flex gap-1">
+                                                <div class="d-inline-flex gap-1 justify-content-center">
                                                     <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;" title="Xem lại mã QR">
                                                         <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
                                                     </a>
