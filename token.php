@@ -1099,22 +1099,78 @@ $flash = get_flash();
             justify-content: space-between;
         }
 
+        /* Responsive Mobile, Tablet & Desktop Sidebar Collapse */
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .app-sidebar {
+                transform: translateX(-100%) !important;
+            }
+            body.sidebar-collapsed .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+
+        /* Nút đóng Sidebar trên Mobile */
+        .btn-close-sidebar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-close-sidebar:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
         /* RESPONSIVE */
         @media (max-width: 991.98px) {
             .app-sidebar {
-                transform: translateX(-100%);
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 280px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1060 !important;
+                padding: 16px 14px 30px !important;
+                box-shadow: none;
             }
             .app-sidebar.sidebar-open {
-                transform: translateX(0);
+                transform: translateX(0) !important;
+                box-shadow: 4px 0 30px rgba(0, 0, 0, 0.25) !important;
+                display: block !important;
+                visibility: visible !important;
             }
-            .sidebar-backdrop.active {
-                display: block;
+            .sidebar-backdrop {
+                z-index: 1055 !important;
             }
             .app-main {
                 margin-left: 0 !important;
+                margin-top: 56px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 16px 12px 50px !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
             }
             .content-container {
-                padding: 18px;
+                padding: 16px 4px;
             }
             .token-hero {
                 padding: 24px 20px;
@@ -1238,8 +1294,8 @@ $flash = get_flash();
      * 2. MENU SIDEBAR CỐ ĐỊNH TRÁI
      * ========================================================== -->
     <aside class="app-sidebar" id="appSidebar">
-        <!-- Header trên mobile -->
-        <div class="d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
+        <!-- Header cho Sidebar trên Mobile (Loại bỏ hoàn toàn khoảng hở trên đầu) -->
+        <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
             <a href="index.php" class="brand-logo">
                 <div class="brand-icon">
                     <i class="fa-solid fa-bolt"></i>
@@ -1248,7 +1304,7 @@ $flash = get_flash();
                     ThanhQuy<span>Tech</span>
                 </div>
             </a>
-            <button type="button" class="sidebar-toggle-btn" onclick="closeAppSidebar()">
+            <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -1937,13 +1993,17 @@ print_r($result);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // 1. Điều khiển Sidebar Mobile
+        // 1. Điều khiển Sidebar Mobile & Desktop Collapse
         function toggleAppSidebar(e) {
             if (e) e.stopPropagation();
-            var sb = document.getElementById('appSidebar');
-            var bd = document.getElementById('sidebarBackdrop');
-            if (sb) sb.classList.toggle('sidebar-open');
-            if (bd) bd.classList.toggle('active');
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (window.innerWidth >= 992) {
+                document.body.classList.toggle('sidebar-collapsed');
+            } else {
+                if (sidebar) sidebar.classList.toggle('sidebar-open');
+                if (backdrop) backdrop.classList.toggle('active');
+            }
         }
 
         function closeAppSidebar() {
