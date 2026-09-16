@@ -1481,6 +1481,26 @@ $csrfToken = get_csrf_token();
             color: #ffffff;
         }
 
+        .btn-copy-minimal {
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            padding: 3px 6px;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+        }
+
+        .btn-copy-minimal:hover {
+            color: var(--primary);
+            background: #eff6ff;
+        }
+
         /* FOOTER */
         .app-footer {
             background: #ffffff;
