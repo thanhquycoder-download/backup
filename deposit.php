@@ -1062,6 +1062,94 @@ $csrfToken = get_csrf_token();
             border-color: #4f46e5 !important;
         }
 
+        /* KHUNG NHẬP TIỀN CAO CẤP HIỆN ĐẠI (FINTECH STYLE) */
+        .premium-amount-box {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .premium-amount-box:focus-within {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12), 0 8px 24px rgba(99, 102, 241, 0.08);
+            background: #ffffff;
+        }
+
+        .currency-symbol-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            color: #4f46e5;
+            border: 1.5px solid #c7d2fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+            font-weight: 800;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.12);
+        }
+
+        .amount-field-inner {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .amount-field-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+
+        .amount-input-control {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: #0f172a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            letter-spacing: -0.5px;
+            width: 100%;
+            height: auto !important;
+            line-height: 1.2;
+        }
+
+        .amount-input-control::placeholder {
+            color: #cbd5e1;
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: 0;
+        }
+
+        .currency-tag-pill {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 800;
+            font-size: 0.82rem;
+            padding: 6px 14px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+            border: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
         .btn-gradient-primary {
             background: var(--gradient-primary);
             color: #ffffff;
