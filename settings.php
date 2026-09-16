@@ -114,10 +114,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $cloudCustomEnabled = isset($_POST['cloud_custom_enabled']) ? 1 : 0;
 
+        // Xử lý danh sách tài khoản đã chọn (Bắt buộc: nếu không chọn thì lấy acc đầu tiên)
+        $selectedAccs = array_map('intval', $_POST['selected_accounts'] ?? []);
+        if (empty($selectedAccs) && !empty($tokens)) {
+            $selectedAccs = [(int)$tokens[0]['id']];
+        }
+
+        $cloudSelectedAccs = array_map('intval', $_POST['cloud_selected_accounts'] ?? []);
+        if (empty($cloudSelectedAccs) && !empty($tokens)) {
+            $cloudSelectedAccs = [(int)$tokens[0]['id']];
+        }
+
         // Cấu hình chuyên biệt cho Cloud VPS
         $cloudSettings = [
             'social_platforms'     => $_POST['cloud_social_platforms'] ?? ['all'],
-            'selected_accounts'    => array_map('intval', $_POST['cloud_selected_accounts'] ?? []),
+            'selected_accounts'    => $cloudSelectedAccs,
             'job_limit'            => max(1, (int)($_POST['cloud_job_limit'] ?? 10)),
             'job_unlimited'        => isset($_POST['cloud_job_unlimited']) ? 1 : 0,
             'delay_seconds'        => max(1, (int)($_POST['cloud_delay_seconds'] ?? 15)),
@@ -133,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $configData = [
             'scope'                => $scope,
             'social_platforms'     => $_POST['social_platforms'] ?? ['all'],
-            'selected_accounts'    => array_map('intval', $_POST['selected_accounts'] ?? []),
+            'selected_accounts'    => $selectedAccs,
             'job_limit'            => max(1, (int)($_POST['job_limit'] ?? 10)),
             'job_unlimited'        => isset($_POST['job_unlimited']) ? 1 : 0,
             'delay_seconds'        => max(1, (int)($_POST['delay_seconds'] ?? 15)),
@@ -194,10 +205,12 @@ try {
 }
 
 // Cấu hình mặc định
+$defaultFirstAcc = !empty($tokens) ? [(int)$tokens[0]['id']] : [];
+
 $defaultGeneralConfig = [
     'scope'                => 'general',
     'social_platforms'     => ['all'],
-    'selected_accounts'    => [],
+    'selected_accounts'    => $defaultFirstAcc,
     'job_limit'            => 10,
     'job_unlimited'        => 0,
     'delay_seconds'        => 15,
@@ -208,7 +221,7 @@ $defaultGeneralConfig = [
     'cloud_custom_enabled' => 0,
     'cloud_settings'       => [
         'social_platforms'     => ['all'],
-        'selected_accounts'    => [],
+        'selected_accounts'    => $defaultFirstAcc,
         'job_limit'            => 10,
         'job_unlimited'        => 0,
         'delay_seconds'        => 15,
@@ -230,7 +243,16 @@ if (!in_array($scopeParam, ['general', 'golike', 'tuongtaccheo', 'traodoisub', '
 
 $currentScopeKey = 'bot_config_' . $scopeParam;
 $activeConfig = $allConfigs[$currentScopeKey] ?? ($allConfigs['bot_config_general'] ?? $defaultGeneralConfig);
+
+// Đảm bảo luôn có ít nhất tài khoản đầu tiên được chọn
+if (empty($activeConfig['selected_accounts']) && !empty($tokens)) {
+    $activeConfig['selected_accounts'] = $defaultFirstAcc;
+}
+
 $cloudSaved = $activeConfig['cloud_settings'] ?? ($allConfigs['bot_config_cloud'] ?? $defaultGeneralConfig['cloud_settings']);
+if (empty($cloudSaved['selected_accounts']) && !empty($tokens)) {
+    $cloudSaved['selected_accounts'] = $defaultFirstAcc;
+}
 
 $flash = get_flash();
 ?>
@@ -384,7 +406,6 @@ $flash = get_flash();
             flex-shrink: 0;
         }
 
-        /* Khối Số Dư Nạp Vào (Bên Phải Header) */
         .header-balance-card {
             display: flex;
             align-items: center;
@@ -440,7 +461,6 @@ $flash = get_flash();
             white-space: nowrap;
         }
 
-        /* Khối Avatar & Bảng Popup Hồ Sơ */
         .user-profile-container {
             position: relative;
             flex-shrink: 0;
@@ -756,7 +776,7 @@ $flash = get_flash();
         }
 
         /* ==========================================================
-         * 3. KHU VỰC NỘI DUNG CHÍNH (APP MAIN)
+         * 3. KHU VỰC NỘI DUNG CHÍNH (APP MAIN - CHỐNG TRÀN VIỀN)
          * ========================================================== */
         .app-main {
             margin-left: 260px;
@@ -776,6 +796,8 @@ $flash = get_flash();
             margin: 0 auto;
             width: 100%;
             min-width: 0;
+            box-sizing: border-box;
+            overflow-x: hidden !important;
         }
 
         /* HERO BANNER */
@@ -788,6 +810,8 @@ $flash = get_flash();
             overflow: hidden;
             box-shadow: 0 15px 35px -10px rgba(30, 27, 75, 0.35);
             margin-bottom: 24px;
+            box-sizing: border-box;
+            width: 100%;
         }
 
         .settings-hero::before {
@@ -832,7 +856,7 @@ $flash = get_flash();
             margin-bottom: 0;
         }
 
-        /* CARD GIAO DIỆN CHÍNH */
+        /* CARD GIAO DIỆN CHÍNH - KHÔNG TRÀN */
         .config-card {
             background: #ffffff;
             border: 1px solid var(--card-border);
@@ -840,6 +864,10 @@ $flash = get_flash();
             padding: 26px 30px;
             box-shadow: var(--shadow-card);
             margin-bottom: 24px;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .config-section-title {
@@ -854,12 +882,13 @@ $flash = get_flash();
         }
 
         .config-title-text {
-            font-size: 1.12rem;
+            font-size: 1.1rem;
             font-weight: 800;
             color: var(--text-heading);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .config-title-badge {
@@ -871,19 +900,22 @@ $flash = get_flash();
             color: #475569;
         }
 
-        /* 1. CHỌN CHẾ ĐỘ NỀN TẢNG (SCOPE SELECTOR) */
+        /* 1. CHỌN CHẾ ĐỘ NỀN TẢNG (SCOPE SELECTOR - FIX TRÀN VIỀN 100%) */
         .scope-selector-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 12px;
             margin-bottom: 24px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         .scope-card-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
+            gap: 10px;
+            padding: 12px 14px;
             border-radius: var(--radius-md);
             border: 2px solid var(--card-border);
             background: #ffffff;
@@ -891,6 +923,10 @@ $flash = get_flash();
             transition: var(--transition);
             position: relative;
             user-select: none;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .scope-card-item:hover {
@@ -906,28 +942,38 @@ $flash = get_flash();
         }
 
         .scope-icon-wrap {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             background: #ffffff;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
             flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .scope-icon-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
         }
 
         .scope-text-wrap {
-            flex-grow: 1;
+            flex: 1 1 0%;
             min-width: 0;
+            overflow: hidden;
         }
 
         .scope-title {
             font-weight: 700;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             color: var(--text-heading);
-            line-height: 1.2;
+            line-height: 1.25;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -959,6 +1005,7 @@ $flash = get_flash();
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 24px;
+            width: 100%;
         }
 
         .social-chip {
@@ -975,6 +1022,7 @@ $flash = get_flash();
             cursor: pointer;
             transition: var(--transition);
             user-select: none;
+            max-width: 100%;
         }
 
         .social-chip input { display: none; }
@@ -1001,12 +1049,15 @@ $flash = get_flash();
             color: #10b981;
         }
 
-        /* 3. CHỌN TÀI KHOẢN ĐA LUỒNG */
+        /* 3. CHỌN TÀI KHOẢN ĐA LUỒNG - THIẾT KẾ ĐẸP & CHỐNG TRÀN CHỮ */
         .accounts-grid-wrapper {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
             gap: 12px;
             margin-bottom: 24px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         .account-select-card {
@@ -1021,6 +1072,10 @@ $flash = get_flash();
             transition: var(--transition);
             position: relative;
             user-select: none;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .account-select-card:hover {
@@ -1035,44 +1090,81 @@ $flash = get_flash();
         }
 
         .account-avatar-box {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
             border-radius: 50%;
-            background: #f1f5f9;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             overflow: hidden;
             border: 1.5px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .account-avatar-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
         }
 
         .account-info-box {
-            flex-grow: 1;
+            flex: 1 1 0%;
             min-width: 0;
+            overflow: hidden;
         }
 
         .account-name-row {
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             font-weight: 700;
             color: var(--text-heading);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            line-height: 1.25;
         }
 
         .account-sub-row {
-            font-size: 0.72rem;
-            color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-top: 2px;
+            margin-top: 4px;
+            min-width: 0;
+        }
+
+        .account-badge-plat {
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: #e0e7ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .account-id-tag {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-family: 'Fira Code', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 1;
         }
 
         .account-coin-tag {
-            color: #059669;
+            font-size: 0.78rem;
             font-weight: 800;
+            color: #059669;
+            white-space: nowrap !important;
+            flex-shrink: 0;
+            margin-left: auto;
         }
 
         .account-select-card.active .scope-check-dot {
@@ -1105,6 +1197,9 @@ $flash = get_flash();
             border-radius: var(--radius-md);
             padding: 18px 20px;
             margin-bottom: 16px;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
         }
 
         .slider-header-row {
@@ -1131,11 +1226,12 @@ $flash = get_flash();
             font-weight: 800;
             color: #ffffff;
             background: var(--primary);
-            padding: 4px 12px;
+            padding: 4px 14px;
             border-radius: 50px;
-            min-width: 75px;
+            min-width: 80px;
             text-align: center;
             box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+            white-space: nowrap;
         }
 
         .custom-range-slider {
@@ -1154,6 +1250,7 @@ $flash = get_flash();
             align-items: center;
             flex-wrap: wrap;
             gap: 6px;
+            width: 100%;
         }
 
         .quick-pill-btn {
@@ -1167,6 +1264,7 @@ $flash = get_flash();
             cursor: pointer;
             transition: var(--transition);
             user-select: none;
+            white-space: nowrap;
         }
 
         .quick-pill-btn:hover {
@@ -1190,6 +1288,8 @@ $flash = get_flash();
             background: #ffffff;
             margin-bottom: 20px;
             transition: var(--transition);
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .filter-price-box.enabled {
@@ -1198,7 +1298,7 @@ $flash = get_flash();
             background: #f0fdf4;
         }
 
-        /* Khung Cấu hình Cloud VPS */
+        /* Khung Cấu hình Cloud VPS - TỐI ƯU MOBILE 100% */
         .cloud-config-box {
             border: 1.5px solid #c7d2fe;
             border-radius: 16px;
@@ -1206,6 +1306,10 @@ $flash = get_flash();
             background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
             margin-bottom: 24px;
             transition: var(--transition);
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .cloud-config-box.active {
@@ -1221,6 +1325,9 @@ $flash = get_flash();
             padding: 20px;
             margin-top: 16px;
             animation: fadeInPanel 0.3s ease;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         @keyframes fadeInPanel {
@@ -1295,7 +1402,9 @@ $flash = get_flash();
             height: 70px;
         }
 
-        /* RESPONSIVE MOBILE THEO INDEX.PHP */
+        /* ==========================================================
+         * 4. RESPONSIVE MOBILE & CHỐNG TRÀN HOÀN TOÀN
+         * ========================================================== */
         @media (max-width: 991.98px) {
             .app-sidebar {
                 transform: translateX(-100%) !important;
@@ -1317,6 +1426,7 @@ $flash = get_flash();
             }
             .content-container {
                 padding: 0 !important;
+                width: 100% !important;
             }
         }
 
@@ -1346,44 +1456,96 @@ $flash = get_flash();
                 z-index: 1060 !important;
             }
             .settings-hero {
-                padding: 20px 16px !important;
-                border-radius: 16px !important;
+                padding: 18px 14px !important;
+                border-radius: 14px !important;
+                margin-bottom: 16px !important;
             }
             .hero-title {
-                font-size: 1.35rem !important;
+                font-size: 1.25rem !important;
             }
             .config-card {
-                padding: 18px 14px !important;
-                border-radius: 16px !important;
+                padding: 16px 12px !important;
+                border-radius: 14px !important;
+                margin-bottom: 16px !important;
             }
+
+            /* Fix tràn 4 card Scope trên Mobile */
             .scope-selector-grid {
-                grid-template-columns: 1fr 1fr !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
                 gap: 8px !important;
+                width: 100% !important;
             }
             .scope-card-item {
-                padding: 10px 12px !important;
-                gap: 8px !important;
+                padding: 8px 10px !important;
+                gap: 6px !important;
             }
             .scope-icon-wrap {
-                width: 30px !important;
-                height: 30px !important;
-                font-size: 0.95rem !important;
+                width: 28px !important;
+                height: 28px !important;
+                min-width: 28px !important;
+                font-size: 0.85rem !important;
+            }
+            .scope-icon-wrap img {
+                width: 24px !important;
+                height: 24px !important;
             }
             .scope-title {
+                font-size: 0.78rem !important;
+            }
+            .scope-sub {
+                display: none !important; /* Ẩn dòng sub để không bao giờ bị tràn */
+            }
+            .scope-check-dot {
+                font-size: 0.95rem !important;
+            }
+
+            /* Fix tràn tài khoản trên Mobile */
+            .accounts-grid-wrapper {
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }
+            .account-select-card {
+                padding: 10px 12px !important;
+                gap: 10px !important;
+            }
+            .account-avatar-box {
+                width: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
+            }
+            .account-name-row {
                 font-size: 0.85rem !important;
             }
+
+            /* Fix Slider & Pills trên Mobile */
             .slider-control-card {
-                padding: 14px 12px !important;
+                padding: 12px 10px !important;
             }
             .slider-label {
-                font-size: 0.85rem !important;
+                font-size: 0.84rem !important;
+            }
+            .slider-value-badge {
+                font-size: 0.78rem !important;
+                padding: 3px 10px !important;
+                min-width: 65px !important;
             }
             .quick-pill-btn {
-                padding: 3px 9px !important;
+                padding: 3px 8px !important;
                 font-size: 0.72rem !important;
             }
+
+            /* Fix Cloud Panel trên Mobile */
+            .cloud-config-box {
+                padding: 14px 10px !important;
+                border-radius: 14px !important;
+            }
+            .cloud-sub-settings-panel {
+                padding: 12px 8px !important;
+                border-radius: 12px !important;
+            }
+
             .btn-action-save {
-                padding: 12px 20px !important;
+                padding: 12px 18px !important;
                 font-size: 0.95rem !important;
             }
         }
@@ -1473,7 +1635,6 @@ $flash = get_flash();
 
                 <!-- Bảng Popup Thông Tin & Chức Năng Hồ Sơ -->
                 <div class="user-profile-popup" id="userProfilePopup">
-                    <!-- Thông tin người dùng -->
                     <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-3">
                         <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
                              alt="Avatar" 
@@ -1493,7 +1654,6 @@ $flash = get_flash();
                         </div>
                     </div>
 
-                    <!-- Khung xem số dư và nạp tiền nhanh trong popup -->
                     <div class="p-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
                         <div>
                             <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
@@ -1504,7 +1664,6 @@ $flash = get_flash();
                         </a>
                     </div>
 
-                    <!-- Các mục điều hướng -->
                     <div class="d-flex flex-column gap-1">
                         <a href="profile.php" class="popup-menu-item">
                             <i class="fa-solid fa-id-card text-primary me-2"></i> Hồ sơ cá nhân
@@ -1538,7 +1697,6 @@ $flash = get_flash();
      * 2. MENU SIDEBAR CHUẨN 1:1 THEO INDEX.PHP
      * ========================================================== -->
     <aside class="app-sidebar" id="appSidebar">
-        <!-- Header cho Sidebar trên Mobile -->
         <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
             <a href="index.php" class="brand-logo">
                 <div class="brand-icon">
@@ -1555,35 +1713,30 @@ $flash = get_flash();
 
         <div class="sidebar-category">BẢNG ĐIỀU KHIỂN</div>
         <ul class="sidebar-nav-list">
-            <!-- Trang chủ -->
             <li>
                 <a href="index.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-house"></i></span>
                     <span class="sidebar-title">Trang chủ</span>
                 </a>
             </li>
-            <!-- Mua key -->
             <li>
                 <a href="buy-key.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-key"></i></span>
                     <span class="sidebar-title">Mua key</span>
                 </a>
             </li>
-            <!-- Thuê cloud -->
             <li>
                 <a href="cloud.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-cloud"></i></span>
                     <span class="sidebar-title">Thuê cloud</span>
                 </a>
             </li>
-            <!-- Access Token -->
             <li>
                 <a href="token.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-fingerprint"></i></span>
                     <span class="sidebar-title">Access Token</span>
                 </a>
             </li>
-            <!-- Cấu hình (Active) -->
             <li>
                 <a href="settings.php" class="sidebar-link active">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-gear"></i></span>
@@ -1594,7 +1747,6 @@ $flash = get_flash();
 
         <div class="sidebar-category">CÔNG CỤ & DỊCH VỤ</div>
         <ul class="sidebar-nav-list">
-            <!-- Tool Golike (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuGolike" aria-expanded="false">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-robot"></i></span>
@@ -1625,7 +1777,6 @@ $flash = get_flash();
                 </div>
             </li>
 
-            <!-- Account (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuAccount" aria-expanded="false">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-users-gear"></i></span>
@@ -1656,7 +1807,6 @@ $flash = get_flash();
                 </div>
             </li>
 
-            <!-- Payment (có menu sổ xuống) -->
             <li>
                 <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuPayment" aria-expanded="false">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-credit-card"></i></span>
@@ -1684,7 +1834,6 @@ $flash = get_flash();
 
         <div class="sidebar-category">TIỆN ÍCH & HỆ THỐNG</div>
         <ul class="sidebar-nav-list">
-            <!-- Giới thiệu -->
             <li>
                 <a href="referral.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-share-nodes"></i></span>
@@ -1692,7 +1841,6 @@ $flash = get_flash();
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                 </a>
             </li>
-            <!-- Hỗ trợ -->
             <li>
                 <a href="support.php" class="sidebar-link">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-headset"></i></span>
@@ -1701,14 +1849,12 @@ $flash = get_flash();
                 </a>
             </li>
             <?php if ($isAdmin): ?>
-            <!-- Quản trị nền tảng (Admin) -->
             <li>
                 <a href="/admin/platforms" class="sidebar-link text-primary">
                     <span class="sidebar-icon"><i class="fa-solid fa-fw fa-sliders"></i></span>
                     <span class="sidebar-title">Quản trị nền tảng</span>
                 </a>
             </li>
-            <!-- Admin Panel (Chỉ hiển thị cho Admin) -->
             <li>
                 <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
                     <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
@@ -1769,7 +1915,7 @@ $flash = get_flash();
                 <input type="hidden" name="target_scope" id="targetScopeInput" value="<?= htmlspecialchars($scopeParam) ?>">
 
                 <div class="config-card">
-                    <!-- 1. BỘ CHỌN NỀN TẢNG (CHUNG HOẶC RIÊNG TỪNG NỀN TẢNG) -->
+                    <!-- 1. BỘ CHỌN NỀN TẢNG (CHUNG HOẶC RIÊNG TỪNG NỀN TẢNG - KHÔNG BAO GIỜ TRÀN) -->
                     <div class="config-section-title">
                         <div class="config-title-text">
                             <i class="fa-solid fa-layer-group text-primary"></i>
@@ -1794,7 +1940,7 @@ $flash = get_flash();
                         <!-- Golike -->
                         <div class="scope-card-item <?= ($scopeParam === 'golike') ? 'active' : '' ?>" onclick="switchScope('golike')">
                             <div class="scope-icon-wrap">
-                                <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
+                                <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike">
                             </div>
                             <div class="scope-text-wrap">
                                 <div class="scope-title">Golike</div>
@@ -1842,7 +1988,6 @@ $flash = get_flash();
                         $isAllSocial = in_array('all', $savedSocials);
                     ?>
                     <div class="social-chips-group" id="groupSocialPlatforms">
-                        <!-- Toàn bộ -->
                         <label class="social-chip <?= $isAllSocial ? 'active' : '' ?>" id="chipSocialAll" onclick="toggleSocialAll(this, 'groupSocialPlatforms')">
                             <input type="checkbox" name="social_platforms[]" value="all" <?= $isAllSocial ? 'checked' : '' ?>>
                             <i class="fa-solid fa-asterisk"></i>
@@ -1850,7 +1995,6 @@ $flash = get_flash();
                             <i class="fa-solid fa-circle-check social-chip-check"></i>
                         </label>
 
-                        <!-- Instagram -->
                         <label class="social-chip <?= in_array('instagram', $savedSocials) ? 'active' : '' ?>" onclick="toggleSocialSingle(this, 'chipSocialAll')">
                             <input type="checkbox" name="social_platforms[]" value="instagram" <?= in_array('instagram', $savedSocials) ? 'checked' : '' ?>>
                             <i class="fa-brands fa-instagram text-danger"></i>
@@ -1858,7 +2002,6 @@ $flash = get_flash();
                             <i class="fa-solid fa-circle-check social-chip-check"></i>
                         </label>
 
-                        <!-- Threads -->
                         <label class="social-chip <?= in_array('threads', $savedSocials) ? 'active' : '' ?>" onclick="toggleSocialSingle(this, 'chipSocialAll')">
                             <input type="checkbox" name="social_platforms[]" value="threads" <?= in_array('threads', $savedSocials) ? 'checked' : '' ?>>
                             <i class="fa-brands fa-threads text-dark"></i>
@@ -1866,7 +2009,6 @@ $flash = get_flash();
                             <i class="fa-solid fa-circle-check social-chip-check"></i>
                         </label>
 
-                        <!-- Pinterest -->
                         <label class="social-chip <?= in_array('pinterest', $savedSocials) ? 'active' : '' ?>" onclick="toggleSocialSingle(this, 'chipSocialAll')">
                             <input type="checkbox" name="social_platforms[]" value="pinterest" <?= in_array('pinterest', $savedSocials) ? 'checked' : '' ?>>
                             <i class="fa-brands fa-pinterest text-danger"></i>
@@ -1874,7 +2016,6 @@ $flash = get_flash();
                             <i class="fa-solid fa-circle-check social-chip-check"></i>
                         </label>
 
-                        <!-- TikTok -->
                         <label class="social-chip <?= in_array('tiktok', $savedSocials) ? 'active' : '' ?>" onclick="toggleSocialSingle(this, 'chipSocialAll')">
                             <input type="checkbox" name="social_platforms[]" value="tiktok" <?= in_array('tiktok', $savedSocials) ? 'checked' : '' ?>>
                             <i class="fa-brands fa-tiktok text-dark"></i>
@@ -1883,13 +2024,18 @@ $flash = get_flash();
                         </label>
                     </div>
 
-                    <!-- 3. CHỌN TÀI KHOẢN CHẠY ĐA LUỒNG -->
+                    <!-- 3. CHỌN TÀI KHOẢN CHẠY ĐA LUỒNG (BẮT BUỘC / TỰ ĐỘNG CHỌN ACC ĐẦU) -->
                     <div class="config-section-title mt-4">
-                        <div class="config-title-text">
-                            <i class="fa-solid fa-users-gear text-primary"></i>
-                            <span>3. Chọn Tài Khoản Vận Hành (Đa Luồng Multi-Account)</span>
+                        <div>
+                            <div class="config-title-text">
+                                <i class="fa-solid fa-users-gear text-primary"></i>
+                                <span>3. Chọn Tài Khoản Vận Hành (Đa Luồng) <span class="text-danger fw-bold">*</span></span>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                (Bắt buộc chọn ít nhất 1 tài khoản; nếu không chọn hệ thống sẽ tự động dùng tài khoản đầu tiên)
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
                             <span class="multi-thread-badge d-none" id="multiThreadBadge">
                                 <i class="fa-solid fa-bolt"></i> Chạy Đa Luồng (<span id="selectedAccCount">0</span> acc)
                             </span>
@@ -1918,17 +2064,17 @@ $flash = get_flash();
                                 <input type="checkbox" name="selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isSelected ? 'checked' : '' ?>>
                                 <div class="account-avatar-box">
                                     <?php if ($pCode === 'golike'): ?>
-                                        <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
+                                        <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike">
                                     <?php else: ?>
-                                        <i class="fa-solid fa-user"></i>
+                                        <i class="fa-solid fa-user text-muted"></i>
                                     <?php endif; ?>
                                 </div>
                                 <div class="account-info-box">
                                     <div class="account-name-row"><?= htmlspecialchars($t['name']) ?></div>
                                     <div class="account-sub-row">
-                                        <span class="badge bg-secondary-subtle text-dark border px-2 py-0" style="font-size: 0.68rem;"><?= strtoupper($pCode) ?></span>
-                                        <span>ID: <?= htmlspecialchars($t['account_id']) ?></span>
-                                        <span class="account-coin-tag ms-auto"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
+                                        <span class="account-badge-plat"><?= strtoupper($pCode) ?></span>
+                                        <span class="account-id-tag">ID: <?= htmlspecialchars($t['account_id']) ?></span>
+                                        <span class="account-coin-tag"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
                                     </div>
                                 </div>
                                 <i class="fa-solid fa-circle-check scope-check-dot"></i>
@@ -1945,7 +2091,7 @@ $flash = get_flash();
                         </div>
                     </div>
 
-                    <!-- 4.1 SỐ LƯỢNG JOBS -->
+                    <!-- 4.1 SỐ LƯỢNG JOBS (FIX KÝ HIỆU VÔ HẠN ∞) -->
                     <div class="slider-control-card">
                         <div class="slider-header-row">
                             <label class="slider-label" for="sliderJobLimit">
@@ -1955,9 +2101,9 @@ $flash = get_flash();
                             <div class="d-flex align-items-center gap-2">
                                 <div class="form-check form-switch mb-0">
                                     <input class="form-check-input" type="checkbox" role="switch" id="checkJobUnlimited" name="job_unlimited" value="1" <?= !empty($activeConfig['job_unlimited']) ? 'checked' : '' ?> onchange="toggleJobUnlimited(this.checked, '')">
-                                    <label class="form-check-label fw-bold text-muted small" for="checkJobUnlimited">Chạy vô hạn ($\infty$)</label>
+                                    <label class="form-check-label fw-bold text-muted small" for="checkJobUnlimited">Chạy vô hạn (∞)</label>
                                 </div>
-                                <span class="slider-value-badge" id="badgeJobLimit"><?= !empty($activeConfig['job_unlimited']) ? 'Vô hạn' : ($activeConfig['job_limit'] ?? 10) . ' jobs' ?></span>
+                                <span class="slider-value-badge" id="badgeJobLimit"><?= !empty($activeConfig['job_unlimited']) ? 'Vô hạn (∞)' : ($activeConfig['job_limit'] ?? 10) . ' jobs' ?></span>
                             </div>
                         </div>
                         <input type="range" class="custom-range-slider" id="sliderJobLimit" name="job_limit" min="1" max="300" step="1" value="<?= (int)($activeConfig['job_limit'] ?? 10) ?>" <?= !empty($activeConfig['job_unlimited']) ? 'disabled' : '' ?> oninput="updateJobLimit(this.value, '')">
@@ -2063,35 +2209,35 @@ $flash = get_flash();
                         </div>
                     </div>
 
-                    <!-- 6. CẤU HÌNH CHO MÁY CHỦ CLOUD VPS (MỞ RỘNG ĐẦY ĐỦ CÁC MỤC KHI BẬT) -->
+                    <!-- 6. CẤU HÌNH CHO MÁY CHỦ CLOUD VPS (TỐI ƯU GIAO DIỆN MOBILE & CHỐNG TRÀN HOÀN TOÀN) -->
                     <?php $cloudCustomOn = !empty($activeConfig['cloud_custom_enabled']); ?>
                     <div class="cloud-config-box <?= $cloudCustomOn ? 'active' : '' ?>" id="cloudConfigBox">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="form-check form-switch mb-0">
+                        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="form-check form-switch mb-0 pt-1">
                                     <input class="form-check-input" type="checkbox" role="switch" id="checkCloudCustom" name="cloud_custom_enabled" value="1" <?= $cloudCustomOn ? 'checked' : '' ?> onchange="toggleCloudConfig(this.checked)">
                                 </div>
                                 <div>
-                                    <label class="fw-bold text-dark mb-0 cursor-pointer" for="checkCloudCustom" style="font-size: 1rem;">
+                                    <label class="fw-bold text-dark mb-0 cursor-pointer" for="checkCloudCustom" style="font-size: 0.95rem;">
                                         <i class="fa-solid fa-cloud text-primary me-1"></i> Bật Cấu Hình Riêng Khi Treo Trên Cloud VPS
                                     </label>
-                                    <div class="text-muted small" id="cloudDescText">
+                                    <div class="text-muted small" id="cloudDescText" style="font-size: 0.76rem; line-height: 1.35; margin-top: 2px;">
                                         <?= $cloudCustomOn ? 'Đang bật thiết lập riêng cho máy chủ Cloud VPS 24/24 bên dưới.' : 'Nếu không bật, hệ thống sẽ sử dụng cấu hình mặc định ở trên để treo ngầm.' ?>
                                     </div>
                                 </div>
                             </div>
-                            <span class="badge <?= $cloudCustomOn ? 'bg-primary text-white' : 'bg-secondary-subtle text-muted' ?> rounded-pill px-3 py-1" id="cloudStatusBadge">
+                            <span class="badge <?= $cloudCustomOn ? 'bg-primary text-white' : 'bg-secondary-subtle text-muted' ?> rounded-pill px-3 py-1 align-self-start align-self-sm-center text-nowrap" id="cloudStatusBadge" style="font-size: 0.72rem;">
                                 <?= $cloudCustomOn ? 'Đang cấu hình riêng' : 'Dùng chung mặc định' ?>
                             </span>
                         </div>
 
                         <!-- KHUNG CẤU HÌNH MỞ RỘNG DÀNH RIÊNG CHO CLOUD VPS -->
                         <div class="cloud-sub-settings-panel <?= $cloudCustomOn ? '' : 'd-none' ?>" id="cloudSubPanel">
-                            <div class="d-flex align-items-center gap-2 pb-2 mb-3 border-bottom border-primary-subtle">
-                                <span class="badge bg-primary text-white rounded-pill px-3 py-1">
+                            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-1 pb-2 mb-3 border-bottom border-primary-subtle">
+                                <span class="badge bg-primary text-white rounded-pill px-3 py-1 text-nowrap" style="font-size: 0.72rem;">
                                     <i class="fa-solid fa-server me-1"></i> THIẾT LẬP CHUYÊN BIỆT CHO CLOUD VPS
                                 </span>
-                                <span class="text-muted small">Cấu hình độc lập với chế độ chạy máy cá nhân</span>
+                                <span class="text-muted small" style="font-size: 0.76rem;">Cấu hình độc lập khi chạy ngầm 24/24</span>
                             </div>
 
                             <!-- 6.1 Cloud MXH -->
@@ -2135,14 +2281,14 @@ $flash = get_flash();
                                 </label>
                             </div>
 
-                            <!-- 6.2 Cloud Accounts -->
-                            <div class="d-flex align-items-center justify-content-between mb-2">
+                            <!-- 6.2 Cloud Accounts (BẮT BUỘC / TỰ ĐỘNG CHỌN ACC ĐẦU) -->
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-2">
                                 <div class="fw-bold text-dark small">
-                                    <i class="fa-solid fa-users-gear text-primary me-1"></i> Chọn Tài Khoản Vận Hành Trên Cloud (Đa Luồng):
+                                    <i class="fa-solid fa-users-gear text-primary me-1"></i> Tài Khoản Vận Hành Trên Cloud <span class="text-danger fw-bold">*</span>:
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="multi-thread-badge d-none" id="cloudMultiThreadBadge">
-                                        <i class="fa-solid fa-bolt"></i> Chạy Đa Luồng (<span id="cloudSelectedAccCount">0</span> acc)
+                                    <span class="multi-thread-badge d-none" id="cloudMultiThreadBadge" style="font-size: 0.7rem; padding: 2px 8px;">
+                                        <i class="fa-solid fa-bolt"></i> Đa Luồng (<span id="cloudSelectedAccCount">0</span> acc)
                                     </span>
                                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size: 0.72rem;" onclick="selectAllAccounts('cloud')">Chọn hết</button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size: 0.72rem;" onclick="deselectAllAccounts('cloud')">Bỏ chọn</button>
@@ -2159,16 +2305,17 @@ $flash = get_flash();
                                         <input type="checkbox" name="cloud_selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isCSelected ? 'checked' : '' ?>>
                                         <div class="account-avatar-box">
                                             <?php if ($pCode === 'golike'): ?>
-                                                <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike" style="width: 25px; height: 25px; border-radius: 50%; object-fit: cover;">
+                                                <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike">
                                             <?php else: ?>
-                                                <i class="fa-solid fa-user"></i>
+                                                <i class="fa-solid fa-user text-muted"></i>
                                             <?php endif; ?>
                                         </div>
                                         <div class="account-info-box">
                                             <div class="account-name-row"><?= htmlspecialchars($t['name']) ?></div>
                                             <div class="account-sub-row">
-                                                <span class="badge bg-secondary-subtle text-dark border px-2 py-0" style="font-size: 0.65rem;"><?= strtoupper($pCode) ?></span>
-                                                <span>ID: <?= htmlspecialchars($t['account_id']) ?></span>
+                                                <span class="account-badge-plat"><?= strtoupper($pCode) ?></span>
+                                                <span class="account-id-tag">ID: <?= htmlspecialchars($t['account_id']) ?></span>
+                                                <span class="account-coin-tag"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
                                             </div>
                                         </div>
                                         <i class="fa-solid fa-circle-check scope-check-dot"></i>
@@ -2177,7 +2324,7 @@ $flash = get_flash();
                                 </div>
                             <?php endif; ?>
 
-                            <!-- 6.3 Cloud Jobs Limit Slider -->
+                            <!-- 6.3 Cloud Jobs Limit Slider (FIX KÝ HIỆU VÔ HẠN ∞) -->
                             <div class="slider-control-card bg-white mb-2">
                                 <div class="slider-header-row">
                                     <label class="slider-label" for="sliderCloudJobLimit">
@@ -2187,9 +2334,9 @@ $flash = get_flash();
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox" role="switch" id="checkCloudJobUnlimited" name="cloud_job_unlimited" value="1" <?= !empty($cloudSaved['job_unlimited']) ? 'checked' : '' ?> onchange="toggleJobUnlimited(this.checked, 'Cloud')">
-                                            <label class="form-check-label fw-bold text-muted small" for="checkCloudJobUnlimited">Chạy vô hạn ($\infty$)</label>
+                                            <label class="form-check-label fw-bold text-muted small" for="checkCloudJobUnlimited">Chạy vô hạn (∞)</label>
                                         </div>
-                                        <span class="slider-value-badge" id="badgeCloudJobLimit"><?= !empty($cloudSaved['job_unlimited']) ? 'Vô hạn' : ($cloudSaved['job_limit'] ?? 10) . ' jobs' ?></span>
+                                        <span class="slider-value-badge" id="badgeCloudJobLimit"><?= !empty($cloudSaved['job_unlimited']) ? 'Vô hạn (∞)' : ($cloudSaved['job_limit'] ?? 10) . ' jobs' ?></span>
                                     </div>
                                 </div>
                                 <input type="range" class="custom-range-slider" id="sliderCloudJobLimit" name="cloud_job_limit" min="1" max="300" step="1" value="<?= (int)($cloudSaved['job_limit'] ?? 10) ?>" <?= !empty($cloudSaved['job_unlimited']) ? 'disabled' : '' ?> oninput="updateJobLimit(this.value, 'Cloud')">
@@ -2307,7 +2454,7 @@ $flash = get_flash();
                         </div>
                     </div>
 
-                    <!-- 7. TÍNH NĂNG BẢO VỆ & AN TOÀN NÂNG CAO (ĐÃ LOẠI BỎ THÔNG BÁO TELEGRAM) -->
+                    <!-- 7. TÍNH NĂNG BẢO VỆ & AN TOÀN NÂNG CAO -->
                     <div class="p-3 bg-light rounded-3 border mb-4">
                         <div class="fw-bold text-dark mb-2">
                             <i class="fa-solid fa-shield-halved text-success me-1"></i> Tính Năng An Toàn & Bảo Vệ Tài Khoản Tự Động
@@ -2349,7 +2496,6 @@ $flash = get_flash();
 
     <!-- JAVASCRIPT ĐIỀU KHIỂN -->
     <script>
-        // Dữ liệu cấu hình các scope lưu sẵn từ Server
         const ALL_CONFIGS = <?= json_encode($allConfigs, JSON_UNESCAPED_UNICODE) ?>;
         const DEFAULT_CONFIG = <?= json_encode($defaultGeneralConfig, JSON_UNESCAPED_UNICODE) ?>;
 
@@ -2429,7 +2575,7 @@ $flash = get_flash();
                     else card.classList.remove('active');
                 }
             });
-            updateMultiThreadStatus('normal');
+            ensureDefaultAccount('normal');
         }
 
         // 2. Điều khiển Chọn MXH
@@ -2494,6 +2640,25 @@ $flash = get_flash();
             updateMultiThreadStatus(mode);
         }
 
+        // Đảm bảo luôn có ít nhất 1 tài khoản được chọn (tự động chọn acc đầu tiên)
+        function ensureDefaultAccount(mode) {
+            const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            const checked = grid.querySelectorAll('.account-checkbox:checked');
+            if (checked.length === 0) {
+                const firstCard = grid.querySelector('.account-select-card');
+                if (firstCard) {
+                    const chk = firstCard.querySelector('.account-checkbox');
+                    if (chk) {
+                        chk.checked = true;
+                        firstCard.classList.add('active');
+                    }
+                }
+            }
+            updateMultiThreadStatus(mode);
+        }
+
         function updateMultiThreadStatus(mode) {
             const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
             const badgeId = (mode === 'cloud') ? 'cloudMultiThreadBadge' : 'multiThreadBadge';
@@ -2513,22 +2678,20 @@ $flash = get_flash();
             }
         }
 
-        // 4. Sliders & Quick Buttons Handlers (Dùng chung cho cả Normal và Cloud)
+        // 4. Sliders & Quick Buttons Handlers (Ký hiệu vô hạn ∞ chuẩn)
         function updateJobLimit(val, suffix) {
             document.getElementById('badge' + suffix + 'JobLimit').textContent = val + ' jobs';
         }
 
         function setJobLimit(val, suffix) {
             const slider = document.getElementById('slider' + suffix + 'JobLimit');
+            const chk = document.getElementById('check' + suffix + 'JobUnlimited');
+            if (chk) chk.checked = false;
             if (slider) {
+                slider.disabled = false;
                 slider.value = val;
-                updateJobLimit(val, suffix);
             }
-            const unlimitedCheck = document.getElementById('check' + suffix + 'JobUnlimited');
-            if (unlimitedCheck) {
-                unlimitedCheck.checked = false;
-                toggleJobUnlimited(false, suffix);
-            }
+            updateJobLimit(val, suffix);
         }
 
         function toggleJobUnlimited(isUnlimited, suffix) {
@@ -2536,7 +2699,7 @@ $flash = get_flash();
             const badge = document.getElementById('badge' + suffix + 'JobLimit');
             if (isUnlimited) {
                 if (slider) slider.disabled = true;
-                if (badge) badge.textContent = 'Vô hạn';
+                if (badge) badge.textContent = 'Vô hạn (∞)';
             } else {
                 if (slider) slider.disabled = false;
                 if (badge && slider) badge.textContent = slider.value + ' jobs';
@@ -2561,15 +2724,13 @@ $flash = get_flash();
 
         function setSwitchAcc(val, suffix) {
             const slider = document.getElementById('slider' + suffix + 'SwitchAcc');
+            const chk = document.getElementById('check' + suffix + 'SwitchNever');
+            if (chk) chk.checked = false;
             if (slider) {
+                slider.disabled = false;
                 slider.value = val;
-                updateSwitchAcc(val, suffix);
             }
-            const neverCheck = document.getElementById('check' + suffix + 'SwitchNever');
-            if (neverCheck) {
-                neverCheck.checked = false;
-                toggleSwitchNever(false, suffix);
-            }
+            updateSwitchAcc(val, suffix);
         }
 
         function toggleSwitchNever(isNever, suffix) {
@@ -2610,7 +2771,7 @@ $flash = get_flash();
             if (panel) panel.classList.toggle('d-none', !isEnabled);
 
             if (badge) {
-                badge.className = isEnabled ? 'badge bg-primary text-white rounded-pill px-3 py-1' : 'badge bg-secondary-subtle text-muted rounded-pill px-3 py-1';
+                badge.className = isEnabled ? 'badge bg-primary text-white rounded-pill px-3 py-1 text-nowrap' : 'badge bg-secondary-subtle text-muted rounded-pill px-3 py-1 text-nowrap';
                 badge.textContent = isEnabled ? 'Đang cấu hình riêng' : 'Dùng chung mặc định';
             }
 
@@ -2621,13 +2782,11 @@ $flash = get_flash();
             }
 
             if (isEnabled) {
-                updateMultiThreadStatus('cloud');
+                ensureDefaultAccount('cloud');
             }
         }
 
-        // ==========================================================
-        // ĐIỀU KHIỂN BẬT/TẮT BẢNG POPUP HỒ SƠ CHUẨN 1:1 THEO INDEX.PHP
-        // ==========================================================
+        // Điều khiển Popup Profile 1:1
         function toggleUserPopup(e) {
             if (e) {
                 e.preventDefault();
@@ -2653,7 +2812,6 @@ $flash = get_flash();
             if (toggle) toggle.setAttribute('aria-expanded', 'false');
         }
 
-        // Đóng popup khi bấm ra ngoài hoặc cuộn
         document.addEventListener('click', function (e) {
             const container = document.getElementById('userDropdownContainer');
             if (container && !container.contains(e.target)) {
@@ -2661,14 +2819,13 @@ $flash = get_flash();
             }
         });
 
-        // Đóng khi bấm phím Escape
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeUserPopup();
             }
         });
 
-        // Hộp thoại xác nhận đăng xuất SVG
+        // Dialog SVG
         const SVG_TEMPLATES = {
             confirm: `
                 <svg class="svg-draw-icon svg-confirm" viewBox="0 0 80 80">
@@ -2701,11 +2858,19 @@ $flash = get_flash();
             };
         }
 
-        // Khởi tạo trạng thái đa luồng ban đầu
-        document.addEventListener('DOMContentLoaded', function() {
-            updateMultiThreadStatus('normal');
+        // Kiểm tra trước khi submit form
+        document.getElementById('formBotSettings').addEventListener('submit', function(e) {
+            ensureDefaultAccount('normal');
             if (document.getElementById('checkCloudCustom').checked) {
-                updateMultiThreadStatus('cloud');
+                ensureDefaultAccount('cloud');
+            }
+        });
+
+        // Khởi tạo trạng thái ban đầu
+        document.addEventListener('DOMContentLoaded', function() {
+            ensureDefaultAccount('normal');
+            if (document.getElementById('checkCloudCustom').checked) {
+                ensureDefaultAccount('cloud');
             }
         });
     </script>
