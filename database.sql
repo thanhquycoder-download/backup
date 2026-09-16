@@ -365,6 +365,38 @@ CREATE TABLE IF NOT EXISTS `deposits` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 15. Bảng: withdrawals (Quản lý các yêu cầu rút tiền của người dùng)
+-- Liên kết khóa ngoại với users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `withdrawals` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Liên kết bảng users.uuid',
+    `withdraw_code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã rút tiền độc nhất (VD: RUT260901, TQW...)',
+    `bank_name` VARCHAR(100) NOT NULL COMMENT 'Tên ngân hàng người dùng nhận tiền',
+    `bank_code` VARCHAR(50) DEFAULT NULL COMMENT 'Mã ngân hàng (VCB, MB, TPB...)',
+    `account_number` VARCHAR(50) NOT NULL COMMENT 'Số tài khoản người dùng nhận',
+    `account_name` VARCHAR(100) NOT NULL COMMENT 'Tên chủ tài khoản người dùng',
+    `amount` DECIMAL(15, 2) NOT NULL COMMENT 'Số tiền yêu cầu rút (VND)',
+    `fee` DECIMAL(15, 2) NOT NULL DEFAULT 0.00 COMMENT 'Phí rút tiền (VND)',
+    `net_amount` DECIMAL(15, 2) NOT NULL COMMENT 'Số tiền thực tế giải ngân (VND)',
+    `user_note` VARCHAR(255) DEFAULT NULL COMMENT 'Ghi chú của người dùng',
+    `admin_note` VARCHAR(255) DEFAULT NULL COMMENT 'Ghi chú của Quản trị viên xử lý',
+    `status` ENUM('Pending', 'Success', 'Failed', 'Cancelled') NOT NULL DEFAULT 'Pending' COMMENT 'Trạng thái lệnh rút',
+    `proof_image` VARCHAR(255) DEFAULT NULL COMMENT 'Ảnh hóa đơn / biên lai chuyển khoản ngân hàng',
+    `processed_at` DATETIME DEFAULT NULL COMMENT 'Thời điểm quản trị viên chuyển khoản thành công',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX `idx_wd_user_uuid` (`user_uuid`),
+    INDEX `idx_wd_code` (`withdraw_code`),
+    INDEX `idx_wd_status` (`status`),
+    INDEX `idx_wd_created_at` (`created_at`),
+    CONSTRAINT `fk_withdrawals_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- DỮ LIỆU KHỞI TẠO MẪU (SEED DATA)
 -- ==========================================================
