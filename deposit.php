@@ -1525,12 +1525,12 @@ $csrfToken = get_csrf_token();
                 font-size: 0.86rem;
             }
             .amount-input-control {
-                font-size: 1.35rem !important;
+                font-size: 1.18rem !important;
             }
             .currency-symbol-badge {
-                width: 40px !important;
-                height: 40px !important;
-                font-size: 1.2rem !important;
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 1.05rem !important;
             }
         }
 
