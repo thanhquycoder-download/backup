@@ -957,12 +957,10 @@ $csrfToken = get_csrf_token();
             font-weight: 800;
             color: var(--text-heading);
             white-space: nowrap;
-        }
-
-        /* KHỐI 2 CỘT: FORM NẠP TIỀN & VIETQR BOX */
+        /* BỐ CỤC CÁC CARD NẠP TIỀN (MỖI HÀNG 1 CARD ĐỘC LẬP) */
         .deposit-layout {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
+            display: flex;
+            flex-direction: column;
             gap: 24px;
             margin-bottom: 30px;
         }
@@ -971,8 +969,9 @@ $csrfToken = get_csrf_token();
             background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: var(--radius-lg);
-            padding: 26px 28px;
+            padding: 28px 32px;
             box-shadow: var(--shadow-card);
+            width: 100%;
         }
 
         .card-header-title {
