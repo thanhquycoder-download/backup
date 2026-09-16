@@ -1014,35 +1014,18 @@ $csrfToken = get_csrf_token();
             gap: 10px;
         }
 
-        /* THẺ NGÂN HÀNG TPBANK HIỆN ĐẠI & SANG TRỌNG */
+        /* THẺ CHỌN NGÂN HÀNG TPBANK TINH TẾ & GỌN GÀNG */
         .bank-card-premium {
             background: linear-gradient(135deg, #ffffff 0%, #f8faff 50%, #eef2ff 100%);
             border: 2px solid #6366f1;
-            border-radius: 18px;
-            padding: 16px 20px;
-            box-shadow: 0 6px 20px -4px rgba(79, 70, 229, 0.16), 0 2px 6px rgba(0, 0, 0, 0.02);
+            border-radius: 14px;
+            padding: 12px 18px;
+            box-shadow: 0 4px 14px -2px rgba(79, 70, 229, 0.12), 0 1px 3px rgba(0, 0, 0, 0.02);
             transition: all 0.25s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .bank-card-premium::before {
-            content: '';
-            position: absolute;
-            top: -40px;
-            right: -40px;
-            width: 140px;
-            height: 140px;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .bank-card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 14px;
         }
 
         .bank-brand-info {
@@ -1053,33 +1036,27 @@ $csrfToken = get_csrf_token();
         }
 
         .bank-badge-code {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
             background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            font-size: 1.05rem;
+            font-size: 1rem;
             color: #ffffff;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+            box-shadow: 0 3px 8px rgba(79, 70, 229, 0.3);
             flex-shrink: 0;
             letter-spacing: 0.5px;
         }
 
         .bank-title {
-            font-size: 1.05rem;
+            font-size: 1.08rem;
             font-weight: 800;
             color: #0f172a;
             line-height: 1.2;
-        }
-
-        .bank-subtitle {
-            font-size: 0.76rem;
-            color: #64748b;
-            font-weight: 600;
-            margin-top: 2px;
+            letter-spacing: -0.2px;
         }
 
         .bank-status-tag {
@@ -1094,75 +1071,8 @@ $csrfToken = get_csrf_token();
             align-items: center;
             gap: 5px;
             white-space: nowrap;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.08);
             flex-shrink: 0;
-        }
-
-        .bank-card-details {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #e0e7ff;
-            border-radius: 13px;
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            backdrop-filter: blur(4px);
-        }
-
-        .bank-detail-col {
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .bank-detail-label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: #94a3b8;
-            margin-bottom: 2px;
-        }
-
-        .bank-account-num {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 1.08rem;
-            font-weight: 800;
-            color: #4f46e5;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-copy-bank {
-            background: #eef2ff;
-            border: 1px solid #c7d2fe;
-            color: #4f46e5;
-            width: 26px;
-            height: 26px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-copy-bank:hover {
-            background: #4f46e5;
-            color: #ffffff;
-            border-color: #4f46e5;
-        }
-
-        .bank-account-name {
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #0f172a;
-            white-space: nowrap;
-            letter-spacing: 0.3px;
         }
 
         /* NÚT CHỌN NHANH SỐ TIỀN CHUẨN PILL BO TRÒN */
@@ -1710,36 +1620,19 @@ $csrfToken = get_csrf_token();
 
             /* Thẻ ngân hàng TPBank trên mobile */
             .bank-card-premium {
-                padding: 14px !important;
-            }
-            .bank-card-header {
-                flex-wrap: wrap !important;
-                gap: 8px !important;
-                margin-bottom: 12px !important;
+                padding: 10px 14px !important;
             }
             .bank-badge-code {
-                width: 40px !important;
-                height: 40px !important;
-                font-size: 0.95rem !important;
+                width: 36px !important;
+                height: 36px !important;
+                font-size: 0.9rem !important;
             }
             .bank-title {
-                font-size: 0.98rem !important;
-            }
-            .bank-subtitle {
-                font-size: 0.72rem !important;
+                font-size: 1rem !important;
             }
             .bank-status-tag {
                 font-size: 0.7rem !important;
                 padding: 4px 8px !important;
-            }
-            .bank-card-details {
-                padding: 9px 12px !important;
-            }
-            .bank-account-num {
-                font-size: 0.96rem !important;
-            }
-            .bank-account-name {
-                font-size: 0.88rem !important;
             }
 
             /* Nút chọn nhanh số tiền: Grid 4 cột cân đối 2 hàng */
@@ -2228,36 +2121,15 @@ $csrfToken = get_csrf_token();
                                 <?php $bank = $bankAccounts[0]; ?>
                                 <input type="hidden" name="bank_id" value="<?= $bank['id'] ?>">
                                 <div class="bank-card-premium">
-                                    <div class="bank-card-header">
-                                        <div class="bank-brand-info">
-                                            <div class="bank-badge-code">
-                                                TPB
-                                            </div>
-                                            <div>
-                                                <div class="bank-title"><?= htmlspecialchars($bank['bank_name']) ?></div>
-                                                <div class="bank-subtitle">Ngân Hàng Tiên Phong</div>
-                                            </div>
+                                    <div class="bank-brand-info">
+                                        <div class="bank-badge-code">
+                                            TPB
                                         </div>
-                                        <div class="bank-status-tag">
-                                            <i class="fa-solid fa-bolt-lightning text-warning"></i>
-                                            <span>Tự động 24/7 (Napas)</span>
-                                        </div>
+                                        <div class="bank-title">TPBank</div>
                                     </div>
-
-                                    <div class="bank-card-details">
-                                        <div class="bank-detail-col">
-                                            <span class="bank-detail-label">Số tài khoản nhận</span>
-                                            <div class="bank-account-num">
-                                                <span id="bankCardAccNum"><?= htmlspecialchars($bank['account_number']) ?></span>
-                                                <button type="button" class="btn-copy-bank" onclick="copyText('<?= htmlspecialchars($bank['account_number']) ?>', this)" title="Sao chép STK">
-                                                    <i class="fa-regular fa-copy"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="bank-detail-col text-end">
-                                            <span class="bank-detail-label">Chủ tài khoản</span>
-                                            <span class="bank-account-name"><?= htmlspecialchars($bank['account_name']) ?></span>
-                                        </div>
+                                    <div class="bank-status-tag">
+                                        <i class="fa-solid fa-bolt-lightning text-warning"></i>
+                                        <span>Tự động 24/7 (Napas)</span>
                                     </div>
                                 </div>
                             <?php else: ?>
