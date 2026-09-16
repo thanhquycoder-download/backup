@@ -1523,6 +1523,14 @@ $csrfToken = get_csrf_token();
             .hero-desc {
                 font-size: 0.86rem;
             }
+            .amount-input-control {
+                font-size: 1.35rem !important;
+            }
+            .currency-symbol-badge {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 1.2rem !important;
+            }
         }
 
         @media (max-width: 420px) {
@@ -1995,53 +2003,37 @@ $csrfToken = get_csrf_token();
                                 <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(5000000, this)">5.000.000 ₫</button>
                             </div>
 
-                            <div class="input-group input-group-lg" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-radius: 12px; overflow: hidden;">
-                                <span class="input-group-text bg-white border-end-0 text-primary fw-bold fs-5 px-3">
+                            <!-- Khung nhập tiền cao cấp Fintech -->
+                            <div class="premium-amount-box mb-2">
+                                <div class="currency-symbol-badge">
                                     <i class="fa-solid fa-dong-sign"></i>
-                                </span>
-                                <input type="text" 
-                                       class="form-control border-start-0 border-end-0 px-2 fw-bold fs-4 text-primary font-monospace" 
-                                       id="amountInput" 
-                                       name="amount" 
-                                       value="100.000" 
-                                       placeholder="Nhập số tiền (tối thiểu 10.000đ)" 
-                                       required
-                                       oninput="formatCurrencyInput(this)">
-                                <span class="input-group-text bg-light text-muted fw-bold px-3">VND</span>
+                                </div>
+                                <div class="amount-field-inner">
+                                    <label for="amountInput" class="amount-field-label">Số tiền muốn nạp</label>
+                                    <input type="text" 
+                                           class="amount-input-control" 
+                                           id="amountInput" 
+                                           name="amount" 
+                                           value="100.000" 
+                                           placeholder="100.000" 
+                                           required
+                                           autocomplete="off"
+                                           oninput="formatCurrencyInput(this)">
+                                </div>
+                                <span class="currency-tag-pill">VND</span>
                             </div>
-                            <div class="d-flex justify-content-between text-muted small mt-2">
+                            <div class="d-flex justify-content-between text-muted small mt-2 px-1">
                                 <span><i class="fa-solid fa-circle-info text-primary me-1"></i> Tối thiểu: <strong class="text-dark">10.000 ₫</strong></span>
                                 <span>Tối đa: <strong class="text-dark">50.000.000 ₫</strong></span>
                             </div>
                         </div>
 
-                        <!-- BƯỚC 3: CÚ PHÁP CHUYỂN KHOẢN TỰ ĐỘNG -->
-                        <div class="p-3 rounded-3 mb-4" style="background: linear-gradient(135deg, #f8faff 0%, #f1f5f9 100%); border: 1px solid #e2e8f0;">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="small fw-bold text-muted text-uppercase">Nội dung chuyển khoản tự động:</span>
-                                <span class="badge bg-danger text-white" style="font-size: 0.68rem;">Khớp mã tự động</span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                <?php if ($activeDeposit): ?>
-                                    <span class="fw-extrabold text-danger fs-5 font-monospace" id="displayTransferContent"><?= htmlspecialchars($activeDeposit['transfer_content']) ?></span>
-                                    <button type="button" class="btn-copy-mini" onclick="copyText('<?= htmlspecialchars($activeDeposit['transfer_content']) ?>', this)">
-                                        <i class="fa-regular fa-copy"></i> Sao chép
-                                    </button>
-                                <?php else: ?>
-                                    <span class="fw-extrabold text-primary fs-5 font-monospace" id="displayTransferContent">ThanhQuyTech<span class="text-muted" style="font-size: 0.88rem; font-weight: 500;">(mã 7 số random)</span></span>
-                                    <span class="badge bg-primary-subtle text-primary small">Tự sinh khi tạo lệnh</span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="small text-muted mt-2" style="font-size: 0.8rem; line-height: 1.4;">
-                                <i class="fa-solid fa-circle-info text-primary me-1"></i>
-                                Mỗi lệnh nạp sẽ có một mã 7 số ngẫu nhiên dạng <strong>ThanhQuyTech + [7 số]</strong>. Hệ thống tự động kiểm tra sao kê TPBank và cộng tiền ngay tức thì.
-                            </div>
-                        </div>
-
                         <!-- NÚT TẠO LỆNH -->
-                        <button type="submit" class="btn-gradient-primary">
-                            <i class="fa-solid fa-bolt fs-5"></i> Tạo Lệnh Nạp Tiền & Lấy Mã VietQR
-                        </button>
+                        <div class="mt-4">
+                            <button type="submit" class="btn-gradient-primary">
+                                <i class="fa-solid fa-bolt fs-5"></i> Tạo Lệnh Nạp Tiền & Lấy Mã VietQR
+                            </button>
+                        </div>
                     </form>
                 </div>
 
