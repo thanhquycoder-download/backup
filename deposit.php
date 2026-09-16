@@ -1361,17 +1361,55 @@ $csrfToken = get_csrf_token();
             scrollbar-width: thin;
         }
 
-        .scroll-hint-badge {
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 0.74rem;
-            font-weight: 600;
-            padding: 5px 12px;
-            border-radius: 8px;
+        .history-count-badge {
             display: inline-flex;
             align-items: center;
-            border: 1px dashed #cbd5e1;
-            margin-bottom: 12px;
+            gap: 7px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e0eefe 100%);
+            border: 1px solid #bfdbfe;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            color: #1e293b;
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .history-count-badge:hover {
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+            border-color: #93c5fd;
+        }
+
+        .count-badge-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 0.68rem;
+            flex-shrink: 0;
+        }
+
+        .count-badge-label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.8rem;
+        }
+
+        .count-badge-number {
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #1d4ed8;
+            background: #ffffff;
+            padding: 1px 8px;
+            border-radius: 20px;
+            border: 1px solid #bfdbfe;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            display: inline-block;
+            line-height: 1.35;
         }
 
         .history-table {
