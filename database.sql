@@ -9,6 +9,8 @@ USE `thanhquytech_db`;
 
 -- Vô hiệu hóa kiểm tra khóa ngoại tạm thời để xóa sạch các bảng cũ bị lệch cấu trúc (nếu có)
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS `settings`;
+DROP TABLE IF EXISTS `token`;
 DROP TABLE IF EXISTS `support_messages`;
 DROP TABLE IF EXISTS `support_tickets`;
 DROP TABLE IF EXISTS `referral_claims`;
