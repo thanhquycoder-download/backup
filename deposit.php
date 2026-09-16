@@ -1118,15 +1118,34 @@ $csrfToken = get_csrf_token();
             box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
         }
 
-        /* KHUNG VIETQR & THÔNG TIN CHUYỂN KHOẢN BÊN PHẢI */
+        /* KHUNG VIETQR HIỆN BÊN DƯỚI (MỖI HÀNG 1 CARD ĐỘC LẬP) */
         .qr-display-card {
             background: #ffffff;
-            border: 2px dashed #cbd5e1;
+            border: 1px solid var(--card-border);
+            border-top: 4px solid var(--primary);
             border-radius: var(--radius-lg);
-            padding: 24px;
-            text-align: center;
+            padding: 28px 32px;
             box-shadow: var(--shadow-card);
             position: relative;
+            width: 100%;
+        }
+
+        .qr-card-body-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 32px;
+            align-items: center;
+        }
+
+        @media (max-width: 991.98px) {
+            .qr-card-body-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .deposit-card,
+            .qr-display-card {
+                padding: 20px 18px;
+            }
         }
 
         .qr-image-wrapper {
@@ -1136,7 +1155,7 @@ $csrfToken = get_csrf_token();
             border-radius: 16px;
             display: inline-block;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             max-width: 100%;
         }
 
@@ -1941,7 +1960,7 @@ $csrfToken = get_csrf_token();
                     </form>
                 </div>
 
-                <!-- CỘT PHẢI: KHUNG MÃ VIETQR (CHỈ HIỆN KHI NGƯỜI DÙNG BẤM TẠO LỆNH) -->
+                <!-- CARD 2: CHỈ HIỆN KHI NGƯỜI DÙNG BẤM TẠO LỆNH (NẰM Ở HÀNG DƯỚI CARD TẠO LỆNH) -->
                 <?php if ($activeDeposit): ?>
                     <?php 
                         $qrBankCode = !empty($activeDeposit['bank_code']) ? $activeDeposit['bank_code'] : 'TPB';
@@ -1961,120 +1980,100 @@ $csrfToken = get_csrf_token();
                         );
                     ?>
                     <div class="qr-display-card" id="qrDisplayCard">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="text-start">
-                                <h5 class="fw-bold mb-0 text-dark">Quét Mã VietQR Chuyển Khoản</h5>
-                                <div class="small text-muted">Mã đơn: <strong class="text-primary font-monospace">#<?= htmlspecialchars($activeDeposit['deposit_code']) ?></strong></div>
+                        <div class="card-header-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-qrcode text-primary"></i>
+                                <span>Thông Tin Thanh Toán & Quét Mã VietQR TPBank</span>
                             </div>
                             <?php if ($activeDeposit['status'] === 'Pending'): ?>
-                                <span class="badge bg-warning text-dark px-2 py-1 fw-bold">
-                                    <i class="fa-solid fa-clock me-1"></i> Chờ chuyển tiền
+                                <span class="badge bg-warning text-dark px-3 py-2 fw-bold" style="font-size: 0.82rem;">
+                                    <i class="fa-solid fa-clock me-1"></i> Mã đơn: #<?= htmlspecialchars($activeDeposit['deposit_code']) ?> - Chờ chuyển tiền
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-success text-white px-3 py-2 fw-bold" style="font-size: 0.82rem;">
+                                    <i class="fa-solid fa-circle-check me-1"></i> Mã đơn: #<?= htmlspecialchars($activeDeposit['deposit_code']) ?>
                                 </span>
                             <?php endif; ?>
                         </div>
 
-                        <!-- Khung ảnh QR VietQR -->
-                        <div class="qr-image-wrapper">
-                            <img src="<?= htmlspecialchars($vietQrUrl) ?>" 
-                                 alt="VietQR TPBank Chuyển Khoản" 
-                                 id="vietQrImage"
-                                 loading="lazy">
-                        </div>
-
-                        <!-- Bảng chi tiết chuyển khoản -->
-                        <div class="transfer-details-box">
-                            <!-- Ngân hàng -->
-                            <div class="transfer-row">
-                                <span class="transfer-label">Ngân hàng thụ hưởng:</span>
-                                <span class="transfer-val" id="detailBankName"><?= htmlspecialchars($qrBankName) ?></span>
-                            </div>
-
-                            <!-- Số tài khoản -->
-                            <div class="transfer-row">
-                                <span class="transfer-label">Số tài khoản:</span>
-                                <div class="transfer-val">
-                                    <span class="font-monospace text-primary fw-bold fs-6" id="detailAccNum"><?= htmlspecialchars($qrAccNum) ?></span>
-                                    <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailAccNum').innerText, this)">
-                                        <i class="fa-regular fa-copy"></i> Chép
-                                    </button>
+                        <div class="qr-card-body-grid">
+                            <!-- Cột trái bên trong card: Ảnh mã VietQR & nút tải -->
+                            <div class="text-center d-flex flex-column align-items-center justify-content-center">
+                                <div class="qr-image-wrapper">
+                                    <img src="<?= htmlspecialchars($vietQrUrl) ?>" 
+                                         alt="VietQR TPBank Chuyển Khoản" 
+                                         id="vietQrImage"
+                                         loading="lazy">
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 justify-content-center mt-1">
+                                    <a href="<?= htmlspecialchars($vietQrUrl) ?>" download="VietQR-TPBank-<?= htmlspecialchars($activeDeposit['deposit_code']) ?>.png" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+                                        <i class="fa-solid fa-download me-1"></i> Tải ảnh QR
+                                    </a>
+                                    <a href="deposit.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                                        <i class="fa-solid fa-plus me-1"></i> Tạo lệnh nạp mới
+                                    </a>
                                 </div>
                             </div>
 
-                            <!-- Chủ tài khoản -->
-                            <div class="transfer-row">
-                                <span class="transfer-label">Chủ tài khoản:</span>
-                                <span class="transfer-val" id="detailAccName"><?= htmlspecialchars($qrAccName) ?></span>
-                            </div>
+                            <!-- Cột phải bên trong card: Bảng thông tin chuyển khoản & thông báo tự động -->
+                            <div>
+                                <div class="transfer-details-box mb-3">
+                                    <!-- Ngân hàng -->
+                                    <div class="transfer-row">
+                                        <span class="transfer-label">Ngân hàng thụ hưởng:</span>
+                                        <span class="transfer-val" id="detailBankName"><?= htmlspecialchars($qrBankName) ?></span>
+                                    </div>
 
-                            <!-- Số tiền -->
-                            <div class="transfer-row">
-                                <span class="transfer-label">Số tiền chuyển:</span>
-                                <div class="transfer-val">
-                                    <span class="text-success fw-bold" id="detailAmount"><?= format_currency($qrAmount) ?></span>
-                                    <button type="button" class="btn-copy-mini" onclick="copyText('<?= (int)$qrAmount ?>', this)">
-                                        <i class="fa-regular fa-copy"></i> Chép
-                                    </button>
+                                    <!-- Số tài khoản -->
+                                    <div class="transfer-row">
+                                        <span class="transfer-label">Số tài khoản nhận:</span>
+                                        <div class="transfer-val">
+                                            <span class="font-monospace text-primary fw-bold fs-6" id="detailAccNum"><?= htmlspecialchars($qrAccNum) ?></span>
+                                            <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailAccNum').innerText, this)">
+                                                <i class="fa-regular fa-copy"></i> Chép
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chủ tài khoản -->
+                                    <div class="transfer-row">
+                                        <span class="transfer-label">Chủ tài khoản:</span>
+                                        <span class="transfer-val" id="detailAccName"><?= htmlspecialchars($qrAccName) ?></span>
+                                    </div>
+
+                                    <!-- Số tiền -->
+                                    <div class="transfer-row">
+                                        <span class="transfer-label">Số tiền cần chuyển:</span>
+                                        <div class="transfer-val">
+                                            <span class="text-success fw-bold fs-6" id="detailAmount"><?= format_currency($qrAmount) ?></span>
+                                            <button type="button" class="btn-copy-mini" onclick="copyText('<?= (int)$qrAmount ?>', this)">
+                                                <i class="fa-regular fa-copy"></i> Chép
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Nội dung chuyển khoản -->
+                                    <div class="transfer-row" style="border-bottom: none;">
+                                        <span class="transfer-label">Nội dung CK (bắt buộc chính xác):</span>
+                                        <div class="transfer-val">
+                                            <span class="transfer-val highlight-code" id="detailContent"><?= htmlspecialchars($qrContent) ?></span>
+                                            <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailContent').innerText, this)">
+                                                <i class="fa-regular fa-copy"></i> Chép
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Nội dung chuyển khoản -->
-                            <div class="transfer-row">
-                                <span class="transfer-label">Nội dung CK (bắt buộc):</span>
-                                <div class="transfer-val">
-                                    <span class="transfer-val highlight-code" id="detailContent"><?= htmlspecialchars($qrContent) ?></span>
-                                    <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailContent').innerText, this)">
-                                        <i class="fa-regular fa-copy"></i> Chép
-                                    </button>
+                                <!-- Thông báo hệ thống kiểm tra tự động 24/7 -->
+                                <div class="p-3 rounded-3" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                                    <div class="d-flex align-items-center gap-2 text-success fw-bold mb-1" style="font-size: 0.88rem;">
+                                        <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
+                                        <span>Hệ thống TPBank đang kiểm tra tự động 24/7</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.8rem; line-height: 1.45;">
+                                        Quý khách mở App ngân hàng quét mã QR bên cạnh và xác nhận chuyển. Khi nhận được tiền, hệ thống sẽ tự động cộng số dư vào tài khoản trong <strong>30s - 1 phút</strong>.
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Thông báo hệ thống kiểm tra tự động (Bỏ nút Tôi đã chuyển khoản) -->
-                        <div class="p-3 rounded-3 mb-3 text-start" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
-                            <div class="d-flex align-items-center gap-2 text-success fw-bold mb-1" style="font-size: 0.88rem;">
-                                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
-                                <span>Hệ thống TPBank đang kiểm tra tự động 24/7</span>
-                            </div>
-                            <div class="text-muted" style="font-size: 0.78rem; line-height: 1.45;">
-                                Quý khách mở App ngân hàng quét mã QR trên và xác nhận chuyển. Khi nhận được tiền, hệ thống sẽ tự động cộng số dư vào tài khoản trong <strong>30s - 1 phút</strong>.
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-2 justify-content-center">
-                            <a href="<?= htmlspecialchars($vietQrUrl) ?>" download="VietQR-TPBank-<?= htmlspecialchars($activeDeposit['deposit_code']) ?>.png" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
-                                <i class="fa-solid fa-download me-1"></i> Tải ảnh QR
-                            </a>
-                            <a href="deposit.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-                                <i class="fa-solid fa-plus me-1"></i> Tạo lệnh nạp mới
-                            </a>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <!-- KHI CHƯA BẤM TẠO LỆNH: KHÔNG HIỆN MÃ QR, HIỆN HƯỚNG DẪN & TRẠNG THÁI CHỜ -->
-                    <div class="qr-display-card text-center d-flex flex-column align-items-center justify-content-center py-5" style="min-height: 480px; background: #ffffff;">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 84px; height: 84px; background: #f8fafc; border: 2px dashed #cbd5e1;">
-                            <i class="fa-solid fa-qrcode text-muted opacity-50" style="font-size: 2.6rem;"></i>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-1">Chưa Có Lệnh Nạp Tiền</h5>
-                        <p class="text-muted small mb-4 px-3" style="max-width: 340px; line-height: 1.55;">
-                            Mã VietQR TPBank và cú pháp chuyển tiền sẽ hiển thị tại đây sau khi bạn bấm <strong>"Tạo Lệnh Nạp Tiền & Lấy Mã VietQR"</strong>.
-                        </p>
-
-                        <div class="w-100 p-3 rounded-3 text-start mb-2" style="background: #f8fafc; border: 1px solid #e2e8f0; max-width: 360px;">
-                            <div class="fw-bold text-dark small mb-2 d-flex align-items-center gap-1" style="font-size: 0.76rem; letter-spacing: 0.3px; text-transform: uppercase;">
-                                <i class="fa-solid fa-shield-halved text-success"></i> Quy trình nạp tự động:
-                            </div>
-                            <div class="d-flex align-items-start gap-2 mb-2">
-                                <span class="badge bg-primary rounded-circle" style="width: 20px; height: 20px; min-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">1</span>
-                                <span class="small text-secondary" style="font-size: 0.8rem;">Nhập số tiền muốn nạp (tối thiểu 10.000 ₫).</span>
-                            </div>
-                            <div class="d-flex align-items-start gap-2 mb-2">
-                                <span class="badge bg-primary rounded-circle" style="width: 20px; height: 20px; min-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">2</span>
-                                <span class="small text-secondary" style="font-size: 0.8rem;">Bấm <strong>Tạo Lệnh Nạp Tiền & Lấy Mã VietQR</strong>.</span>
-                            </div>
-                            <div class="d-flex align-items-start gap-2">
-                                <span class="badge bg-primary rounded-circle" style="width: 20px; height: 20px; min-width: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem;">3</span>
-                                <span class="small text-secondary" style="font-size: 0.8rem;">Quét mã VietQR TPBank, hệ thống tự động cộng số dư 24/7.</span>
                             </div>
                         </div>
                     </div>
