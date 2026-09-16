@@ -65,6 +65,25 @@ function save_user_setting(PDO $pdo, string $userUuid, string $key, string $valu
     $stmt->execute([$userUuid, $key, $value, $group, $desc]);
 }
 
+// Hàm kiểm tra nền tảng tài khoản có khớp với scope đang chọn không
+function is_platform_matching_scope(string $plat, string $scope): bool {
+    $plat = strtolower(trim($plat));
+    $scope = strtolower(trim($scope));
+    if ($scope === 'general' || $scope === 'cloud' || empty($scope)) {
+        return true;
+    }
+    if ($scope === 'golike') {
+        return ($plat === 'golike');
+    }
+    if ($scope === 'tuongtaccheo') {
+        return ($plat === 'tuongtaccheo' || $plat === 'ttc');
+    }
+    if ($scope === 'traodoisub') {
+        return ($plat === 'traodoisub' || $plat === 'tds');
+    }
+    return ($plat === $scope);
+}
+
 // 4. Lấy danh sách tài khoản đã liên kết từ bảng `tokens`
 $tokens = [];
 try {
@@ -114,15 +133,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $cloudCustomEnabled = isset($_POST['cloud_custom_enabled']) ? 1 : 0;
 
-        // Xử lý danh sách tài khoản đã chọn (Bắt buộc: nếu không chọn thì lấy acc đầu tiên)
+        // Xử lý tài khoản đã chọn (Fallback tìm acc đầu tiên phù hợp với scope nếu để trống)
         $selectedAccs = array_map('intval', $_POST['selected_accounts'] ?? []);
         if (empty($selectedAccs) && !empty($tokens)) {
-            $selectedAccs = [(int)$tokens[0]['id']];
+            $firstPlatAcc = null;
+            foreach ($tokens as $t) {
+                $tp = strtolower($t['platform'] ?? 'golike');
+                if (is_platform_matching_scope($tp, $scope)) {
+                    $firstPlatAcc = (int)$t['id'];
+                    break;
+                }
+            }
+            $selectedAccs = $firstPlatAcc ? [$firstPlatAcc] : [(int)$tokens[0]['id']];
         }
 
         $cloudSelectedAccs = array_map('intval', $_POST['cloud_selected_accounts'] ?? []);
         if (empty($cloudSelectedAccs) && !empty($tokens)) {
-            $cloudSelectedAccs = [(int)$tokens[0]['id']];
+            $firstPlatAcc = null;
+            foreach ($tokens as $t) {
+                $tp = strtolower($t['platform'] ?? 'golike');
+                if (is_platform_matching_scope($tp, $scope)) {
+                    $firstPlatAcc = (int)$t['id'];
+                    break;
+                }
+            }
+            $cloudSelectedAccs = $firstPlatAcc ? [$firstPlatAcc] : [(int)$tokens[0]['id']];
         }
 
         // Cấu hình chuyên biệt cho Cloud VPS
@@ -204,8 +239,25 @@ try {
     //
 }
 
-// Cấu hình mặc định
-$defaultFirstAcc = !empty($tokens) ? [(int)$tokens[0]['id']] : [];
+$scopeParam = strtolower(trim($_GET['scope'] ?? 'general'));
+if (!in_array($scopeParam, ['general', 'golike', 'tuongtaccheo', 'traodoisub', 'cloud'])) {
+    $scopeParam = 'general';
+}
+
+// Lấy acc đầu tiên phù hợp với scope hiện tại
+$defaultFirstAcc = [];
+if (!empty($tokens)) {
+    foreach ($tokens as $t) {
+        $tp = strtolower($t['platform'] ?? 'golike');
+        if (is_platform_matching_scope($tp, $scopeParam)) {
+            $defaultFirstAcc = [(int)$t['id']];
+            break;
+        }
+    }
+    if (empty($defaultFirstAcc)) {
+        $defaultFirstAcc = [(int)$tokens[0]['id']];
+    }
+}
 
 $defaultGeneralConfig = [
     'scope'                => 'general',
@@ -236,15 +288,9 @@ $defaultGeneralConfig = [
     'anti_block_safe'      => 1
 ];
 
-$scopeParam = strtolower(trim($_GET['scope'] ?? 'general'));
-if (!in_array($scopeParam, ['general', 'golike', 'tuongtaccheo', 'traodoisub', 'cloud'])) {
-    $scopeParam = 'general';
-}
-
 $currentScopeKey = 'bot_config_' . $scopeParam;
 $activeConfig = $allConfigs[$currentScopeKey] ?? ($allConfigs['bot_config_general'] ?? $defaultGeneralConfig);
 
-// Đảm bảo luôn có ít nhất tài khoản đầu tiên được chọn
 if (empty($activeConfig['selected_accounts']) && !empty($tokens)) {
     $activeConfig['selected_accounts'] = $defaultFirstAcc;
 }
@@ -856,7 +902,7 @@ $flash = get_flash();
             margin-bottom: 0;
         }
 
-        /* CARD GIAO DIỆN CHÍNH - KHÔNG TRÀN */
+        /* CARD GIAO DIỆN CHÍNH */
         .config-card {
             background: #ffffff;
             border: 1px solid var(--card-border);
@@ -1058,6 +1104,10 @@ $flash = get_flash();
             width: 100%;
             min-width: 0;
             box-sizing: border-box;
+        }
+
+        .col-span-full {
+            grid-column: 1 / -1;
         }
 
         .account-select-card {
@@ -1298,7 +1348,6 @@ $flash = get_flash();
             background: #f0fdf4;
         }
 
-        /* Khung Cấu hình Cloud VPS - TỐI ƯU MOBILE 100% */
         .cloud-config-box {
             border: 1.5px solid #c7d2fe;
             border-radius: 16px;
@@ -1493,7 +1542,7 @@ $flash = get_flash();
                 font-size: 0.78rem !important;
             }
             .scope-sub {
-                display: none !important; /* Ẩn dòng sub để không bao giờ bị tràn */
+                display: none !important;
             }
             .scope-check-dot {
                 font-size: 0.95rem !important;
@@ -1915,13 +1964,15 @@ $flash = get_flash();
                 <input type="hidden" name="target_scope" id="targetScopeInput" value="<?= htmlspecialchars($scopeParam) ?>">
 
                 <div class="config-card">
-                    <!-- 1. BỘ CHỌN NỀN TẢNG (CHUNG HOẶC RIÊNG TỪNG NỀN TẢNG - KHÔNG BAO GIỜ TRÀN) -->
+                    <!-- 1. BỘ CHỌN NỀN TẢNG (CHUNG HOẶC RIÊNG TỪNG NỀN TẢNG) -->
                     <div class="config-section-title">
                         <div class="config-title-text">
                             <i class="fa-solid fa-layer-group text-primary"></i>
                             <span>1. Chọn Chế Độ Cấu Hình</span>
                         </div>
-                        <span class="config-title-badge" id="activeScopeLabel">Đang chỉnh: <?= strtoupper($scopeParam) ?></span>
+                        <span class="config-title-badge" id="activeScopeLabel">
+                            Đang chỉnh: <?= ($scopeParam === 'general') ? 'CHUNG TOÀN HỆ THỐNG' : strtoupper($scopeParam) ?>
+                        </span>
                     </div>
 
                     <div class="scope-selector-grid">
@@ -1932,7 +1983,7 @@ $flash = get_flash();
                             </div>
                             <div class="scope-text-wrap">
                                 <div class="scope-title">Cấu hình chung</div>
-                                <div class="scope-sub">Toàn hệ thống (Mặc định)</div>
+                                <div class="scope-sub">Toàn hệ thống (Hiện all acc)</div>
                             </div>
                             <i class="fa-solid fa-circle-check scope-check-dot"></i>
                         </div>
@@ -1944,7 +1995,7 @@ $flash = get_flash();
                             </div>
                             <div class="scope-text-wrap">
                                 <div class="scope-title">Golike</div>
-                                <div class="scope-sub">Cấu hình riêng Golike</div>
+                                <div class="scope-sub">Chỉ hiện acc Golike</div>
                             </div>
                             <i class="fa-solid fa-circle-check scope-check-dot"></i>
                         </div>
@@ -1956,7 +2007,7 @@ $flash = get_flash();
                             </div>
                             <div class="scope-text-wrap">
                                 <div class="scope-title">Tương Tác Chéo</div>
-                                <div class="scope-sub">Cấu hình riêng TTC</div>
+                                <div class="scope-sub">Chỉ hiện acc TTC</div>
                             </div>
                             <i class="fa-solid fa-circle-check scope-check-dot"></i>
                         </div>
@@ -1968,7 +2019,7 @@ $flash = get_flash();
                             </div>
                             <div class="scope-text-wrap">
                                 <div class="scope-title">Trao Đổi Sub</div>
-                                <div class="scope-sub">Cấu hình riêng TDS</div>
+                                <div class="scope-sub">Chỉ hiện acc TDS</div>
                             </div>
                             <i class="fa-solid fa-circle-check scope-check-dot"></i>
                         </div>
@@ -2024,15 +2075,15 @@ $flash = get_flash();
                         </label>
                     </div>
 
-                    <!-- 3. CHỌN TÀI KHOẢN CHẠY ĐA LUỒNG (BẮT BUỘC / TỰ ĐỘNG CHỌN ACC ĐẦU) -->
+                    <!-- 3. CHỌN TÀI KHOẢN CHẠY ĐA LUỒNG (LỌC THEO SCOPE NỀN TẢNG ĐANG CHỌN) -->
                     <div class="config-section-title mt-4">
                         <div>
                             <div class="config-title-text">
                                 <i class="fa-solid fa-users-gear text-primary"></i>
                                 <span>3. Chọn Tài Khoản Vận Hành (Đa Luồng) <span class="text-danger fw-bold">*</span></span>
                             </div>
-                            <div class="text-muted small mt-1">
-                                (Bắt buộc chọn ít nhất 1 tài khoản; nếu không chọn hệ thống sẽ tự động dùng tài khoản đầu tiên)
+                            <div class="text-muted small mt-1" id="accountSectionHint">
+                                (Đang hiển thị tài khoản theo chế độ: <strong><?= ($scopeParam === 'general') ? 'Toàn bộ' : strtoupper($scopeParam) ?></strong>. Tự động chọn tài khoản đầu tiên nếu bạn không tích chọn)
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
@@ -2056,11 +2107,15 @@ $flash = get_flash();
                     <?php else: ?>
                         <?php $savedAccs = $activeConfig['selected_accounts'] ?? []; ?>
                         <div class="accounts-grid-wrapper mb-4" id="accountsGridNormal">
-                            <?php foreach ($tokens as $t): 
+                            <?php 
+                            $visibleCountNormal = 0;
+                            foreach ($tokens as $t): 
                                 $isSelected = in_array((int)$t['id'], $savedAccs);
                                 $pCode = strtolower($t['platform'] ?? 'golike');
+                                $isMatch = is_platform_matching_scope($pCode, $scopeParam);
+                                if ($isMatch) $visibleCountNormal++;
                             ?>
-                            <div class="account-select-card <?= $isSelected ? 'active' : '' ?>" data-acc-id="<?= $t['id'] ?>" onclick="toggleAccountCard(this, 'normal')">
+                            <div class="account-select-card <?= $isSelected ? 'active' : '' ?>" data-acc-id="<?= $t['id'] ?>" data-plat="<?= htmlspecialchars($pCode) ?>" style="display: <?= $isMatch ? 'flex' : 'none' ?>;" onclick="toggleAccountCard(this, 'normal')">
                                 <input type="checkbox" name="selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isSelected ? 'checked' : '' ?>>
                                 <div class="account-avatar-box">
                                     <?php if ($pCode === 'golike'): ?>
@@ -2080,6 +2135,9 @@ $flash = get_flash();
                                 <i class="fa-solid fa-circle-check scope-check-dot"></i>
                             </div>
                             <?php endforeach; ?>
+                            <div class="empty-plat-notice text-center p-3 bg-light rounded-3 border w-100 col-span-full" style="display: <?= ($visibleCountNormal === 0 && !empty($tokens)) ? 'block' : 'none' ?>;">
+                                <i class="fa-solid fa-circle-info text-primary me-1"></i> Chưa có tài khoản nào thuộc nền tảng này. <a href="token.php" class="fw-bold ms-1 text-primary"><i class="fa-solid fa-plus me-1"></i>Thêm token ngay</a>
+                            </div>
                         </div>
                     <?php endif; ?>
 
@@ -2091,7 +2149,7 @@ $flash = get_flash();
                         </div>
                     </div>
 
-                    <!-- 4.1 SỐ LƯỢNG JOBS (FIX KÝ HIỆU VÔ HẠN ∞) -->
+                    <!-- 4.1 SỐ LƯỢNG JOBS -->
                     <div class="slider-control-card">
                         <div class="slider-header-row">
                             <label class="slider-label" for="sliderJobLimit">
@@ -2209,7 +2267,7 @@ $flash = get_flash();
                         </div>
                     </div>
 
-                    <!-- 6. CẤU HÌNH CHO MÁY CHỦ CLOUD VPS (TỐI ƯU GIAO DIỆN MOBILE & CHỐNG TRÀN HOÀN TOÀN) -->
+                    <!-- 6. CẤU HÌNH CHO MÁY CHỦ CLOUD VPS (TỐI ƯU GIAO DIỆN & LỌC TÀI KHOẢN) -->
                     <?php $cloudCustomOn = !empty($activeConfig['cloud_custom_enabled']); ?>
                     <div class="cloud-config-box <?= $cloudCustomOn ? 'active' : '' ?>" id="cloudConfigBox">
                         <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
@@ -2281,7 +2339,7 @@ $flash = get_flash();
                                 </label>
                             </div>
 
-                            <!-- 6.2 Cloud Accounts (BẮT BUỘC / TỰ ĐỘNG CHỌN ACC ĐẦU) -->
+                            <!-- 6.2 Cloud Accounts (LỌC THEO SCOPE NỀN TẢNG) -->
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-2">
                                 <div class="fw-bold text-dark small">
                                     <i class="fa-solid fa-users-gear text-primary me-1"></i> Tài Khoản Vận Hành Trên Cloud <span class="text-danger fw-bold">*</span>:
@@ -2297,11 +2355,15 @@ $flash = get_flash();
                             <?php if (!empty($tokens)): ?>
                                 <?php $cSavedAccs = $cloudSaved['selected_accounts'] ?? []; ?>
                                 <div class="accounts-grid-wrapper mb-3" id="accountsGridCloud">
-                                    <?php foreach ($tokens as $t): 
+                                    <?php 
+                                    $visibleCountCloud = 0;
+                                    foreach ($tokens as $t): 
                                         $isCSelected = in_array((int)$t['id'], $cSavedAccs);
                                         $pCode = strtolower($t['platform'] ?? 'golike');
+                                        $isMatch = is_platform_matching_scope($pCode, $scopeParam);
+                                        if ($isMatch) $visibleCountCloud++;
                                     ?>
-                                    <div class="account-select-card <?= $isCSelected ? 'active' : '' ?>" data-acc-id="<?= $t['id'] ?>" onclick="toggleAccountCard(this, 'cloud')">
+                                    <div class="account-select-card <?= $isCSelected ? 'active' : '' ?>" data-acc-id="<?= $t['id'] ?>" data-plat="<?= htmlspecialchars($pCode) ?>" style="display: <?= $isMatch ? 'flex' : 'none' ?>;" onclick="toggleAccountCard(this, 'cloud')">
                                         <input type="checkbox" name="cloud_selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isCSelected ? 'checked' : '' ?>>
                                         <div class="account-avatar-box">
                                             <?php if ($pCode === 'golike'): ?>
@@ -2321,10 +2383,13 @@ $flash = get_flash();
                                         <i class="fa-solid fa-circle-check scope-check-dot"></i>
                                     </div>
                                     <?php endforeach; ?>
+                                    <div class="empty-plat-notice text-center p-3 bg-light rounded-3 border w-100 col-span-full" style="display: <?= ($visibleCountCloud === 0 && !empty($tokens)) ? 'block' : 'none' ?>;">
+                                        <i class="fa-solid fa-circle-info text-primary me-1"></i> Chưa có tài khoản nào thuộc nền tảng này. <a href="token.php" class="fw-bold ms-1 text-primary"><i class="fa-solid fa-plus me-1"></i>Thêm token ngay</a>
+                                    </div>
                                 </div>
                             <?php endif; ?>
 
-                            <!-- 6.3 Cloud Jobs Limit Slider (FIX KÝ HIỆU VÔ HẠN ∞) -->
+                            <!-- 6.3 Cloud Jobs Limit Slider -->
                             <div class="slider-control-card bg-white mb-2">
                                 <div class="slider-header-row">
                                     <label class="slider-label" for="sliderCloudJobLimit">
@@ -2494,10 +2559,78 @@ $flash = get_flash();
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- JAVASCRIPT ĐIỀU KHIỂN -->
+    <!-- JAVASCRIPT ĐIỀU KHIỂN THÔNG MINH -->
     <script>
         const ALL_CONFIGS = <?= json_encode($allConfigs, JSON_UNESCAPED_UNICODE) ?>;
         const DEFAULT_CONFIG = <?= json_encode($defaultGeneralConfig, JSON_UNESCAPED_UNICODE) ?>;
+
+        // Chuẩn hóa mã nền tảng
+        function normalizePlatform(plat) {
+            plat = (plat || '').toLowerCase().trim();
+            if (plat === 'ttc') return 'tuongtaccheo';
+            if (plat === 'tds') return 'traodoisub';
+            return plat;
+        }
+
+        // Kiểm tra tài khoản có khớp với scope đang chọn hay không
+        function matchScopePlatform(scope, plat) {
+            if (scope === 'general' || scope === 'cloud' || !scope) return true;
+            const normPlat = normalizePlatform(plat);
+            const normScope = normalizePlatform(scope);
+            return normPlat === normScope;
+        }
+
+        // Lọc hiển thị danh sách tài khoản theo chế độ cấu hình đang chọn
+        function filterAccountsByScope(scope) {
+            ['normal', 'cloud'].forEach(mode => {
+                const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
+                const grid = document.getElementById(gridId);
+                if (!grid) return;
+
+                let visibleCount = 0;
+                const cards = grid.querySelectorAll('.account-select-card');
+                cards.forEach(card => {
+                    const plat = card.getAttribute('data-plat');
+                    const isMatch = matchScopePlatform(scope, plat);
+                    if (isMatch) {
+                        card.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // Thông báo khi không có tài khoản cho nền tảng đang chọn
+                let emptyEl = grid.querySelector('.empty-plat-notice');
+                if (visibleCount === 0 && cards.length > 0) {
+                    if (!emptyEl) {
+                        emptyEl = document.createElement('div');
+                        emptyEl.className = 'empty-plat-notice text-center p-3 bg-light rounded-3 border w-100 col-span-full';
+                        grid.appendChild(emptyEl);
+                    }
+                    emptyEl.style.display = 'block';
+                    let platName = 'nền tảng này';
+                    if (scope === 'golike') platName = 'Golike';
+                    else if (scope === 'tuongtaccheo') platName = 'Tương Tác Chéo';
+                    else if (scope === 'traodoisub') platName = 'Trao Đổi Sub';
+                    emptyEl.innerHTML = `<i class="fa-solid fa-circle-info text-primary me-1"></i> Chưa có tài khoản nào thuộc nền tảng <strong>${platName}</strong>. <a href="token.php" class="fw-bold ms-1 text-primary"><i class="fa-solid fa-plus me-1"></i>Thêm token ngay</a>`;
+                } else if (emptyEl) {
+                    emptyEl.style.display = 'none';
+                }
+
+                ensureDefaultAccount(mode, scope);
+            });
+
+            // Cập nhật gợi ý tiêu đề mục 3
+            const hintEl = document.getElementById('accountSectionHint');
+            if (hintEl) {
+                let textMode = 'Toàn bộ';
+                if (scope === 'golike') textMode = 'Golike';
+                else if (scope === 'tuongtaccheo') textMode = 'Tương Tác Chéo';
+                else if (scope === 'traodoisub') textMode = 'Trao Đổi Sub';
+                hintEl.innerHTML = `(Đang hiển thị tài khoản theo chế độ: <strong>${textMode}</strong>. Tự động chọn tài khoản đầu tiên nếu bạn không tích chọn)`;
+            }
+        }
 
         // 1. Chuyển đổi Scope (Chung, Golike, TTC, TDS)
         function switchScope(scope) {
@@ -2510,24 +2643,34 @@ $flash = get_flash();
             event.currentTarget.classList.add('active');
 
             const label = document.getElementById('activeScopeLabel');
-            if (label) label.textContent = 'Đang chỉnh: ' + scope.toUpperCase();
+            if (label) {
+                let displayScope = scope.toUpperCase();
+                if (scope === 'general') displayScope = 'CHUNG TOÀN HỆ THỐNG';
+                else if (scope === 'golike') displayScope = 'GOLIKE';
+                else if (scope === 'tuongtaccheo') displayScope = 'TƯƠNG TÁC CHÉO';
+                else if (scope === 'traodoisub') displayScope = 'TRAO ĐỔI SUB';
+                label.textContent = 'Đang chỉnh: ' + displayScope;
+            }
+
+            // Lọc tài khoản theo scope được chọn
+            filterAccountsByScope(scope);
 
             const configKey = 'bot_config_' + scope;
             const config = ALL_CONFIGS[configKey] || ALL_CONFIGS['bot_config_general'] || DEFAULT_CONFIG;
-            applyConfigToForm(config);
+            applyConfigToForm(config, scope);
 
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'info',
-                title: 'Đã chuyển sang cấu hình: ' + scope.toUpperCase(),
+                title: 'Đã chuyển sang cấu hình: ' + (scope === 'general' ? 'Toàn hệ thống' : scope.toUpperCase()),
                 showConfirmButton: false,
                 timer: 1500
             });
         }
 
         // Áp dụng bộ cấu hình vào Form
-        function applyConfigToForm(cfg) {
+        function applyConfigToForm(cfg, scope) {
             // Slider Jobs
             if (cfg.job_unlimited) {
                 document.getElementById('checkJobUnlimited').checked = true;
@@ -2564,7 +2707,7 @@ $flash = get_flash();
             document.getElementById('checkCloudCustom').checked = cloudOn;
             toggleCloudConfig(cloudOn);
 
-            // Accounts selection
+            // Accounts selection (chỉ áp dụng cho các tài khoản đang hiển thị)
             const accList = cfg.selected_accounts || [];
             document.querySelectorAll('#accountsGridNormal .account-select-card').forEach(card => {
                 const chk = card.querySelector('.account-checkbox');
@@ -2575,7 +2718,8 @@ $flash = get_flash();
                     else card.classList.remove('active');
                 }
             });
-            ensureDefaultAccount('normal');
+
+            ensureDefaultAccount('normal', scope);
         }
 
         // 2. Điều khiển Chọn MXH
@@ -2616,61 +2760,100 @@ $flash = get_flash();
             }
         }
 
+        // Chọn tất cả các tài khoản đang hiển thị
         function selectAllAccounts(mode) {
-            const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
-            document.querySelectorAll('#' + gridId + ' .account-select-card').forEach(card => {
-                const chk = card.querySelector('.account-checkbox');
-                if (chk) {
-                    chk.checked = true;
-                    card.classList.add('active');
-                }
-            });
-            updateMultiThreadStatus(mode);
-        }
-
-        function deselectAllAccounts(mode) {
-            const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
-            document.querySelectorAll('#' + gridId + ' .account-select-card').forEach(card => {
-                const chk = card.querySelector('.account-checkbox');
-                if (chk) {
-                    chk.checked = false;
-                    card.classList.remove('active');
-                }
-            });
-            updateMultiThreadStatus(mode);
-        }
-
-        // Đảm bảo luôn có ít nhất 1 tài khoản được chọn (tự động chọn acc đầu tiên)
-        function ensureDefaultAccount(mode) {
             const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
             const grid = document.getElementById(gridId);
             if (!grid) return;
-            const checked = grid.querySelectorAll('.account-checkbox:checked');
-            if (checked.length === 0) {
-                const firstCard = grid.querySelector('.account-select-card');
-                if (firstCard) {
-                    const chk = firstCard.querySelector('.account-checkbox');
+
+            grid.querySelectorAll('.account-select-card').forEach(card => {
+                if (card.style.display !== 'none') {
+                    const chk = card.querySelector('.account-checkbox');
                     if (chk) {
                         chk.checked = true;
-                        firstCard.classList.add('active');
+                        card.classList.add('active');
                     }
                 }
-            }
+            });
             updateMultiThreadStatus(mode);
         }
 
+        // Bỏ chọn tất cả các tài khoản đang hiển thị
+        function deselectAllAccounts(mode) {
+            const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+
+            grid.querySelectorAll('.account-select-card').forEach(card => {
+                if (card.style.display !== 'none') {
+                    const chk = card.querySelector('.account-checkbox');
+                    if (chk) {
+                        chk.checked = false;
+                        card.classList.remove('active');
+                    }
+                }
+            });
+            updateMultiThreadStatus(mode);
+        }
+
+        // Đảm bảo luôn có ít nhất 1 tài khoản ĐANG HIỂN THỊ được chọn
+        function ensureDefaultAccount(mode, scope) {
+            const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+
+            const visibleCards = Array.from(grid.querySelectorAll('.account-select-card')).filter(card => {
+                return card.style.display !== 'none';
+            });
+
+            if (visibleCards.length === 0) {
+                updateMultiThreadStatus(mode);
+                return;
+            }
+
+            const checkedVisible = visibleCards.filter(card => {
+                const chk = card.querySelector('.account-checkbox');
+                return chk && chk.checked;
+            });
+
+            // Nếu không có acc visible nào được chọn -> Chọn acc visible đầu tiên
+            if (checkedVisible.length === 0) {
+                const firstCard = visibleCards[0];
+                const chk = firstCard.querySelector('.account-checkbox');
+                if (chk) {
+                    chk.checked = true;
+                    firstCard.classList.add('active');
+                }
+            }
+
+            updateMultiThreadStatus(mode);
+        }
+
+        // Cập nhật số lượng tài khoản đa luồng (chỉ tính acc đang hiển thị)
         function updateMultiThreadStatus(mode) {
             const gridId = (mode === 'cloud') ? 'accountsGridCloud' : 'accountsGridNormal';
             const badgeId = (mode === 'cloud') ? 'cloudMultiThreadBadge' : 'multiThreadBadge';
             const countId = (mode === 'cloud') ? 'cloudSelectedAccCount' : 'selectedAccCount';
 
-            const checked = document.querySelectorAll('#' + gridId + ' .account-checkbox:checked').length;
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+
+            let checkedCount = 0;
+            grid.querySelectorAll('.account-select-card').forEach(card => {
+                if (card.style.display !== 'none') {
+                    const chk = card.querySelector('.account-checkbox');
+                    if (chk && chk.checked) {
+                        checkedCount++;
+                    }
+                }
+            });
+
             const badge = document.getElementById(badgeId);
             const countEl = document.getElementById(countId);
-            if (countEl) countEl.textContent = checked;
+            if (countEl) countEl.textContent = checkedCount;
 
             if (badge) {
-                if (checked >= 2) {
+                if (checkedCount >= 2) {
                     badge.classList.remove('d-none');
                 } else {
                     badge.classList.add('d-none');
@@ -2678,7 +2861,7 @@ $flash = get_flash();
             }
         }
 
-        // 4. Sliders & Quick Buttons Handlers (Ký hiệu vô hạn ∞ chuẩn)
+        // 4. Sliders & Quick Buttons Handlers
         function updateJobLimit(val, suffix) {
             document.getElementById('badge' + suffix + 'JobLimit').textContent = val + ' jobs';
         }
@@ -2782,11 +2965,12 @@ $flash = get_flash();
             }
 
             if (isEnabled) {
-                ensureDefaultAccount('cloud');
+                const currentScope = document.getElementById('targetScopeInput')?.value || 'general';
+                ensureDefaultAccount('cloud', currentScope);
             }
         }
 
-        // Điều khiển Popup Profile 1:1
+        // Điều khiển Popup Profile
         function toggleUserPopup(e) {
             if (e) {
                 e.preventDefault();
@@ -2860,18 +3044,17 @@ $flash = get_flash();
 
         // Kiểm tra trước khi submit form
         document.getElementById('formBotSettings').addEventListener('submit', function(e) {
-            ensureDefaultAccount('normal');
+            const currentScope = document.getElementById('targetScopeInput')?.value || 'general';
+            ensureDefaultAccount('normal', currentScope);
             if (document.getElementById('checkCloudCustom').checked) {
-                ensureDefaultAccount('cloud');
+                ensureDefaultAccount('cloud', currentScope);
             }
         });
 
-        // Khởi tạo trạng thái ban đầu
+        // Khởi tạo trạng thái ban đầu khi tải trang
         document.addEventListener('DOMContentLoaded', function() {
-            ensureDefaultAccount('normal');
-            if (document.getElementById('checkCloudCustom').checked) {
-                ensureDefaultAccount('cloud');
-            }
+            const initialScope = '<?= $scopeParam ?>';
+            filterAccountsByScope(initialScope);
         });
     </script>
 </body>
