@@ -1014,19 +1014,47 @@ $csrfToken = get_csrf_token();
             gap: 10px;
         }
 
-        /* THẺ NGÂN HÀNG TPBANK HIỆN ĐẠI */
+        /* THẺ NGÂN HÀNG TPBANK HIỆN ĐẠI & SANG TRỌNG */
         .bank-card-premium {
-            background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
-            border: 2px solid #4f46e5;
-            border-radius: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8faff 50%, #eef2ff 100%);
+            border: 2px solid #6366f1;
+            border-radius: 18px;
             padding: 16px 20px;
-            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.12);
-            transition: var(--transition);
+            box-shadow: 0 6px 20px -4px rgba(79, 70, 229, 0.16), 0 2px 6px rgba(0, 0, 0, 0.02);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bank-card-premium::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .bank-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .bank-brand-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
         }
 
         .bank-badge-code {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
             background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             display: flex;
@@ -1035,9 +1063,106 @@ $csrfToken = get_csrf_token();
             font-weight: 900;
             font-size: 1.05rem;
             color: #ffffff;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
             flex-shrink: 0;
             letter-spacing: 0.5px;
+        }
+
+        .bank-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .bank-subtitle {
+            font-size: 0.76rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .bank-status-tag {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
+            flex-shrink: 0;
+        }
+
+        .bank-card-details {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e0e7ff;
+            border-radius: 13px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            backdrop-filter: blur(4px);
+        }
+
+        .bank-detail-col {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .bank-detail-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .bank-account-num {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.08rem;
+            font-weight: 800;
+            color: #4f46e5;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-copy-bank {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #4f46e5;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-copy-bank:hover {
+            background: #4f46e5;
+            color: #ffffff;
+            border-color: #4f46e5;
+        }
+
+        .bank-account-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
         }
 
         /* NÚT CHỌN NHANH SỐ TIỀN CHUẨN PILL BO TRÒN */
