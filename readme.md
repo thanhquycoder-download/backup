@@ -99,5 +99,9 @@ Khi import `database.sql`, hệ thống có sẵn các tài khoản sau:
 - **`reset-password.php`**: Xác thực token và cập nhật mật khẩu mới bảo mật.
 - **`buy-key.php`**: Mua bản quyền Key Tool và Combo (Key + Cloud) kích hoạt ngay, chọn theo gói thời hạn (1 ngày, 3 ngày, 1 tuần, 1 tháng, 3 tháng), quản lý đơn hàng đã mua với huy hiệu trạng thái & sao chép key 1-click.
 - **`cloud.php`**: Thuê máy chủ Cloud VPS treo ngầm tự động 24/7 (Combo hoặc Cloud riêng), giám sát trạng thái máy chủ, thời gian sử dụng và bộ đếm hạn dùng trực quan.
+- **`referral.php`**: Hệ thống giới thiệu bạn bè, bảng xếp hạng và quy đổi nhận thưởng Key VIP tự động.
+- **`support.php`**: Trung tâm hỗ trợ kỹ thuật và hệ thống Ticket đa luồng, trao đổi phản hồi 2 chiều.
+- **`token.php`**: Quản lý Personal Access Token (API Key), tạo token mới với thời hạn & phạm vi (scopes), kiểm thử API trực tiếp (sandbox tester) và hướng dẫn kết nối cURL/Python/Node/PHP.
+- **`settings.php`**: Trung tâm cấu hình tài khoản, thông báo Telegram Bot tự động, Webhook tích hợp, đổi mật khẩu bảo mật và cấu hình hệ thống (Admin).
 - **`logout.php`**: Đăng xuất an toàn, xóa Session và JWT Token.
-- **`api/verify-token.php`**: Tự động khôi phục phiên đăng nhập khi mở lại website qua JWT LocalStorage.
+- **`api/verify-token.php`**: API xác thực token (hỗ trợ cả JWT LocalStorage và Personal Access Token qua HTTP Bearer).

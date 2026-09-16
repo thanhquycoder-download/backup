@@ -1488,8 +1488,14 @@ $flash = get_flash();
                         <a href="referral.php" class="popup-menu-item">
                             <i class="fa-solid fa-share-nodes text-primary me-2"></i> Giới thiệu bạn bè
                         </a>
-                        <a href="support.php" class="popup-menu-item">
-                            <i class="fa-solid fa-headset text-success me-2"></i> Hỗ trợ kỹ thuật
+                        <a href="support.php" class="popup-menu-item text-primary fw-bold">
+                            <i class="fa-solid fa-headset text-primary me-2"></i> Hỗ trợ kỹ thuật
+                        </a>
+                        <a href="token.php" class="popup-menu-item">
+                            <i class="fa-solid fa-fingerprint text-primary me-2"></i> Access Token
+                        </a>
+                        <a href="settings.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gear text-secondary me-2"></i> Cấu hình
                         </a>
                         <?php if ($isAdmin): ?>
                         <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">

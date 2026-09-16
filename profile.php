@@ -1061,6 +1061,12 @@ $flash = get_flash();
                         <a href="cloud.php" class="popup-menu-item">
                             <i class="fa-solid fa-cloud text-info me-2"></i> Thuê cloud
                         </a>
+                        <a href="token.php" class="popup-menu-item">
+                            <i class="fa-solid fa-fingerprint text-primary me-2"></i> Access Token
+                        </a>
+                        <a href="settings.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gear text-secondary me-2"></i> Cấu hình
+                        </a>
                         <?php if ($isAdmin): ?>
                         <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
                             <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
@@ -1241,6 +1247,20 @@ $flash = get_flash();
                     <span class="sidebar-icon"><i class="fa-solid fa-headset"></i></span>
                     <span class="sidebar-title">Hỗ trợ</span>
                     <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                </a>
+            </li>
+            <!-- Access Token -->
+            <li>
+                <a href="token.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fingerprint"></i></span>
+                    <span class="sidebar-title">Access Token</span>
+                </a>
+            </li>
+            <!-- Cấu hình -->
+            <li>
+                <a href="settings.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-gear"></i></span>
+                    <span class="sidebar-title">Cấu hình</span>
                 </a>
             </li>
             <?php if ($isAdmin): ?>
