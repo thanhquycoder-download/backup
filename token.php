@@ -841,16 +841,40 @@ $flash = get_flash();
             width: 36px;
             height: 36px;
             border-radius: 10px;
-            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            background: #f1f5f9;
             color: #4338ca;
-            font-weight: 800;
-            font-size: 0.95rem;
+            font-size: 1rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            border: 1px solid #c7d2fe;
+            border: 1px solid var(--card-border);
             white-space: nowrap !important;
+            transition: var(--transition);
+        }
+
+        .platform-avatar-golike {
+            background: #fefce8 !important;
+            border-color: #fde047 !important;
+            color: #ca8a04 !important;
+        }
+
+        .platform-avatar-tds {
+            background: #f0f9ff !important;
+            border-color: #7dd3fc !important;
+            color: #0284c7 !important;
+        }
+
+        .platform-avatar-ttc {
+            background: #f0fdf4 !important;
+            border-color: #86efac !important;
+            color: #16a34a !important;
+        }
+
+        .platform-avatar-other {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #64748b !important;
         }
 
         .live-preview-card {
@@ -1588,12 +1612,17 @@ $flash = get_flash();
                         <label for="platformSelect" class="form-label fw-bold text-dark">
                             Chọn nền tảng tài khoản <span class="text-danger">*</span>
                         </label>
-                        <select class="form-select form-select-lg fw-semibold" id="platformSelect" name="platform" onchange="onPlatformChange()">
-                            <option value="golike" selected>🤖 Golike (JWT Bearer Token)</option>
-                            <option value="tds">⚡ Trao Đổi Sub - TDS (Access Token)</option>
-                            <option value="ttc">🔄 Tương Tác Chéo - TTC (Access Token)</option>
-                            <option value="other">🌐 Nền tảng khác (JWT Token)</option>
-                        </select>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white" id="platformIconIndicator" style="width: 48px; justify-content: center; font-size: 1.15rem;">
+                                <i class="fa-solid fa-robot text-warning"></i>
+                            </span>
+                            <select class="form-select form-select-lg fw-semibold" id="platformSelect" name="platform" onchange="onPlatformChange()">
+                                <option value="golike" selected>Golike (JWT Bearer Token)</option>
+                                <option value="tds">Trao Đổi Sub - TDS (Access Token)</option>
+                                <option value="ttc">Tương Tác Chéo - TTC (Access Token)</option>
+                                <option value="other">Nền tảng khác (JWT Token)</option>
+                            </select>
+                        </div>
                         <div class="form-text text-muted" id="platformHint">
                             Nền tảng Golike: Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.
                         </div>
@@ -1617,13 +1646,23 @@ $flash = get_flash();
                     <div id="tokenPreviewBox" class="live-preview-card d-none mb-3">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="golike-avatar" id="prevAvatar">G</div>
-                                <div>
+                                <div class="golike-avatar platform-avatar-golike" id="prevAvatar" style="width: 44px; height: 44px; font-size: 1.25rem; border-radius: 12px;">
+                                    <i class="fa-solid fa-robot text-warning"></i>
+                                </div>
+                                <!-- Tên ở trên, ID nằm trực tiếp bên dưới cái tên -->
+                                <div class="d-inline-flex flex-column justify-content-center" style="line-height: 1.3;">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0 fw-bold" id="prevPlatformBadge" style="font-size: 0.72rem;">GOLIKE</span>
                                         <div class="fw-bold text-dark fs-6" id="prevName">---</div>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0 fw-bold" id="prevPlatformBadge" style="font-size: 0.72rem;">GOLIKE</span>
                                     </div>
-                                    <div class="text-muted small">Username: <span class="fw-semibold text-primary" id="prevUsername">---</span> | ID: <span class="badge font-monospace bg-light text-dark border" id="prevId">---</span></div>
+                                    <div class="d-flex align-items-center gap-2 text-muted small mt-1">
+                                        <span class="badge bg-white text-secondary border font-monospace" id="prevId" style="font-size: 0.76rem; font-weight: 600;">
+                                            <i class="fa-solid fa-id-badge me-1 text-primary"></i>ID: ---
+                                        </span>
+                                        <span class="text-primary font-monospace fw-semibold" id="prevUsername" style="font-size: 0.82rem;">
+                                            <i class="fa-solid fa-at text-muted me-1"></i>---
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <div>
@@ -1670,21 +1709,20 @@ $flash = get_flash();
                     <table class="token-table">
                         <thead>
                             <tr>
-                                <th>Nền Tảng</th>
-                                <th>Tài Khoản</th>
-                                <th>Tên Người Dùng</th>
-                                <th>Số Dư Coin</th>
-                                <th>Trạng Thái</th>
-                                <th>Thời Gian</th>
-                                <th class="text-end">Thao Tác</th>
+                                <th><i class="fa-solid fa-layer-group text-primary me-1"></i> Nền Tảng</th>
+                                <th><i class="fa-solid fa-id-card-clip text-primary me-1"></i> Tên & ID</th>
+                                <th><i class="fa-solid fa-at text-primary me-1"></i> Tên Người Dùng</th>
+                                <th><i class="fa-solid fa-coins text-warning me-1"></i> Số Dư Coin</th>
+                                <th><i class="fa-solid fa-circle-check text-success me-1"></i> Trạng Thái</th>
+                                <th><i class="fa-regular fa-clock text-secondary me-1"></i> Thời Gian</th>
+                                <th class="text-end"><i class="fa-solid fa-sliders text-secondary me-1"></i> Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($accounts as $acc): 
                                 $isExpired = ($acc['status'] === 'Expired');
-                                $initial = mb_substr($acc['name'] ?: $acc['username'], 0, 1, 'UTF-8');
                                 $plat = strtolower($acc['platform'] ?? 'golike');
-                                $accId = $acc['account_id'] ?? $acc['golike_id'] ?? '';
+                                $accId = !empty($acc['account_id']) ? $acc['account_id'] : (!empty($acc['golike_id']) ? $acc['golike_id'] : $acc['id']);
                                 $timeStr = !empty($acc['last_checked_at']) ? date('H:i d/m/Y', strtotime($acc['last_checked_at'])) : 'Vừa xong';
                             ?>
                             <tr id="row-account-<?= $acc['id'] ?>">
@@ -1696,7 +1734,7 @@ $flash = get_flash();
                                         </span>
                                     <?php elseif ($plat === 'ttc'): ?>
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold" style="font-size: 0.78rem; white-space: nowrap;">
-                                            <i class="fa-solid fa-share-nodes me-1 text-success"></i> TTC
+                                            <i class="fa-solid fa-arrows-rotate me-1 text-success"></i> TTC
                                         </span>
                                     <?php elseif ($plat === 'tds'): ?>
                                         <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 fw-bold" style="font-size: 0.78rem; white-space: nowrap;">
@@ -1709,22 +1747,36 @@ $flash = get_flash();
                                     <?php endif; ?>
                                 </td>
 
-                                <!-- 2. Tài Khoản (Tên và ID) -->
+                                <!-- 2. Tên & ID (ID nằm trực tiếp bên dưới cái tên) -->
                                 <td>
                                     <div class="d-inline-flex align-items-center gap-2" style="white-space: nowrap;">
-                                        <div class="golike-avatar" style="width: 32px; height: 32px; font-size: 0.88rem; border-radius: 8px;">
-                                            <?= htmlspecialchars(mb_strtoupper($initial)) ?>
+                                        <!-- Avatar FontAwesome theo từng nền tảng -->
+                                        <div class="golike-avatar platform-avatar-<?= htmlspecialchars($plat) ?>" style="width: 38px; height: 38px; font-size: 1.05rem; border-radius: 10px; flex-shrink: 0;">
+                                            <?php if ($plat === 'golike'): ?>
+                                                <i class="fa-solid fa-robot"></i>
+                                            <?php elseif ($plat === 'tds'): ?>
+                                                <i class="fa-solid fa-bolt"></i>
+                                            <?php elseif ($plat === 'ttc'): ?>
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                            <?php else: ?>
+                                                <i class="fa-solid fa-globe"></i>
+                                            <?php endif; ?>
                                         </div>
-                                        <span class="fw-bold text-dark"><?= htmlspecialchars($acc['name']) ?></span>
-                                        <?php if (!empty($accId)): ?>
-                                        <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.74rem;">#<?= htmlspecialchars($accId) ?></span>
-                                        <?php endif; ?>
+                                        <!-- Tên ở trên, ID ở ngay bên dưới cái tên -->
+                                        <div class="d-inline-flex flex-column justify-content-center" style="line-height: 1.25; white-space: nowrap;">
+                                            <span class="fw-bold text-dark" style="font-size: 0.92rem;"><?= htmlspecialchars($acc['name']) ?></span>
+                                            <span class="text-muted font-monospace" style="font-size: 0.78rem; font-weight: 600;">
+                                                <i class="fa-solid fa-id-badge me-1 text-secondary" style="font-size: 0.74rem;"></i>ID: <?= htmlspecialchars($accId) ?>
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
 
                                 <!-- 3. Tên Người Dùng (username) -->
                                 <td>
-                                    <span class="font-monospace text-primary fw-semibold" style="font-size: 0.88rem; white-space: nowrap;">@<?= htmlspecialchars($acc['username']) ?></span>
+                                    <span class="font-monospace text-primary fw-semibold" style="font-size: 0.88rem; white-space: nowrap;">
+                                        <i class="fa-solid fa-at me-1 text-secondary" style="font-size: 0.82rem;"></i><?= htmlspecialchars($acc['username']) ?>
+                                    </span>
                                 </td>
 
                                 <!-- 4. Số Dư Coin -->
@@ -1892,6 +1944,31 @@ $flash = get_flash();
             const hint = document.getElementById('platformHint');
             const label = document.getElementById('tokenInputLabel');
             const input = document.getElementById('token_input');
+            const iconIndicator = document.getElementById('platformIconIndicator');
+            const prevAvatar = document.getElementById('prevAvatar');
+
+            const platformIcons = {
+                'golike': '<i class="fa-solid fa-robot text-warning"></i>',
+                'tds': '<i class="fa-solid fa-bolt text-info"></i>',
+                'ttc': '<i class="fa-solid fa-arrows-rotate text-success"></i>',
+                'other': '<i class="fa-solid fa-globe text-secondary"></i>'
+            };
+
+            const platformAvatars = {
+                'golike': 'platform-avatar-golike',
+                'tds': 'platform-avatar-tds',
+                'ttc': 'platform-avatar-ttc',
+                'other': 'platform-avatar-other'
+            };
+
+            if (iconIndicator) {
+                iconIndicator.innerHTML = platformIcons[platform] || '<i class="fa-solid fa-globe text-secondary"></i>';
+            }
+
+            if (prevAvatar) {
+                prevAvatar.innerHTML = platformIcons[platform] || '<i class="fa-solid fa-globe text-secondary"></i>';
+                prevAvatar.className = 'golike-avatar ' + (platformAvatars[platform] || 'platform-avatar-other');
+            }
 
             if (platform === 'golike') {
                 if (label) label.innerHTML = 'Mã Token Golike (Authorization Bearer Token) <span class="text-danger">*</span>';
@@ -1971,10 +2048,21 @@ $flash = get_flash();
                 if (data.success && data.data) {
                     const acc = data.data;
                     document.getElementById('prevName').textContent = acc.name || '---';
-                    document.getElementById('prevUsername').textContent = '@' + (acc.username || '---');
-                    document.getElementById('prevId').textContent = '#' + (acc.id || '---');
+                    document.getElementById('prevUsername').innerHTML = '<i class="fa-solid fa-at text-muted me-1"></i>' + (acc.username || '---');
+                    document.getElementById('prevId').innerHTML = '<i class="fa-solid fa-id-badge me-1 text-primary"></i>ID: ' + (acc.id || '---');
                     document.getElementById('prevCoin').innerHTML = '<i class="fa-solid fa-coins me-1"></i>' + (acc.coin_formatted || '0 xu');
-                    document.getElementById('prevAvatar').textContent = (acc.name || acc.username || platform).charAt(0).toUpperCase();
+                    
+                    const platformIcons = {
+                        'golike': '<i class="fa-solid fa-robot text-warning"></i>',
+                        'tds': '<i class="fa-solid fa-bolt text-info"></i>',
+                        'ttc': '<i class="fa-solid fa-arrows-rotate text-success"></i>',
+                        'other': '<i class="fa-solid fa-globe text-secondary"></i>'
+                    };
+                    const prevAvatar = document.getElementById('prevAvatar');
+                    if (prevAvatar) {
+                        prevAvatar.innerHTML = platformIcons[platform] || '<i class="fa-solid fa-globe text-secondary"></i>';
+                        prevAvatar.className = 'golike-avatar platform-avatar-' + platform;
+                    }
                     document.getElementById('prevPlatformBadge').textContent = platform.toUpperCase();
 
                     previewBox.classList.remove('d-none');
