@@ -31,28 +31,9 @@ if (!$user) {
 $isAdmin = ($user['role'] === 'Admin');
 $currentUser = $user;
 
-// 2. Tự động kiểm tra và khởi tạo bảng `token` & `tokens` nếu chưa có
+// 2. Tự động kiểm tra và khởi tạo bảng `tokens` nếu chưa có
 try {
     ensure_tokens_table($pdo);
-
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `token` (
-            `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `user_uuid` CHAR(36) NOT NULL,
-            `name` VARCHAR(100) NOT NULL,
-            `token` VARCHAR(100) NOT NULL UNIQUE,
-            `abilities` TEXT NOT NULL,
-            `last_used_at` DATETIME DEFAULT NULL,
-            `expires_at` DATETIME DEFAULT NULL,
-            `status` ENUM('Active', 'Revoked') NOT NULL DEFAULT 'Active',
-            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            INDEX `idx_token_user_uuid` (`user_uuid`),
-            INDEX `idx_token_key` (`token`),
-            INDEX `idx_token_status` (`status`),
-            INDEX `idx_token_expires_at` (`expires_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    ");
 } catch (Exception $e) {
     // Bỏ qua nếu bảng đã tồn tại
 }
@@ -68,261 +49,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     // ==========================================
-    // 3.1. HÀNH ĐỘNG VỚI TOKEN GOLIKE
+    // 3.1. LƯU HOẶC CẬP NHẬT TOKEN ĐA NỀN TẢNG (GOLIKE, TDS, TTC...)
     // ==========================================
-    // A. LƯU HOẶC CẬP NHẬT TOKEN GOLIKE
-    if ($action === 'save_golike_token') {
-        $golikeToken = trim($_POST['golike_token'] ?? '');
-        if (empty($golikeToken)) {
-            set_flash('error', 'Vui lòng nhập hoặc dán mã Token Golike (Authorization Bearer).', 'Thiếu thông tin');
-            header("Location: token.php?tab=golike");
+    if ($action === 'save_token' || $action === 'save_golike_token') {
+        $platform = strtolower(trim($_POST['platform'] ?? 'golike'));
+        $rawToken = trim($_POST['token'] ?? $_POST['golike_token'] ?? '');
+
+        if (empty($rawToken)) {
+            set_flash('error', 'Vui lòng nhập hoặc dán mã Token (JWT Token hoặc Access Token).', 'Thiếu thông tin');
+            header("Location: token.php");
             exit;
         }
 
-        $res = save_or_update_golike_account($pdo, $user['uuid'], $golikeToken);
+        $res = save_or_update_platform_account($pdo, $user['uuid'], $platform, $rawToken);
         if ($res['success']) {
-            set_flash('success', "Đã kết nối tài khoản Golike thành công: <strong>" . htmlspecialchars($res['name']) . "</strong> (@" . htmlspecialchars($res['username']) . ") - ID: <strong>#" . htmlspecialchars($res['golike_id']) . "</strong> - Số dư: <strong class='text-success'>" . $res['coin_formatted'] . "</strong>", 'Kết nối thành công');
+            $platName = strtoupper($res['platform'] ?? $platform);
+            set_flash('success', "Đã kết nối tài khoản {$platName} thành công: <strong>" . htmlspecialchars($res['name']) . "</strong> (@" . htmlspecialchars($res['username']) . ") - ID: <strong>#" . htmlspecialchars($res['account_id']) . "</strong> - Số dư: <strong class='text-success'>" . $res['coin_formatted'] . "</strong>", 'Kết nối thành công');
         } else {
-            set_flash('error', $res['message'], 'Lỗi kết nối Golike');
+            set_flash('error', $res['message'], 'Lỗi kết nối');
         }
-        header("Location: token.php?tab=golike");
+        header("Location: token.php");
         exit;
     }
 
-    // B. LÀM MỚI SỐ DƯ TÀI KHOẢN GOLIKE
-    if ($action === 'refresh_golike_token') {
-        $accountId = (int)($_POST['golike_account_id'] ?? 0);
-        $res = refresh_golike_account($pdo, $user['uuid'], $accountId);
+    // ==========================================
+    // 3.2. LÀM MỚI SỐ DƯ TÀI KHOẢN
+    // ==========================================
+    if ($action === 'refresh_token' || $action === 'refresh_golike_token') {
+        $accountId = (int)($_POST['account_id'] ?? $_POST['golike_account_id'] ?? 0);
+        $res = refresh_platform_account($pdo, $user['uuid'], $accountId);
         if ($res['success']) {
             set_flash('success', $res['message'], 'Cập nhật số dư');
         } else {
             set_flash('error', $res['message'], 'Cảnh báo Token');
         }
-        header("Location: token.php?tab=golike");
+        header("Location: token.php");
         exit;
     }
 
-    // C. XÓA TÀI KHOẢN KHỎI DANH SÁCH
-    if ($action === 'delete_golike_token') {
-        $accountId = (int)($_POST['golike_account_id'] ?? 0);
+    // ==========================================
+    // 3.3. XÓA TÀI KHOẢN KHỎI DANH SÁCH
+    // ==========================================
+    if ($action === 'delete_token' || $action === 'delete_golike_token') {
+        $accountId = (int)($_POST['account_id'] ?? $_POST['golike_account_id'] ?? 0);
         ensure_tokens_table($pdo);
         $stmtDel = $pdo->prepare("DELETE FROM `tokens` WHERE `id` = ? AND `user_uuid` = ?");
         $stmtDel->execute([$accountId, $user['uuid']]);
         set_flash('success', 'Đã xóa tài khoản khỏi danh sách lưu trữ.', 'Đã xóa');
-        header("Location: token.php?tab=golike");
-        exit;
-    }
-
-    // ==========================================
-    // 3.2. HÀNH ĐỘNG VỚI PERSONAL ACCESS TOKEN (API KEY)
-    // ==========================================
-    // A. TẠO ACCESS TOKEN MỚI
-    if ($action === 'create_token') {
-        $tokenName = trim($_POST['token_name'] ?? '');
-        $expiryOption = $_POST['expiry'] ?? '30d';
-        $abilities = $_POST['abilities'] ?? ['all'];
-
-        if (empty($tokenName)) {
-            set_flash('error', 'Vui lòng nhập tên định danh hoặc mục đích sử dụng cho Access Token.', 'Thiếu thông tin');
-            header("Location: token.php");
-            exit;
-        }
-
-        if (strlen($tokenName) > 100) {
-            set_flash('error', 'Tên định danh không được vượt quá 100 ký tự.', 'Dữ liệu không hợp lệ');
-            header("Location: token.php");
-            exit;
-        }
-
-        // Tính ngày hết hạn
-        $expiresAt = null;
-        switch ($expiryOption) {
-            case '7d':
-                $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days'));
-                break;
-            case '30d':
-                $expiresAt = date('Y-m-d H:i:s', strtotime('+30 days'));
-                break;
-            case '90d':
-                $expiresAt = date('Y-m-d H:i:s', strtotime('+90 days'));
-                break;
-            case '180d':
-                $expiresAt = date('Y-m-d H:i:s', strtotime('+180 days'));
-                break;
-            case '365d':
-                $expiresAt = date('Y-m-d H:i:s', strtotime('+365 days'));
-                break;
-            case 'never':
-            default:
-                $expiresAt = null;
-                break;
-        }
-
-        // Định dạng abilities
-        if (!is_array($abilities)) {
-            $abilities = ['all'];
-        }
-        $abilitiesJson = json_encode(array_values(array_unique($abilities)), JSON_UNESCAPED_UNICODE);
-
-        // Sinh mã Token ngẫu nhiên bảo mật cao với tiền tố tqt_live_
-        $randomHex = bin2hex(random_bytes(24));
-        $generatedToken = 'tqt_live_' . $randomHex;
-
-        try {
-            $stmtInsert = $pdo->prepare("
-                INSERT INTO `token` (`user_uuid`, `name`, `token`, `abilities`, `expires_at`, `status`)
-                VALUES (?, ?, ?, ?, ?, 'Active')
-            ");
-            $stmtInsert->execute([$user['uuid'], $tokenName, $generatedToken, $abilitiesJson, $expiresAt]);
-
-            // Lưu token mới vào Session để hiển thị 1 lần cho người dùng copy
-            $_SESSION['newly_created_token'] = [
-                'name'  => $tokenName,
-                'token' => $generatedToken
-            ];
-
-            set_flash('success', 'Đã khởi tạo Personal Access Token mới thành công!', 'Thành Công');
-            header("Location: token.php");
-            exit;
-        } catch (Exception $e) {
-            set_flash('error', 'Không thể tạo Access Token. Chi tiết: ' . $e->getMessage(), 'Lỗi hệ thống');
-            header("Location: token.php");
-            exit;
-        }
-    }
-
-    // B. THU HỒI TOKEN (REVOKE)
-    if ($action === 'revoke_token') {
-        $tokenId = (int)($_POST['token_id'] ?? 0);
-        try {
-            $stmtRevoke = $pdo->prepare("
-                UPDATE `token` 
-                SET `status` = 'Revoked' 
-                WHERE `id` = ? AND `user_uuid` = ?
-            ");
-            $stmtRevoke->execute([$tokenId, $user['uuid']]);
-            set_flash('warning', 'Đã thu hồi quyền truy cập của Token. Token này sẽ không thể dùng để gọi API nữa.', 'Đã thu hồi');
-        } catch (Exception $e) {
-            set_flash('error', 'Lỗi khi thu hồi token: ' . $e->getMessage(), 'Lỗi');
-        }
-        header("Location: token.php");
-        exit;
-    }
-
-    // C. KÍCH HOẠT LẠI TOKEN (ACTIVATE)
-    if ($action === 'activate_token') {
-        $tokenId = (int)($_POST['token_id'] ?? 0);
-        try {
-            $stmtActivate = $pdo->prepare("
-                UPDATE `token` 
-                SET `status` = 'Active' 
-                WHERE `id` = ? AND `user_uuid` = ?
-            ");
-            $stmtActivate->execute([$tokenId, $user['uuid']]);
-            set_flash('success', 'Đã kích hoạt lại Access Token thành công!', 'Đã kích hoạt');
-        } catch (Exception $e) {
-            set_flash('error', 'Lỗi khi kích hoạt token: ' . $e->getMessage(), 'Lỗi');
-        }
-        header("Location: token.php");
-        exit;
-    }
-
-    // D. XÓA TOKEN VĨNH VIỄN
-    if ($action === 'delete_token') {
-        $tokenId = (int)($_POST['token_id'] ?? 0);
-        try {
-            $stmtDelete = $pdo->prepare("
-                DELETE FROM `token` 
-                WHERE `id` = ? AND `user_uuid` = ?
-            ");
-            $stmtDelete->execute([$tokenId, $user['uuid']]);
-            set_flash('success', 'Đã xóa vĩnh viễn Access Token khỏi hệ thống.', 'Đã xóa');
-        } catch (Exception $e) {
-            set_flash('error', 'Lỗi khi xóa token: ' . $e->getMessage(), 'Lỗi');
-        }
         header("Location: token.php");
         exit;
     }
 }
 
 // 4.1. LẤY DANH SÁCH TÀI KHOẢN TỪ BẢNG `tokens`
-$golikeAccounts = [];
+$accounts = [];
 try {
     ensure_tokens_table($pdo);
-    $stmtGolike = $pdo->prepare("
+    $stmtAccounts = $pdo->prepare("
         SELECT id, platform, account_id, account_id AS golike_id, name, username, coin, token, status, last_checked_at, created_at, updated_at 
         FROM `tokens` 
         WHERE `user_uuid` = ? 
         ORDER BY id DESC
     ");
-    $stmtGolike->execute([$user['uuid']]);
-    $golikeAccounts = $stmtGolike->fetchAll();
+    $stmtAccounts->execute([$user['uuid']]);
+    $accounts = $stmtAccounts->fetchAll();
 } catch (Exception $e) {
-    $golikeAccounts = [];
+    $accounts = [];
 }
 
-// 4.2. THỐNG KÊ TỔNG QUAN GOLIKE
-$totalGolikeAccounts = count($golikeAccounts);
-$totalGolikeCoins = 0;
-$activeGolikeAccounts = 0;
-$expiredGolikeAccounts = 0;
+// 4.2. THỐNG KÊ TỔNG QUAN TÀI KHOẢN & XU
+$totalAccounts = count($accounts);
+$totalCoins = 0;
+$activeAccounts = 0;
+$expiredAccounts = 0;
 
-foreach ($golikeAccounts as $ga) {
-    $totalGolikeCoins += (int)$ga['coin'];
-    if ($ga['status'] === 'Active') {
-        $activeGolikeAccounts++;
+foreach ($accounts as $acc) {
+    $totalCoins += (int)$acc['coin'];
+    if ($acc['status'] === 'Active') {
+        $activeAccounts++;
     } else {
-        $expiredGolikeAccounts++;
+        $expiredAccounts++;
     }
 }
-
-// Kiểm tra Tab hiển thị mặc định
-$activeTab = $_GET['tab'] ?? 'golike';
-if (!in_array($activeTab, ['golike', 'personal_token'])) {
-    $activeTab = 'golike';
-}
-
-// 5. LẤY DANH SÁCH PERSONAL ACCESS TOKEN CỦA USER
-$tokens = [];
-try {
-    $stmtTokens = $pdo->prepare("
-        SELECT id, name, token, abilities, last_used_at, expires_at, status, created_at 
-        FROM `token` 
-        WHERE `user_uuid` = ? 
-        ORDER BY id DESC
-    ");
-    $stmtTokens->execute([$user['uuid']]);
-    $tokens = $stmtTokens->fetchAll();
-} catch (Exception $e) {
-    $tokens = [];
-}
-
-// 5. THỐNG KÊ TỔNG QUAN
-$totalTokens = count($tokens);
-$activeTokens = 0;
-$revokedTokens = 0;
-$lastUsedDate = 'Chưa dùng';
-
-foreach ($tokens as $t) {
-    if ($t['status'] === 'Active') {
-        // Kiểm tra nếu hết hạn
-        if (!empty($t['expires_at']) && strtotime($t['expires_at']) < time()) {
-            $revokedTokens++;
-        } else {
-            $activeTokens++;
-        }
-    } else {
-        $revokedTokens++;
-    }
-
-    if (!empty($t['last_used_at']) && $lastUsedDate === 'Chưa dùng') {
-        $lastUsedDate = date('d/m/Y H:i', strtotime($t['last_used_at']));
-    }
-}
-
-// Token mới tạo (nếu có)
-$newlyCreatedToken = $_SESSION['newly_created_token'] ?? null;
-unset($_SESSION['newly_created_token']);
 
 $flash = get_flash();
 ?>
@@ -331,7 +139,7 @@ $flash = get_flash();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Access Token & API Key - ThanhQuyTech</title>
+    <title>Quản Lý Token & Tài Khoản - ThanhQuyTech</title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 
     <!-- Google Fonts -->
@@ -975,32 +783,6 @@ $flash = get_flash();
             line-height: 1.2;
         }
 
-        /* NEW TOKEN CALLOUT BANNER */
-        .new-token-banner {
-            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-            border: 2px solid #86efac;
-            border-radius: var(--radius-md);
-            padding: 22px;
-            margin-bottom: 26px;
-            box-shadow: 0 10px 25px -8px rgba(34, 197, 94, 0.2);
-            animation: fadeInMenu 0.3s ease-in-out;
-        }
-
-        .token-copy-box {
-            background: #ffffff;
-            border: 1px solid #bbf7d0;
-            border-radius: 10px;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #166534;
-            word-break: break-all;
-            margin-top: 10px;
-        }
 
         /* CONTENT CARDS */
         .section-card {
@@ -1033,56 +815,7 @@ $flash = get_flash();
             margin: 0;
         }
 
-        /* TABS NAVIGATION */
-        .token-nav-tabs {
-            display: flex;
-            gap: 12px;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 26px;
-            padding-bottom: 0;
-            flex-wrap: wrap;
-        }
-
-        .token-tab-btn {
-            background: transparent;
-            border: none;
-            padding: 12px 20px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        .token-tab-btn:hover {
-            color: var(--primary);
-        }
-
-        .token-tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-            background: transparent;
-        }
-
-        .token-tab-badge {
-            font-size: 0.72rem;
-            padding: 3px 8px;
-            border-radius: 50px;
-            background: #f1f5f9;
-            color: #475569;
-            font-weight: 700;
-        }
-
-        .token-tab-btn.active .token-tab-badge {
-            background: #e0e7ff;
-            color: #4338ca;
-        }
+        /* MULTI-PLATFORM STYLES */
 
         /* GOLIKE STYLES */
         .coin-badge {
@@ -1090,12 +823,13 @@ $flash = get_flash();
             color: #ffffff;
             font-weight: 800;
             font-size: 0.88rem;
-            padding: 5px 12px;
+            padding: 5px 14px;
             border-radius: 50px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+            white-space: nowrap !important;
         }
 
         .stat-icon-gold {
@@ -1104,18 +838,19 @@ $flash = get_flash();
         }
 
         .golike-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
             color: #4338ca;
             font-weight: 800;
-            font-size: 1.1rem;
-            display: flex;
+            font-size: 0.95rem;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             border: 1px solid #c7d2fe;
+            white-space: nowrap !important;
         }
 
         .live-preview-card {
@@ -1132,24 +867,27 @@ $flash = get_flash();
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
+            white-space: nowrap !important;
         }
 
         .token-table th {
             background: #f8fafc;
             color: #64748b;
-            font-size: 0.76rem;
+            font-size: 0.78rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.6px;
-            padding: 12px 16px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--card-border);
+            white-space: nowrap !important;
         }
 
         .token-table td {
-            padding: 14px 16px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--card-border);
             vertical-align: middle;
             font-size: 0.9rem;
+            white-space: nowrap !important;
         }
 
         .token-table tr:last-child td {
@@ -1169,16 +907,18 @@ $flash = get_flash();
             font-size: 0.85rem;
             font-weight: 600;
             border: 1px solid #e2e8f0;
+            white-space: nowrap !important;
         }
 
         .status-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 50px;
-            font-size: 0.76rem;
+            font-size: 0.78rem;
             font-weight: 700;
+            white-space: nowrap !important;
         }
 
         .status-pill.active {
@@ -1206,33 +946,6 @@ $flash = get_flash();
             background: currentColor;
         }
 
-        /* CODE BLOCK TABS */
-        .code-snippet-box {
-            background: #0f172a;
-            border-radius: var(--radius-md);
-            padding: 18px;
-            color: #e2e8f0;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.86rem;
-            overflow-x: auto;
-            position: relative;
-        }
-
-        .code-nav-btn {
-            background: transparent;
-            border: none;
-            color: #94a3b8;
-            font-weight: 600;
-            font-size: 0.85rem;
-            padding: 6px 14px;
-            border-radius: 6px;
-            transition: var(--transition);
-        }
-
-        .code-nav-btn.active {
-            background: #1e293b;
-            color: #38bdf8;
-        }
 
         /* BUTTONS */
         .btn-gradient-primary {
@@ -1758,46 +1471,28 @@ $flash = get_flash();
             </div>
             <?php endif; ?>
 
-            <!-- TABS NAVIGATION -->
-            <div class="token-nav-tabs">
-                <a href="token.php?tab=golike" class="token-tab-btn <?= $activeTab === 'golike' ? 'active' : '' ?>">
-                    <i class="fa-solid fa-robot text-warning"></i>
-                    <span>Tài Khoản & Token Golike</span>
-                    <span class="token-tab-badge"><?= number_format($totalGolikeAccounts) ?></span>
-                </a>
-                <a href="token.php?tab=personal_token" class="token-tab-btn <?= $activeTab === 'personal_token' ? 'active' : '' ?>">
-                    <i class="fa-solid fa-fingerprint text-primary"></i>
-                    <span>Personal Access Token (API Key)</span>
-                    <span class="token-tab-badge"><?= number_format($totalTokens) ?></span>
-                </a>
-            </div>
-
-            <?php if ($activeTab === 'golike'): ?>
-            <!-- ====================================================
-             * TAB 1: GOLIKE TOKENS & ACCOUNTS
-             * ==================================================== -->
-            <!-- HERO CARD GOLIKE -->
+            <!-- HERO CARD -->
             <div class="token-hero">
                 <div class="hero-badge">
-                    <i class="fa-solid fa-robot"></i>
-                    <span>CÔNG CỤ GOLIKE & ĐỒNG BỘ DỮ LIỆU TỰ ĐỘNG</span>
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>CÔNG CỤ ĐỒNG BỘ TOKEN ĐA NỀN TẢNG (GOLIKE, TDS, TTC...)</span>
                 </div>
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                     <div>
-                        <h1 class="hero-title">Quản Lý Token & Tài Khoản Golike</h1>
+                        <h1 class="hero-title">Quản Lý Token & Tài Khoản</h1>
                         <p class="hero-subtitle">
-                            Nhập mã Authorization Token từ Golike để tự động trích xuất Họ tên, Username, Golike ID và cập nhật số dư Coin thời gian thực. Hệ thống hỗ trợ lưu nhiều tài khoản và làm mới số dư siêu tốc.
+                            Hỗ trợ lưu trữ và tự động đồng bộ tài khoản Golike, Trao Đổi Sub (TDS), Tương Tác Chéo (TTC)... Nhập mã JWT token hoặc Access token để tự động trích xuất Họ tên, Username, ID và cập nhật số dư coin theo thời gian thực.
                         </p>
                     </div>
                     <div class="flex-shrink-0">
-                        <a href="#addGolikeCard" class="btn btn-light fw-bold px-4 py-2 rounded-3 shadow-sm">
-                            <i class="fa-solid fa-plus-circle text-primary me-2"></i> Thêm Token Golike
+                        <a href="#addTokenCard" class="btn btn-light fw-bold px-4 py-2 rounded-3 shadow-sm">
+                            <i class="fa-solid fa-plus-circle text-primary me-2"></i> Thêm Token Mới
                         </a>
                     </div>
                 </div>
             </div>
 
-            <!-- STATS CARDS GOLIKE -->
+            <!-- STATS CARDS -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-lg-3">
                     <div class="stat-card">
@@ -1806,7 +1501,7 @@ $flash = get_flash();
                         </div>
                         <div>
                             <div class="stat-label">Tổng số xu (Coin)</div>
-                            <div class="stat-value text-warning fw-bolder"><?= number_format($totalGolikeCoins, 0, ',', '.') ?> <span style="font-size: 0.82rem; font-weight: 700;">xu</span></div>
+                            <div class="stat-value text-warning fw-bolder"><?= number_format($totalCoins, 0, ',', '.') ?> <span style="font-size: 0.82rem; font-weight: 700;">xu</span></div>
                         </div>
                     </div>
                 </div>
@@ -1816,8 +1511,8 @@ $flash = get_flash();
                             <i class="fa-solid fa-users"></i>
                         </div>
                         <div>
-                            <div class="stat-label">Tài khoản Golike</div>
-                            <div class="stat-value text-primary"><?= number_format($totalGolikeAccounts) ?></div>
+                            <div class="stat-label">Tổng tài khoản</div>
+                            <div class="stat-value text-primary"><?= number_format($totalAccounts) ?></div>
                         </div>
                     </div>
                 </div>
@@ -1828,7 +1523,7 @@ $flash = get_flash();
                         </div>
                         <div>
                             <div class="stat-label">Đang hoạt động</div>
-                            <div class="stat-value text-success"><?= number_format($activeGolikeAccounts) ?></div>
+                            <div class="stat-value text-success"><?= number_format($activeAccounts) ?></div>
                         </div>
                     </div>
                 </div>
@@ -1839,18 +1534,18 @@ $flash = get_flash();
                         </div>
                         <div>
                             <div class="stat-label">Cần cập nhật token</div>
-                            <div class="stat-value text-muted"><?= number_format($expiredGolikeAccounts) ?></div>
+                            <div class="stat-value text-muted"><?= number_format($expiredAccounts) ?></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- KHUNG THÊM TOKEN GOLIKE -->
-            <div class="section-card" id="addGolikeCard">
+            <!-- KHUNG THÊM TOKEN MỚI -->
+            <div class="section-card" id="addTokenCard">
                 <div class="section-header">
                     <h2 class="section-title">
                         <i class="fa-solid fa-circle-plus text-primary"></i>
-                        <span>Thêm Token Golike & Tự Động Lấy Thông Tin</span>
+                        <span>Thêm Token & Tự Động Đồng Bộ Tài Khoản</span>
                     </h2>
                     <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGuide" aria-expanded="false">
                         <i class="fa-solid fa-circle-question me-1 text-primary"></i> Hướng dẫn lấy Token
@@ -1860,44 +1555,74 @@ $flash = get_flash();
                 <!-- Hướng dẫn lấy token -->
                 <div class="collapse mb-3" id="collapseGuide">
                     <div class="p-3 bg-light rounded-3 border">
-                        <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-lightbulb text-warning me-1"></i> Các bước lấy Authorization Token từ Golike:</h6>
-                        <ol class="mb-0 ps-3 small text-muted" style="line-height: 1.7;">
-                            <li>Đăng nhập tài khoản của bạn tại <strong>app.golike.net</strong>.</li>
-                            <li>Bấm phím <code>F12</code> (hoặc mở Developer Tools trên trình duyệt) &gt; chuyển qua tab <strong>Network</strong> &gt; lọc mục <strong>Fetch/XHR</strong>.</li>
-                            <li>Tìm yêu cầu có tên <code>me</code> (địa chỉ <code>https://gateway.golike.net/api/users/me</code>).</li>
-                            <li>Xem phần <strong>Request Headers</strong> &gt; sao chép toàn bộ chuỗi giá trị của <strong>authorization</strong> (ví dụ: <code>Bearer eyJ0eXAi...</code>).</li>
-                            <li>Dán vào ô nhập bên dưới và nhấn <strong>Lưu tài khoản</strong>.</li>
-                        </ol>
+                        <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-lightbulb text-warning me-1"></i> Cách lấy Token từ các nền tảng:</h6>
+                        <div class="row g-3 small text-muted">
+                            <div class="col-md-4">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-warning d-block mb-1"><i class="fa-solid fa-robot me-1"></i> Golike (JWT Bearer Token):</strong>
+                                    Đăng nhập <code>app.golike.net</code> &gt; nhấn <code>F12</code> &gt; tab <strong>Network</strong> &gt; lọc <strong>Fetch/XHR</strong> &gt; tìm request <code>me</code> &gt; sao chép giá trị chuỗi <code>authorization</code>.
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-info d-block mb-1"><i class="fa-solid fa-bolt me-1"></i> Trao Đổi Sub - TDS:</strong>
+                                    Đăng nhập <code>traodoisub.com</code> &gt; vào mục <strong>Cài đặt</strong> hoặc <strong>API</strong> &gt; sao chép chuỗi <strong>Access Token</strong> của bạn.
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-white rounded border h-100">
+                                    <strong class="text-success d-block mb-1"><i class="fa-solid fa-share-nodes me-1"></i> Tương Tác Chéo - TTC:</strong>
+                                    Đăng nhập <code>tuongtaccheo.com</code> &gt; vào mục <strong>Cài đặt / Token</strong> &gt; sao chép chuỗi <strong>Access Token</strong> tài khoản.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <form action="token.php?tab=golike" method="POST" id="formSaveGolike">
+                <form action="token.php" method="POST" id="formSaveToken">
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                    <input type="hidden" name="action" value="save_golike_token">
+                    <input type="hidden" name="action" value="save_token">
 
+                    <!-- DROPDOWN CHỌN NỀN TẢNG -->
                     <div class="mb-3">
-                        <label for="golike_token_input" class="form-label fw-bold text-dark">
+                        <label for="platformSelect" class="form-label fw-bold text-dark">
+                            Chọn nền tảng tài khoản <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select form-select-lg fw-semibold" id="platformSelect" name="platform" onchange="onPlatformChange()">
+                            <option value="golike" selected>🤖 Golike (JWT Bearer Token)</option>
+                            <option value="tds">⚡ Trao Đổi Sub - TDS (Access Token)</option>
+                            <option value="ttc">🔄 Tương Tác Chéo - TTC (Access Token)</option>
+                            <option value="other">🌐 Nền tảng khác (JWT Token)</option>
+                        </select>
+                        <div class="form-text text-muted" id="platformHint">
+                            Nền tảng Golike: Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.
+                        </div>
+                    </div>
+
+                    <!-- Ô NHẬP TOKEN -->
+                    <div class="mb-3">
+                        <label for="token_input" class="form-label fw-bold text-dark" id="tokenInputLabel">
                             Mã Token Golike (Authorization Bearer Token) <span class="text-danger">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-key"></i></span>
-                            <textarea class="form-control font-monospace" id="golike_token_input" name="golike_token" rows="2" placeholder="Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)" required></textarea>
-                            <button type="button" class="btn btn-light border" onclick="pasteGolikeToken()" title="Dán từ Clipboard">
+                            <textarea class="form-control font-monospace" id="token_input" name="token" rows="2" placeholder="Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)" required></textarea>
+                            <button type="button" class="btn btn-light border" onclick="pasteToken()" title="Dán từ Clipboard">
                                 <i class="fa-solid fa-paste"></i>
                             </button>
-                        </div>
-                        <div class="form-text text-muted">
-                            Hệ thống sẽ tự động gọi API <code>/api/users/me</code> để lấy <strong>Họ tên</strong>, <strong>Username</strong>, <strong>ID Golike</strong> và <strong>Số dư xu</strong>, sau đó lưu vào danh sách.
                         </div>
                     </div>
 
                     <!-- Live Preview Box khi bấm Kiểm Tra Trước -->
-                    <div id="golikePreviewBox" class="live-preview-card d-none mb-3">
+                    <div id="tokenPreviewBox" class="live-preview-card d-none mb-3">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="golike-avatar" id="prevAvatar">G</div>
                                 <div>
-                                    <div class="fw-bold text-dark fs-6" id="prevName">---</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0 fw-bold" id="prevPlatformBadge" style="font-size: 0.72rem;">GOLIKE</span>
+                                        <div class="fw-bold text-dark fs-6" id="prevName">---</div>
+                                    </div>
                                     <div class="text-muted small">Username: <span class="fw-semibold text-primary" id="prevUsername">---</span> | ID: <span class="badge font-monospace bg-light text-dark border" id="prevId">---</span></div>
                                 </div>
                             </div>
@@ -1908,36 +1633,36 @@ $flash = get_flash();
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-primary fw-bold" id="btnCheckGolike" onclick="checkGolikeTokenLive()">
+                        <button type="button" class="btn btn-outline-primary fw-bold" id="btnCheckToken" onclick="checkTokenLive()">
                             <i class="fa-solid fa-bolt me-1"></i> Kiểm Tra Trước
                         </button>
                         <button type="submit" class="btn-gradient-primary">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Tài Khoản Vào Danh Sách
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu & Đồng Bộ Ngay
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- DANH SÁCH TÀI KHOẢN GOLIKE -->
+            <!-- DANH SÁCH TÀI KHOẢN -->
             <div class="section-card">
                 <div class="section-header">
                     <h2 class="section-title">
                         <i class="fa-solid fa-list-check text-success"></i>
-                        <span>Danh Sách Tài Khoản Golike Đã Liên Kết</span>
+                        <span>Danh Sách Tài Khoản Đã Liên Kết</span>
                     </h2>
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">
-                        Tổng cộng: <?= number_format($totalGolikeAccounts) ?> tài khoản
+                        Tổng cộng: <?= number_format($totalAccounts) ?> tài khoản
                     </span>
                 </div>
 
-                <?php if (empty($golikeAccounts)): ?>
+                <?php if (empty($accounts)): ?>
                 <div class="text-center py-5">
                     <div class="mb-3 text-muted" style="font-size: 3rem;">
-                        <i class="fa-solid fa-robot"></i>
+                        <i class="fa-solid fa-layer-group"></i>
                     </div>
-                    <h5 class="fw-bold text-dark">Chưa có tài khoản Golike nào trong danh sách</h5>
+                    <h5 class="fw-bold text-dark">Chưa có tài khoản nào trong danh sách</h5>
                     <p class="text-muted small mx-auto" style="max-width: 480px;">
-                        Hãy dán mã Authorization Token từ Golike vào khung phía trên để hệ thống tự động kiểm tra số dư và lưu tài khoản.
+                        Hãy chọn nền tảng (Golike, TDS, TTC...) và dán mã Token vào khung phía trên để hệ thống tự động kiểm tra số dư và lưu tài khoản.
                     </p>
                 </div>
                 <?php else: ?>
@@ -1946,96 +1671,94 @@ $flash = get_flash();
                         <thead>
                             <tr>
                                 <th>Nền Tảng</th>
-                                <th>ID Tài Khoản</th>
                                 <th>Tài Khoản</th>
+                                <th>Tên Người Dùng</th>
                                 <th>Số Dư Coin</th>
-                                <th>Mã Token (Rút gọn)</th>
                                 <th>Trạng Thái</th>
-                                <th>Đồng Bộ Lần Cuối</th>
+                                <th>Thời Gian</th>
                                 <th class="text-end">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($golikeAccounts as $acc): 
+                            <?php foreach ($accounts as $acc): 
                                 $isExpired = ($acc['status'] === 'Expired');
-                                $rawKey = $acc['token'];
-                                if (strlen($rawKey) > 24) {
-                                    $maskedToken = substr($rawKey, 0, 15) . '••••••••' . substr($rawKey, -6);
-                                } else {
-                                    $maskedToken = $rawKey;
-                                }
                                 $initial = mb_substr($acc['name'] ?: $acc['username'], 0, 1, 'UTF-8');
                                 $plat = strtolower($acc['platform'] ?? 'golike');
+                                $accId = $acc['account_id'] ?? $acc['golike_id'] ?? '';
+                                $timeStr = !empty($acc['last_checked_at']) ? date('H:i d/m/Y', strtotime($acc['last_checked_at'])) : 'Vừa xong';
                             ?>
-                            <tr id="row-golike-<?= $acc['id'] ?>">
+                            <tr id="row-account-<?= $acc['id'] ?>">
+                                <!-- 1. Nền Tảng -->
                                 <td>
                                     <?php if ($plat === 'golike'): ?>
-                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size: 0.78rem;">
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 fw-bold" style="font-size: 0.78rem; white-space: nowrap;">
                                             <i class="fa-solid fa-robot me-1 text-warning"></i> Golike
                                         </span>
                                     <?php elseif ($plat === 'ttc'): ?>
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.78rem;">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold" style="font-size: 0.78rem; white-space: nowrap;">
                                             <i class="fa-solid fa-share-nodes me-1 text-success"></i> TTC
                                         </span>
                                     <?php elseif ($plat === 'tds'): ?>
-                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1" style="font-size: 0.78rem;">
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 fw-bold" style="font-size: 0.78rem; white-space: nowrap;">
                                             <i class="fa-solid fa-bolt me-1 text-info"></i> TDS
                                         </span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size: 0.78rem;">
-                                            <?= htmlspecialchars(strtoupper($plat)) ?>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fw-bold" style="font-size: 0.78rem; white-space: nowrap;">
+                                            <i class="fa-solid fa-globe me-1 text-secondary"></i> <?= htmlspecialchars(strtoupper($plat)) ?>
                                         </span>
                                     <?php endif; ?>
                                 </td>
+
+                                <!-- 2. Tài Khoản (Tên và ID) -->
                                 <td>
-                                    <span class="badge bg-light text-dark border font-monospace fw-bold" style="font-size: 0.82rem;">
-                                        #<?= htmlspecialchars($acc['account_id'] ?? $acc['golike_id'] ?? '') ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="golike-avatar" style="width: 36px; height: 36px; font-size: 0.95rem;">
+                                    <div class="d-inline-flex align-items-center gap-2" style="white-space: nowrap;">
+                                        <div class="golike-avatar" style="width: 32px; height: 32px; font-size: 0.88rem; border-radius: 8px;">
                                             <?= htmlspecialchars(mb_strtoupper($initial)) ?>
                                         </div>
-                                        <div>
-                                            <div class="fw-bold text-dark"><?= htmlspecialchars($acc['name']) ?></div>
-                                            <div class="text-muted small">@<?= htmlspecialchars($acc['username']) ?></div>
-                                        </div>
+                                        <span class="fw-bold text-dark"><?= htmlspecialchars($acc['name']) ?></span>
+                                        <?php if (!empty($accId)): ?>
+                                        <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.74rem;">#<?= htmlspecialchars($accId) ?></span>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
+
+                                <!-- 3. Tên Người Dùng (username) -->
                                 <td>
-                                    <span class="coin-badge" id="coin-badge-<?= $acc['id'] ?>">
+                                    <span class="font-monospace text-primary fw-semibold" style="font-size: 0.88rem; white-space: nowrap;">@<?= htmlspecialchars($acc['username']) ?></span>
+                                </td>
+
+                                <!-- 4. Số Dư Coin -->
+                                <td>
+                                    <span class="coin-badge" id="coin-badge-<?= $acc['id'] ?>" style="white-space: nowrap;">
                                         <i class="fa-solid fa-coins"></i> <?= number_format($acc['coin'], 0, ',', '.') ?> xu
                                     </span>
                                 </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="token-code-inline"><?= htmlspecialchars($maskedToken) ?></span>
-                                        <button type="button" class="btn-copy" onclick="copyText('<?= htmlspecialchars($acc['token']) ?>', this)" title="Sao chép toàn bộ chuỗi Token">
-                                            <i class="fa-solid fa-copy"></i>
-                                        </button>
-                                    </div>
-                                </td>
+
+                                <!-- 5. Trạng Thái -->
                                 <td>
                                     <?php if ($isExpired): ?>
-                                        <span class="status-pill expired" id="status-pill-<?= $acc['id'] ?>">
+                                        <span class="status-pill expired" id="status-pill-<?= $acc['id'] ?>" style="white-space: nowrap;">
                                             <span class="status-dot"></span> Hết hạn
                                         </span>
                                     <?php else: ?>
-                                        <span class="status-pill active" id="status-pill-<?= $acc['id'] ?>">
+                                        <span class="status-pill active" id="status-pill-<?= $acc['id'] ?>" style="white-space: nowrap;">
                                             <span class="status-dot"></span> Hoạt động
                                         </span>
                                     <?php endif; ?>
                                 </td>
+
+                                <!-- 6. Thời Gian -->
                                 <td>
-                                    <span class="small text-muted" id="checked-time-<?= $acc['id'] ?>">
-                                        <?= !empty($acc['last_checked_at']) ? date('d/m/Y H:i', strtotime($acc['last_checked_at'])) : 'Vừa xong' ?>
+                                    <span class="small text-secondary fw-medium" id="checked-time-<?= $acc['id'] ?>" style="white-space: nowrap;">
+                                        <i class="fa-regular fa-clock me-1 text-muted"></i><?= $timeStr ?>
                                     </span>
                                 </td>
+
+                                <!-- 7. Thao Tác -->
                                 <td class="text-end">
-                                    <div class="d-flex align-items-center justify-content-end gap-1">
+                                    <div class="d-inline-flex align-items-center gap-1" style="white-space: nowrap;">
                                         <!-- Nút làm mới số dư -->
-                                        <button type="button" class="btn btn-light btn-sm border text-primary" onclick="refreshGolikeBalance(<?= $acc['id'] ?>, this)" title="Cập nhật số dư thời gian thực">
+                                        <button type="button" class="btn btn-light btn-sm border text-primary" onclick="refreshBalance(<?= $acc['id'] ?>, this)" title="Làm mới số dư thời gian thực">
                                             <i class="fa-solid fa-rotate"></i>
                                         </button>
                                         <!-- Nút sao chép token -->
@@ -2043,10 +1766,10 @@ $flash = get_flash();
                                             <i class="fa-solid fa-copy"></i>
                                         </button>
                                         <!-- Nút xóa -->
-                                        <form action="token.php?tab=golike" method="POST" class="d-inline" onsubmit="return confirmDeleteGolike(this);">
+                                        <form action="token.php" method="POST" class="d-inline" onsubmit="return confirmDeleteAccount(this);">
                                             <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                                            <input type="hidden" name="action" value="delete_golike_token">
-                                            <input type="hidden" name="golike_account_id" value="<?= $acc['id'] ?>">
+                                            <input type="hidden" name="action" value="delete_token">
+                                            <input type="hidden" name="account_id" value="<?= $acc['id'] ?>">
                                             <button type="submit" class="btn btn-light btn-sm border text-danger" title="Xóa tài khoản">
                                                 <i class="fa-solid fa-trash-can"></i>
                                             </button>
@@ -2061,392 +1784,6 @@ $flash = get_flash();
                 <?php endif; ?>
             </div>
 
-            <?php else: ?>
-            <!-- ====================================================
-             * TAB 2: PERSONAL ACCESS TOKEN (API KEY THANHQUYTECH)
-             * ==================================================== -->
-            <!-- HERO CARD PERSONAL TOKEN -->
-            <div class="token-hero">
-                <div class="hero-badge">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <span>CỔNG KẾT NỐI API & DEVELOPER</span>
-                </div>
-                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                    <div>
-                        <h1 class="hero-title">Quản Lý Personal Access Token</h1>
-                        <p class="hero-subtitle">
-                            Khởi tạo và quản lý mã truy cập API để tích hợp các Tool Golike, máy chủ Cloud VPS, script tự động hóa bot với hệ thống ThanhQuyTech một cách an toàn và bảo mật.
-                        </p>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <button type="button" class="btn btn-light fw-bold px-4 py-2 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#createTokenModal">
-                            <i class="fa-solid fa-plus-circle text-primary me-2"></i> Tạo Access Token Mới
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- BẢNG THÔNG BÁO TOKEN VỪA TẠO (CHỈ HIỂN THỊ 1 LẦN) -->
-            <?php if ($newlyCreatedToken): ?>
-            <div class="new-token-banner">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-success text-white px-3 py-1 rounded-pill fw-bold">
-                            <i class="fa-solid fa-sparkles me-1"></i> TOKEN VỪA KHỞI TẠO THÀNH CÔNG
-                        </span>
-                        <strong class="text-dark"><?= htmlspecialchars($newlyCreatedToken['name']) ?></strong>
-                    </div>
-                    <span class="text-danger small fw-bold">
-                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Hãy lưu lại mã Token ngay. Mã sẽ không hiển thị lại toàn bộ!
-                    </span>
-                </div>
-                <div class="token-copy-box">
-                    <span id="rawCreatedToken" class="user-select-all"><?= htmlspecialchars($newlyCreatedToken['token']) ?></span>
-                    <button type="button" class="btn-copy ms-2" onclick="copyText('<?= htmlspecialchars($newlyCreatedToken['token']) ?>', this)">
-                        <i class="fa-solid fa-copy"></i>
-                        <span>Sao chép</span>
-                    </button>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- STATS CARDS -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon-wrapper stat-icon-primary">
-                            <i class="fa-solid fa-key"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Tổng số Token</div>
-                            <div class="stat-value"><?= number_format($totalTokens) ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon-wrapper stat-icon-success">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Đang hoạt động</div>
-                            <div class="stat-value text-success"><?= number_format($activeTokens) ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon-wrapper stat-icon-warning">
-                            <i class="fa-solid fa-ban"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Đã thu hồi / Hết hạn</div>
-                            <div class="stat-value text-muted"><?= number_format($revokedTokens) ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-card">
-                        <div class="stat-icon-wrapper stat-icon-info">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                        </div>
-                        <div>
-                            <div class="stat-label">Dùng gần nhất</div>
-                            <div class="stat-value" style="font-size: 1.05rem;"><?= $lastUsedDate ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DANH SÁCH TOKEN -->
-            <div class="section-card">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fa-solid fa-fingerprint text-primary"></i>
-                        <span>Danh Sách Access Token Của Bạn</span>
-                    </h2>
-                    <div>
-                        <button type="button" class="btn-gradient-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTokenModal">
-                            <i class="fa-solid fa-plus"></i> Tạo Token
-                        </button>
-                    </div>
-                </div>
-
-                <?php if (empty($tokens)): ?>
-                <div class="text-center py-5">
-                    <div class="mb-3 text-muted" style="font-size: 3rem;">
-                        <i class="fa-solid fa-key-skeleton"></i>
-                    </div>
-                    <h5 class="fw-bold text-dark">Bạn chưa có Personal Access Token nào</h5>
-                    <p class="text-muted small mx-auto" style="max-width: 480px;">
-                        Tạo mã Token đầu tiên để kết nối bot, tool tự động Golike, máy chủ Cloud VPS hoặc kiểm thử API qua các thư viện lập trình.
-                    </p>
-                    <button type="button" class="btn-gradient-primary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#createTokenModal">
-                        <i class="fa-solid fa-plus"></i> Tạo Ngay Bây Giờ
-                    </button>
-                </div>
-                <?php else: ?>
-                <div class="table-responsive">
-                    <table class="token-table">
-                        <thead>
-                            <tr>
-                                <th>Tên Gợi Nhớ / Mục Đích</th>
-                                <th>Mã Token (Ẩn một phần)</th>
-                                <th>Quyền Hạn</th>
-                                <th>Trạng Thái</th>
-                                <th>Thời Hạn</th>
-                                <th>Dùng Gần Nhất</th>
-                                <th class="text-end">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tokens as $tokenItem): 
-                                $isExpired = (!empty($tokenItem['expires_at']) && strtotime($tokenItem['expires_at']) < time());
-                                $isRevoked = ($tokenItem['status'] === 'Revoked');
-                                $abilitiesArr = json_decode($tokenItem['abilities'], true) ?: [$tokenItem['abilities']];
-                                
-                                // Tạo chuỗi hiển thị rút gọn (ví dụ: tqt_live_9a7d••••••••4d3e)
-                                $rawKey = $tokenItem['token'];
-                                if (strlen($rawKey) > 18) {
-                                    $maskedKey = substr($rawKey, 0, 13) . '••••••••' . substr($rawKey, -4);
-                                } else {
-                                    $maskedKey = $rawKey;
-                                }
-                            ?>
-                            <tr>
-                                <td>
-                                    <div class="fw-bold text-dark"><?= htmlspecialchars($tokenItem['name']) ?></div>
-                                    <span class="text-muted small">Tạo ngày <?= date('d/m/Y', strtotime($tokenItem['created_at'])) ?></span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="token-code-inline"><?= htmlspecialchars($maskedKey) ?></span>
-                                        <button type="button" class="btn-copy" onclick="copyText('<?= htmlspecialchars($tokenItem['token']) ?>', this)" title="Sao chép toàn bộ chuỗi Token">
-                                            <i class="fa-solid fa-copy"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <?php foreach ($abilitiesArr as $ability): ?>
-                                        <?php if ($ability === 'all'): ?>
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Toàn quyền (All)</span>
-                                        <?php elseif ($ability === 'jobs'): ?>
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Chạy Jobs</span>
-                                        <?php elseif ($ability === 'read'): ?>
-                                            <span class="badge bg-secondary-subtle text-secondary border">Chỉ đọc (Read)</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-info-subtle text-info border border-info-subtle"><?= htmlspecialchars($ability) ?></span>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </td>
-                                <td>
-                                    <?php if ($isRevoked): ?>
-                                        <span class="status-pill revoked">
-                                            <span class="status-dot"></span> Đã thu hồi
-                                        </span>
-                                    <?php elseif ($isExpired): ?>
-                                        <span class="status-pill expired">
-                                            <span class="status-dot"></span> Đã hết hạn
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="status-pill active">
-                                            <span class="status-dot"></span> Hoạt động
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if (empty($tokenItem['expires_at'])): ?>
-                                        <span class="badge bg-light text-dark border">Vĩnh viễn</span>
-                                    <?php else: ?>
-                                        <span class="<?= $isExpired ? 'text-danger fw-bold' : 'text-body' ?>">
-                                            <?= date('d/m/Y H:i', strtotime($tokenItem['expires_at'])) ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if (empty($tokenItem['last_used_at'])): ?>
-                                        <span class="text-muted small">Chưa dùng</span>
-                                    <?php else: ?>
-                                        <span class="small text-body"><?= date('d/m/Y H:i', strtotime($tokenItem['last_used_at'])) ?></span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <div class="dropdown">
-                                        <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                            <li>
-                                                <button class="dropdown-item text-primary" type="button" onclick="testToken('<?= htmlspecialchars($tokenItem['token']) ?>')">
-                                                    <i class="fa-solid fa-bolt me-2"></i> Kiểm thử Token
-                                                </button>
-                                            </li>
-                                            <?php if (!$isRevoked): ?>
-                                            <li>
-                                                <form action="token.php" method="POST" onsubmit="return confirmRevoke(this);">
-                                                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                                                    <input type="hidden" name="action" value="revoke_token">
-                                                    <input type="hidden" name="token_id" value="<?= $tokenItem['id'] ?>">
-                                                    <button type="submit" class="dropdown-item text-warning">
-                                                        <i class="fa-solid fa-ban me-2"></i> Thu hồi (Revoke)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <?php else: ?>
-                                            <li>
-                                                <form action="token.php" method="POST">
-                                                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                                                    <input type="hidden" name="action" value="activate_token">
-                                                    <input type="hidden" name="token_id" value="<?= $tokenItem['id'] ?>">
-                                                    <button type="submit" class="dropdown-item text-success">
-                                                        <i class="fa-solid fa-rotate-right me-2"></i> Kích hoạt lại
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <?php endif; ?>
-                                            <li><hr class="dropdown-divider my-1"></li>
-                                            <li>
-                                                <form action="token.php" method="POST" onsubmit="return confirmDelete(this);">
-                                                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                                                    <input type="hidden" name="action" value="delete_token">
-                                                    <input type="hidden" name="token_id" value="<?= $tokenItem['id'] ?>">
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="fa-solid fa-trash-can me-2"></i> Xóa vĩnh viễn
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- LIVE TOKEN TESTER (SANDBOX) -->
-            <div class="section-card">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fa-solid fa-vial text-info"></i>
-                        <span>Kiểm Thử Token Trực Tiếp (Live API Tester)</span>
-                    </h2>
-                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1">API Endpoint: /api/verify-token.php</span>
-                </div>
-                <div class="row g-3">
-                    <div class="col-lg-7">
-                        <label class="form-label fw-bold text-dark">Nhập hoặc dán mã Token cần kiểm tra:</label>
-                        <div class="input-group mb-3">
-                            <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-key"></i></span>
-                            <input type="text" id="testTokenInput" class="form-control font-monospace" placeholder="Dán mã tqt_live_... vào đây" value="<?= !empty($tokens[0]['token']) ? htmlspecialchars($tokens[0]['token']) : '' ?>">
-                            <button type="button" class="btn btn-primary fw-bold" onclick="runTokenTest()">
-                                <i class="fa-solid fa-paper-plane me-1"></i> Gửi Xác Thực
-                            </button>
-                        </div>
-                        <div class="small text-muted">
-                            <i class="fa-solid fa-circle-info text-primary me-1"></i> Hệ thống sẽ gửi yêu cầu HTTP POST có tiêu đề <code>Authorization: Bearer [token]</code> tới API để đối soát tính hợp lệ và trả về dữ liệu thời gian thực.
-                        </div>
-                    </div>
-                    <div class="col-lg-5">
-                        <label class="form-label fw-bold text-dark">Kết quả phản hồi từ máy chủ (JSON Response):</label>
-                        <pre id="testResultBox" class="bg-dark text-light p-3 rounded-3 small font-monospace mb-0" style="min-height: 110px; max-height: 220px; overflow-y: auto;">Nhấn nút "Gửi Xác Thực" để xem kết quả...</pre>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DEVELOPER QUICKSTART GUIDE -->
-            <div class="section-card">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fa-solid fa-code text-success"></i>
-                        <span>Hướng Dẫn Sử Dụng API Cho Lập Trình Viên</span>
-                    </h2>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="code-nav-btn active" onclick="switchSnippet('curl', this)">cURL</button>
-                        <button type="button" class="code-nav-btn" onclick="switchSnippet('python', this)">Python</button>
-                        <button type="button" class="code-nav-btn" onclick="switchSnippet('node', this)">Node.js</button>
-                        <button type="button" class="code-nav-btn" onclick="switchSnippet('php', this)">PHP</button>
-                    </div>
-                </div>
-
-                <!-- cURL -->
-                <div id="snippet-curl" class="code-snippet-box">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-secondary small"># Gọi API bằng cURL Terminal:</span>
-                        <button class="btn-copy btn-sm text-white bg-dark border-secondary" onclick="copySnippet('codeCurlText')"><i class="fa-solid fa-copy"></i> Sao chép</button>
-                    </div>
-                    <code id="codeCurlText">curl -X POST "<?= APP_URL ?>/api/verify-token.php" \
-  -H "Authorization: Bearer tqt_live_your_token_here" \
-  -H "Content-Type: application/json"</code>
-                </div>
-
-                <!-- Python -->
-                <div id="snippet-python" class="code-snippet-box d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-secondary small"># Gọi API bằng Python (requests):</span>
-                        <button class="btn-copy btn-sm text-white bg-dark border-secondary" onclick="copySnippet('codePythonText')"><i class="fa-solid fa-copy"></i> Sao chép</button>
-                    </div>
-                    <code id="codePythonText">import requests
-
-url = "<?= APP_URL ?>/api/verify-token.php"
-headers = {
-    "Authorization": "Bearer tqt_live_your_token_here",
-    "Content-Type": "application/json"
-}
-
-response = requests.post(url, headers=headers)
-data = response.json()
-print("Kết quả:", data)</code>
-                </div>
-
-                <!-- Node.js -->
-                <div id="snippet-node" class="code-snippet-box d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-secondary small"># Gọi API bằng Node.js (fetch):</span>
-                        <button class="btn-copy btn-sm text-white bg-dark border-secondary" onclick="copySnippet('codeNodeText')"><i class="fa-solid fa-copy"></i> Sao chép</button>
-                    </div>
-                    <code id="codeNodeText">const token = 'tqt_live_your_token_here';
-
-fetch('<?= APP_URL ?>/api/verify-token.php', {
-    method: 'POST',
-    headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    }
-})
-.then(res => res.json())
-.then(data => console.log('API Response:', data))
-.catch(err => console.error(err));</code>
-                </div>
-
-                <!-- PHP -->
-                <div id="snippet-php" class="code-snippet-box d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-secondary small"># Gọi API bằng PHP (cURL):</span>
-                        <button class="btn-copy btn-sm text-white bg-dark border-secondary" onclick="copySnippet('codePhpText')"><i class="fa-solid fa-copy"></i> Sao chép</button>
-                    </div>
-                    <code id="codePhpText">&lt;?php
-$token = 'tqt_live_your_token_here';
-$ch = curl_init('<?= APP_URL ?>/api/verify-token.php');
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        'Authorization: Bearer ' . $token,
-        'Content-Type: application/json'
-    ]
-]);
-$response = curl_exec($ch);
-curl_close($ch);
-$result = json_decode($response, true);
-print_r($result);
-?&gt;</code>
-                </div>
-            </div>
-            <?php endif; ?>
-
         </div>
 
         <!-- FOOTER -->
@@ -2460,89 +1797,6 @@ print_r($result);
             </div>
         </footer>
     </main>
-
-    <!-- ==========================================================
-     * 4. MODAL TẠO ACCESS TOKEN MỚI
-     * ========================================================== -->
-    <div class="modal fade" id="createTokenModal" tabindex="-1" aria-labelledby="createTokenModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
-                <form action="token.php" method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
-                    <input type="hidden" name="action" value="create_token">
-
-                    <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
-                        <h5 class="modal-title fw-bold text-dark" id="createTokenModalLabel">
-                            <i class="fa-solid fa-plus-circle text-primary me-2"></i> Khởi Tạo Personal Access Token
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-
-                    <div class="modal-body p-4">
-                        <div class="mb-3">
-                            <label for="token_name" class="form-label fw-bold text-dark">Tên gợi nhớ / Mục đích sử dụng <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="token_name" name="token_name" required placeholder="VD: Tool Golike VPS Cần Thơ, Python Worker Bot..." maxlength="100">
-                            <div class="form-text text-muted">Đặt tên giúp bạn dễ phân biệt khi tích hợp nhiều máy chủ hoặc công cụ.</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="expiry" class="form-label fw-bold text-dark">Thời hạn hiệu lực của Token</label>
-                            <select class="form-select" id="expiry" name="expiry">
-                                <option value="7d">7 ngày</option>
-                                <option value="30d" selected>30 ngày (Khuyên dùng)</option>
-                                <option value="90d">90 ngày (3 tháng)</option>
-                                <option value="180d">180 ngày (6 tháng)</option>
-                                <option value="365d">1 năm (365 ngày)</option>
-                                <option value="never">Không giới hạn (Vĩnh viễn)</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">Phạm vi quyền hạn (Scopes / Abilities)</label>
-                            <div class="border rounded-3 p-3 bg-light d-flex flex-column gap-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="abilities[]" value="all" id="scopeAll" checked onchange="toggleAllScopes(this)">
-                                    <label class="form-check-label fw-bold text-dark" for="scopeAll">
-                                        Toàn quyền (Full Access - Khuyên dùng)
-                                    </label>
-                                    <div class="small text-muted">Cho phép thực hiện tất cả tác vụ API gồm kiếm tiền, xem số dư và quản lý máy chủ.</div>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input scope-child" type="checkbox" name="abilities[]" value="jobs" id="scopeJobs" disabled>
-                                    <label class="form-check-label text-dark" for="scopeJobs">
-                                        Chạy tác vụ kiếm tiền (Jobs: Golike, Threads, Instagram)
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input scope-child" type="checkbox" name="abilities[]" value="cloud_keys" id="scopeKeys" disabled>
-                                    <label class="form-check-label text-dark" for="scopeKeys">
-                                        Đọc thông tin Key & Cloud Server
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input scope-child" type="checkbox" name="abilities[]" value="read" id="scopeRead" disabled>
-                                    <label class="form-check-label text-dark" for="scopeRead">
-                                        Chỉ đọc dữ liệu (Read Only: số dư, thứ hạng)
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-warning py-2 px-3 small mb-0 rounded-3">
-                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Sau khi tạo, mã Token sẽ chỉ được hiển thị đầy đủ một lần duy nhất để bạn sao chép.
-                        </div>
-                    </div>
-
-                    <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
-                        <button type="button" class="btn btn-light fw-bold px-3 py-2 rounded-3" data-bs-dismiss="modal">Hủy bỏ</button>
-                        <button type="submit" class="btn-gradient-primary px-4 py-2">
-                            <i class="fa-solid fa-shield-halved"></i> Xác Nhận Tạo Token
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -2613,7 +1867,7 @@ print_r($result);
             navigator.clipboard.writeText(text).then(function() {
                 if (btnElement) {
                     var originalHtml = btnElement.innerHTML;
-                    btnElement.innerHTML = '<i class="fa-solid fa-check text-success"></i> <span>Đã chép!</span>';
+                    btnElement.innerHTML = '<i class="fa-solid fa-check text-success"></i>';
                     setTimeout(function() {
                         btnElement.innerHTML = originalHtml;
                     }, 2000);
@@ -2631,140 +1885,42 @@ print_r($result);
             });
         }
 
-        function copySnippet(elementId) {
-            var el = document.getElementById(elementId);
-            if (el) {
-                copyText(el.innerText || el.textContent);
-            }
-        }
+        // 4. Thay đổi hướng dẫn & placeholder khi chọn nền tảng
+        function onPlatformChange() {
+            const select = document.getElementById('platformSelect');
+            const platform = select ? select.value : 'golike';
+            const hint = document.getElementById('platformHint');
+            const label = document.getElementById('tokenInputLabel');
+            const input = document.getElementById('token_input');
 
-        // 4. Chuyển đổi tab code snippets
-        function switchSnippet(lang, btn) {
-            document.querySelectorAll('.code-nav-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            ['curl', 'python', 'node', 'php'].forEach(l => {
-                var el = document.getElementById('snippet-' + l);
-                if (el) {
-                    if (l === lang) {
-                        el.classList.remove('d-none');
-                    } else {
-                        el.classList.add('d-none');
-                    }
-                }
-            });
-        }
-
-        // 5. Checkbox Scopes trong Modal
-        function toggleAllScopes(checkbox) {
-            var children = document.querySelectorAll('.scope-child');
-            children.forEach(c => {
-                c.disabled = checkbox.checked;
-                if (checkbox.checked) {
-                    c.checked = false;
-                }
-            });
-        }
-
-        // 6. Test Token API Sandbox
-        function testToken(tokenStr) {
-            var input = document.getElementById('testTokenInput');
-            if (input) {
-                input.value = tokenStr;
-                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                runTokenTest();
-            }
-        }
-
-        function runTokenTest() {
-            var token = document.getElementById('testTokenInput').value.trim();
-            var resBox = document.getElementById('testResultBox');
-            if (!token) {
-                Swal.fire('Lỗi', 'Vui lòng nhập hoặc chọn mã Token cần kiểm tra.', 'warning');
-                return;
+            if (platform === 'golike') {
+                if (label) label.innerHTML = 'Mã Token Golike (Authorization Bearer Token) <span class="text-danger">*</span>';
+                if (input) input.placeholder = 'Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)';
+                if (hint) hint.innerHTML = 'Nền tảng Golike: Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.';
+            } else if (platform === 'tds') {
+                if (label) label.innerHTML = 'Mã Access Token Trao Đổi Sub (TDS) <span class="text-danger">*</span>';
+                if (input) input.placeholder = 'Dán mã Access Token lấy từ traodoisub.com tại đây...';
+                if (hint) hint.innerHTML = 'Nền tảng Trao Đổi Sub: Hệ thống sẽ kết nối API TDS để xác thực tài khoản và cập nhật số dư xu.';
+            } else if (platform === 'ttc') {
+                if (label) label.innerHTML = 'Mã Access Token Tương Tác Chéo (TTC) <span class="text-danger">*</span>';
+                if (input) input.placeholder = 'Dán mã Access Token lấy từ tuongtaccheo.com tại đây...';
+                if (hint) hint.innerHTML = 'Nền tảng Tương Tác Chéo: Hệ thống sẽ kết nối API TTC để xác thực tài khoản và cập nhật số dư xu.';
+            } else {
+                if (label) label.innerHTML = 'Mã Token (JWT / Access Token) <span class="text-danger">*</span>';
+                if (input) input.placeholder = 'Dán chuỗi JWT token hoặc access token của bạn tại đây...';
+                if (hint) hint.innerHTML = 'Nền tảng khác: Hệ thống sẽ giải mã JWT payload và lưu trữ vào danh sách.';
             }
 
-            resBox.textContent = 'Đang gửi yêu cầu xác thực API...';
-
-            fetch('api/verify-token.php', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                resBox.textContent = JSON.stringify(data, null, 2);
-                if (data.success) {
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Token hợp lệ và hoạt động tốt!',
-                        showConfirmButton: false,
-                        timer: 2000
-                    });
-                } else {
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'error',
-                        title: data.message || 'Token không hợp lệ!',
-                        showConfirmButton: false,
-                        timer: 2500
-                    });
-                }
-            })
-            .catch(err => {
-                resBox.textContent = 'Lỗi kết nối tới API: ' + err.message;
-            });
+            // Ẩn preview box khi đổi nền tảng
+            const previewBox = document.getElementById('tokenPreviewBox');
+            if (previewBox) previewBox.classList.add('d-none');
         }
 
-        // 7. Xác nhận Thu hồi / Xóa
-        function confirmRevoke(form) {
-            event.preventDefault();
-            Swal.fire({
-                title: 'Thu hồi Access Token?',
-                text: 'Các script và máy chủ đang sử dụng Token này sẽ không thể gọi API được nữa.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#f59e0b',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Đồng ý thu hồi',
-                cancelButtonText: 'Hủy'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-            return false;
-        }
-
-        function confirmDelete(form) {
-            event.preventDefault();
-            Swal.fire({
-                title: 'Xóa vĩnh viễn Token?',
-                text: 'Hành động này không thể hoàn tác. Dữ liệu token sẽ bị xóa khỏi cơ sở dữ liệu.',
-                icon: 'error',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Xóa vĩnh viễn',
-                cancelButtonText: 'Hủy'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-            return false;
-        }
-
-        // 8. Chức năng hỗ trợ Golike Token
-        function pasteGolikeToken() {
+        // 5. Dán token từ Clipboard
+        function pasteToken() {
             navigator.clipboard.readText().then(text => {
                 if (text) {
-                    const input = document.getElementById('golike_token_input');
+                    const input = document.getElementById('token_input');
                     if (input) input.value = text.trim();
                     Swal.fire({
                         toast: true,
@@ -2780,14 +1936,17 @@ print_r($result);
             });
         }
 
-        function checkGolikeTokenLive() {
-            const tokenInput = document.getElementById('golike_token_input');
+        // 6. Kiểm tra Token Live trước khi lưu
+        function checkTokenLive() {
+            const tokenInput = document.getElementById('token_input');
             const token = tokenInput ? tokenInput.value.trim() : '';
-            const btn = document.getElementById('btnCheckGolike');
-            const previewBox = document.getElementById('golikePreviewBox');
+            const platformSelect = document.getElementById('platformSelect');
+            const platform = platformSelect ? platformSelect.value : 'golike';
+            const btn = document.getElementById('btnCheckToken');
+            const previewBox = document.getElementById('tokenPreviewBox');
 
             if (!token) {
-                Swal.fire('Thiếu thông tin', 'Vui lòng dán chuỗi Token Golike để kiểm tra.', 'warning');
+                Swal.fire('Thiếu thông tin', 'Vui lòng nhập hoặc dán mã Token để kiểm tra.', 'warning');
                 return;
             }
 
@@ -2797,6 +1956,7 @@ print_r($result);
 
             const fd = new FormData();
             fd.append('ajax_action', 'check_token');
+            fd.append('platform', platform);
             fd.append('token', token);
 
             fetch('token/golike.php', {
@@ -2814,7 +1974,8 @@ print_r($result);
                     document.getElementById('prevUsername').textContent = '@' + (acc.username || '---');
                     document.getElementById('prevId').textContent = '#' + (acc.id || '---');
                     document.getElementById('prevCoin').innerHTML = '<i class="fa-solid fa-coins me-1"></i>' + (acc.coin_formatted || '0 xu');
-                    document.getElementById('prevAvatar').textContent = (acc.name || acc.username || 'G').charAt(0).toUpperCase();
+                    document.getElementById('prevAvatar').textContent = (acc.name || acc.username || platform).charAt(0).toUpperCase();
+                    document.getElementById('prevPlatformBadge').textContent = platform.toUpperCase();
 
                     previewBox.classList.remove('d-none');
                     previewBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2823,13 +1984,13 @@ print_r($result);
                         toast: true,
                         position: 'top-end',
                         icon: 'success',
-                        title: `Xác thực thành công: ${acc.name} (${acc.coin_formatted})`,
+                        title: `Xác thực ${platform.toUpperCase()} thành công: ${acc.name} (${acc.coin_formatted})`,
                         showConfirmButton: false,
                         timer: 2500
                     });
                 } else {
                     previewBox.classList.add('d-none');
-                    Swal.fire('Lỗi Token', data.message || 'Token Golike không chính xác hoặc đã hết hạn.', 'error');
+                    Swal.fire('Lỗi Token', data.message || 'Mã Token không chính xác hoặc đã hết hạn trên nền tảng đã chọn.', 'error');
                 }
             })
             .catch(err => {
@@ -2839,7 +2000,8 @@ print_r($result);
             });
         }
 
-        function refreshGolikeBalance(id, btnElement) {
+        // 7. Làm mới số dư tài khoản
+        function refreshBalance(id, btnElement) {
             const origHtml = btnElement.innerHTML;
             btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             btnElement.disabled = true;
@@ -2869,7 +2031,9 @@ print_r($result);
                     }
                     const timeEl = document.getElementById('checked-time-' + id);
                     if (timeEl) {
-                        timeEl.textContent = 'Vừa xong';
+                        const now = new Date();
+                        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ' ' + String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                        timeEl.innerHTML = '<i class="fa-regular fa-clock me-1 text-muted"></i>' + timeStr;
                     }
                     Swal.fire({
                         toast: true,
@@ -2895,10 +2059,11 @@ print_r($result);
             });
         }
 
-        function confirmDeleteGolike(form) {
+        // 8. Xác nhận xóa tài khoản
+        function confirmDeleteAccount(form) {
             event.preventDefault();
             Swal.fire({
-                title: 'Xóa tài khoản Golike?',
+                title: 'Xóa tài khoản này?',
                 text: 'Bạn có chắc chắn muốn xóa tài khoản này khỏi danh sách quản lý token?',
                 icon: 'warning',
                 showCancelButton: true,
@@ -2914,6 +2079,7 @@ print_r($result);
             return false;
         }
 
+        // 9. Xác nhận đăng xuất
         function confirmLogout() {
             Swal.fire({
                 title: 'Đăng xuất tài khoản?',

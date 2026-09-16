@@ -1,9 +1,9 @@
 <?php
 /**
  * ==========================================================
- * XỬ LÝ & ĐỒNG BỘ TOKEN GOLIKE - THANHQUYTECH
+ * XỬ LÝ & ĐỒNG BỘ TOKEN ĐA NỀN TẢNG (GOLIKE, TDS, TTC...)
  * File: token/golike.php
- * Chuyển đổi từ: token/golike.py
+ * Website: ThanhQuyTech
  * ==========================================================
  */
 
@@ -15,7 +15,7 @@ require_once __DIR__ . '/../config/config.php';
 
 /**
  * Tự động kiểm tra và khởi tạo bảng `tokens` nếu chưa tồn tại
- * Hỗ trợ đa nền tảng (Golike, TTC, TDS...) với cột `platform`
+ * Hỗ trợ đa nền tảng (Golike, TDS, TTC...) với cột `platform`
  */
 function ensure_tokens_table(PDO $pdo): void {
     try {
@@ -32,12 +32,12 @@ function ensure_tokens_table(PDO $pdo): void {
             CREATE TABLE IF NOT EXISTS `tokens` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `user_uuid` CHAR(36) NOT NULL,
-                `platform` VARCHAR(50) NOT NULL DEFAULT 'golike' COMMENT 'Nền tảng (golike, ttc, tds...)',
+                `platform` VARCHAR(50) NOT NULL DEFAULT 'golike' COMMENT 'Nền tảng (golike, tds, ttc...)',
                 `account_id` VARCHAR(50) NOT NULL COMMENT 'ID tài khoản trên nền tảng',
                 `name` VARCHAR(150) NOT NULL COMMENT 'Tên hiển thị tài khoản',
                 `username` VARCHAR(150) NOT NULL COMMENT 'Tên người dùng / username',
                 `coin` BIGINT NOT NULL DEFAULT 0 COMMENT 'Số dư xu / coin',
-                `token` TEXT NOT NULL COMMENT 'Chuỗi Authorization Token Bearer',
+                `token` TEXT NOT NULL COMMENT 'Chuỗi Authorization Token Bearer hoặc Access Token',
                 `status` ENUM('Active', 'Expired', 'Error') NOT NULL DEFAULT 'Active',
                 `last_checked_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
                 `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -77,10 +77,7 @@ function ensure_golike_table(PDO $pdo): void {
 }
 
 /**
- * Gọi API Golike /api/users/me với token (tương đương hàm me(token) trong token/golike.py)
- *
- * @param string $token Token JWT (có hoặc không có tiền tố Bearer)
- * @return array Mảng dữ liệu JSON trả về từ Golike API
+ * 1. Gọi API Golike /api/users/me với token (tương đương me(token) trong token/golike.py)
  */
 function me(string $token): array {
     $token = trim($token);
@@ -92,12 +89,10 @@ function me(string $token): array {
         ];
     }
 
-    // Chuẩn hóa token: tự động thêm tiền tố "Bearer " nếu người dùng chưa nhập
     if (stripos($token, 'Bearer ') !== 0) {
         $token = 'Bearer ' . $token;
     }
 
-    // Headers chuẩn tương ứng chính xác file token/golike.py
     $headers = [
         'accept: application/json, text/plain, */*',
         'accept-language: vi,en;q=0.9,en-GB;q=0.8,en-US;q=0.7',
@@ -152,37 +147,199 @@ function me(string $token): array {
 }
 
 /**
- * Lấy thông tin từ Golike và lưu/cập nhật vào bảng cơ sở dữ liệu `tokens`
- *
- * @param PDO $pdo
- * @param string $userUuid
- * @param string $rawToken
- * @return array Kết quả xử lý
+ * 2. Gọi API Trao Đổi Sub (TDS) kiểm tra token
  */
-function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawToken): array {
+function check_tds_token(string $token): array {
+    $token = trim($token);
+    if ($token === '') {
+        return [
+            'status'  => 400,
+            'success' => false,
+            'message' => 'Access Token Trao Đổi Sub không được để trống.'
+        ];
+    }
+
+    $url = 'https://traodoisub.com/api/?fields=profile&access_token=' . urlencode($token);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_CONNECTTIMEOUT => 6,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    ]);
+    $res = curl_exec($ch);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($res === false || !empty($err)) {
+        return [
+            'status'  => 500,
+            'success' => false,
+            'message' => 'Không thể kết nối máy chủ Trao Đổi Sub: ' . $err
+        ];
+    }
+
+    $json = json_decode($res, true);
+    if (is_array($json) && (!empty($json['success']) || isset($json['data']['user']))) {
+        $userData = $json['data'] ?? $json;
+        $user = (string)($userData['user'] ?? 'TDS_User');
+        $xu = (int)($userData['xu'] ?? 0);
+        return [
+            'status'  => 200,
+            'success' => true,
+            'data'    => [
+                'id'       => $user,
+                'name'     => $user,
+                'username' => $user,
+                'coin'     => $xu
+            ]
+        ];
+    }
+
+    return [
+        'status'  => 400,
+        'success' => false,
+        'message' => $json['error'] ?? 'Token Trao Đổi Sub (TDS) không chính xác hoặc đã hết hạn.'
+    ];
+}
+
+/**
+ * 3. Gọi API Tương Tác Chéo (TTC) kiểm tra token
+ */
+function check_ttc_token(string $token): array {
+    $token = trim($token);
+    if ($token === '') {
+        return [
+            'status'  => 400,
+            'success' => false,
+            'message' => 'Token Tương Tác Chéo không được để trống.'
+        ];
+    }
+
+    $url = 'https://tuongtaccheo.com/logintoken.php';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query(['access_token' => $token]),
+        CURLOPT_TIMEOUT        => 12,
+        CURLOPT_CONNECTTIMEOUT => 6,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    ]);
+    $res = curl_exec($ch);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($res === false || !empty($err)) {
+        return [
+            'status'  => 500,
+            'success' => false,
+            'message' => 'Không thể kết nối máy chủ Tương Tác Chéo: ' . $err
+        ];
+    }
+
+    $json = json_decode($res, true);
+    if (is_array($json) && isset($json['status']) && $json['status'] === 'success') {
+        $user = (string)($json['data']['user'] ?? $json['data']['username'] ?? 'TTC_User');
+        $coin = (int)($json['data']['sodu'] ?? $json['data']['xu'] ?? 0);
+        return [
+            'status'  => 200,
+            'success' => true,
+            'data'    => [
+                'id'       => $user,
+                'name'     => $user,
+                'username' => $user,
+                'coin'     => $coin
+            ]
+        ];
+    }
+
+    return [
+        'status'  => 400,
+        'success' => false,
+        'message' => $json['message'] ?? 'Token Tương Tác Chéo (TTC) không chính xác hoặc đã hết hạn.'
+    ];
+}
+
+/**
+ * 4. Điều phối kiểm tra token theo nền tảng được chọn
+ */
+function fetch_platform_info(string $platform, string $token): array {
+    $platform = strtolower(trim($platform));
+    if ($platform === 'golike') {
+        return me($token);
+    }
+    if ($platform === 'tds') {
+        return check_tds_token($token);
+    }
+    if ($platform === 'ttc') {
+        return check_ttc_token($token);
+    }
+
+    // Nền tảng khác / JWT chung: Thử trích xuất payload nếu là chuỗi JWT chuẩn
+    $tokenClean = str_ireplace('Bearer ', '', trim($token));
+    $parts = explode('.', $tokenClean);
+    $name = 'Tài khoản ' . strtoupper($platform);
+    $username = 'user_' . substr(md5($token), 0, 8);
+    $accId = substr(md5($token), 0, 8);
+
+    if (count($parts) === 3) {
+        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+        if (is_array($payload)) {
+            $name = $payload['name'] ?? $payload['sub'] ?? $name;
+            $username = $payload['username'] ?? $payload['user'] ?? $payload['sub'] ?? $username;
+            $accId = (string)($payload['id'] ?? $payload['sub'] ?? $accId);
+        }
+    }
+
+    return [
+        'status'  => 200,
+        'success' => true,
+        'data'    => [
+            'id'       => $accId,
+            'name'     => $name,
+            'username' => $username,
+            'coin'     => 0
+        ]
+    ];
+}
+
+/**
+ * 5. Lưu hoặc cập nhật tài khoản token theo nền tảng vào bảng `tokens`
+ */
+function save_or_update_platform_account(PDO $pdo, string $userUuid, string $platform, string $rawToken): array {
     $rawToken = trim($rawToken);
     if ($rawToken === '') {
         return [
             'success' => false,
-            'message' => 'Vui lòng nhập chuỗi Token Golike.'
+            'message' => 'Vui lòng nhập hoặc dán mã Token.'
         ];
     }
 
-    // Đảm bảo token có tiền tố Bearer khi lưu trữ & gửi
-    $tokenWithBearer = (stripos($rawToken, 'Bearer ') === 0) ? $rawToken : ('Bearer ' . $rawToken);
+    $platform = strtolower(trim($platform)) ?: 'golike';
+    $tokenToSave = $rawToken;
 
-    // Gọi API Golike kiểm tra thông tin
-    $res = me($tokenWithBearer);
+    // Đối với Golike: Đảm bảo có tiền tố Bearer
+    if ($platform === 'golike' && stripos($rawToken, 'Bearer ') !== 0) {
+        $tokenToSave = 'Bearer ' . $rawToken;
+    }
+
+    // Gọi hàm kiểm tra theo nền tảng
+    $res = fetch_platform_info($platform, $tokenToSave);
 
     $isOk = (
         isset($res['status']) && 
         (int)$res['status'] === 200 && 
-        !empty($res['success']) && 
+        (!empty($res['success']) || !empty($res['data'])) && 
         !empty($res['data'])
     );
 
     if (!$isOk) {
-        $errMsg = $res['message'] ?? 'Token Golike không chính xác hoặc đã hết hạn đăng nhập.';
+        $errMsg = $res['message'] ?? 'Token không hợp lệ hoặc đã hết hạn trên nền tảng đã chọn.';
         return [
             'success' => false,
             'message' => $errMsg,
@@ -191,29 +348,23 @@ function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawTo
     }
 
     $accountData = $res['data'];
-    $golikeId = (string)($accountData['id'] ?? '');
-    $name     = (string)($accountData['name'] ?? '');
-    $username = (string)($accountData['username'] ?? '');
+    $accId    = (string)($accountData['id'] ?? '');
+    $name     = (string)($accountData['name'] ?? 'Tài khoản ' . strtoupper($platform));
+    $username = (string)($accountData['username'] ?? 'user_' . substr(md5($tokenToSave), 0, 8));
     $coin     = (int)($accountData['coin'] ?? 0);
 
-    if ($golikeId === '') {
-        return [
-            'success' => false,
-            'message' => 'Không tìm thấy ID người dùng trong dữ liệu Golike trả về.',
-            'data'    => $res
-        ];
+    if ($accId === '') {
+        $accId = substr(md5($tokenToSave), 0, 8);
     }
 
-    // Đảm bảo cấu trúc bảng tồn tại
-    ensure_golike_table($pdo);
+    ensure_tokens_table($pdo);
 
     try {
-        // Sử dụng INSERT ... ON DUPLICATE KEY UPDATE để nếu đã tồn tại thì cập nhật
         $stmt = $pdo->prepare("
             INSERT INTO `tokens` 
                 (`user_uuid`, `platform`, `account_id`, `name`, `username`, `coin`, `token`, `status`, `last_checked_at`, `updated_at`)
             VALUES 
-                (?, 'golike', ?, ?, ?, ?, ?, 'Active', NOW(), NOW())
+                (?, ?, ?, ?, ?, ?, ?, 'Active', NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                 `name` = VALUES(`name`),
                 `username` = VALUES(`username`),
@@ -223,35 +374,40 @@ function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawTo
                 `last_checked_at` = NOW(),
                 `updated_at` = NOW()
         ");
-        $stmt->execute([$userUuid, $golikeId, $name, $username, $coin, $tokenWithBearer]);
+        $stmt->execute([$userUuid, $platform, $accId, $name, $username, $coin, $tokenToSave]);
 
         $formattedCoin = number_format($coin, 0, ',', '.') . ' xu';
 
         return [
             'success'        => true,
-            'message'        => "Đã liên kết tài khoản Golike thành công: {$name} (@{$username})",
-            'platform'       => 'golike',
-            'account_id'     => $golikeId,
-            'golike_id'      => $golikeId,
+            'message'        => "Đã liên kết tài khoản {$name} (@{$username}) trên nền tảng " . strtoupper($platform) . " thành công!",
+            'platform'       => $platform,
+            'account_id'     => $accId,
+            'golike_id'      => $accId,
             'name'           => $name,
             'username'       => $username,
             'coin'           => $coin,
             'coin_formatted' => $formattedCoin,
-            'token'          => $tokenWithBearer,
+            'token'          => $tokenToSave,
             'raw_data'       => $accountData
         ];
     } catch (Exception $e) {
         return [
             'success' => false,
-            'message' => 'Lỗi cơ sở dữ liệu khi lưu token Golike: ' . $e->getMessage()
+            'message' => 'Lỗi cơ sở dữ liệu khi lưu token: ' . $e->getMessage()
         ];
     }
 }
 
+// Alias cho hàm cũ để giữ tương thích
+function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawToken): array {
+    return save_or_update_platform_account($pdo, $userUuid, 'golike', $rawToken);
+}
+
 /**
- * Làm mới (đồng bộ) số dư và thông tin của một tài khoản Golike đã lưu
+ * 6. Làm mới (đồng bộ) số dư và trạng thái tài khoản
  */
-function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): array {
+function refresh_platform_account(PDO $pdo, string $userUuid, int $recordId): array {
     ensure_tokens_table($pdo);
 
     $stmt = $pdo->prepare("
@@ -266,20 +422,20 @@ function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): arra
     if (!$account) {
         return [
             'success' => false,
-            'message' => 'Không tìm thấy tài khoản Golike yêu cầu.'
+            'message' => 'Không tìm thấy tài khoản yêu cầu.'
         ];
     }
 
-    $res = me($account['token']);
+    $plat = $account['platform'] ?: 'golike';
+    $res = fetch_platform_info($plat, $account['token']);
     $isOk = (
         isset($res['status']) && 
         (int)$res['status'] === 200 && 
-        !empty($res['success']) && 
+        (!empty($res['success']) || !empty($res['data'])) && 
         !empty($res['data'])
     );
 
     if (!$isOk) {
-        // Đánh dấu token hết hạn
         $stmtUpdate = $pdo->prepare("
             UPDATE `tokens` 
             SET `status` = 'Expired', `last_checked_at` = NOW() 
@@ -290,7 +446,7 @@ function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): arra
         return [
             'success' => false,
             'status'  => 'Expired',
-            'message' => 'Token Golike đã hết hạn đăng nhập hoặc không hợp lệ. Vui lòng cập nhật token mới.'
+            'message' => 'Token đã hết hạn hoặc không hợp lệ trên nền tảng ' . strtoupper($plat) . '.'
         ];
     }
 
@@ -315,6 +471,11 @@ function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): arra
         'coin'           => $coin,
         'coin_formatted' => $formattedCoin
     ];
+}
+
+// Alias cho hàm cũ
+function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): array {
+    return refresh_platform_account($pdo, $userUuid, $recordId);
 }
 
 // ----------------------------------------------------------
@@ -345,11 +506,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
     $action = $_POST['ajax_action'];
 
-    // 1. Kiểm tra nhanh token Golike (chỉ kiểm tra không lưu)
+    // 1. Kiểm tra nhanh token (không lưu)
     if ($action === 'check_token') {
         $token = trim($_POST['token'] ?? '');
-        $res = me($token);
-        if (isset($res['status']) && (int)$res['status'] === 200 && !empty($res['success'])) {
+        $platform = trim($_POST['platform'] ?? 'golike');
+        $res = fetch_platform_info($platform, $token);
+        if (isset($res['status']) && (int)$res['status'] === 200 && (!empty($res['success']) || !empty($res['data'])) && !empty($res['data'])) {
             $coin = (int)($res['data']['coin'] ?? 0);
             echo json_encode([
                 'success' => true,
@@ -364,16 +526,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => $res['message'] ?? 'Token Golike không hợp lệ hoặc đã hết hạn.'
+                'message' => $res['message'] ?? 'Mã Token không hợp lệ hoặc đã hết hạn.'
             ]);
         }
         exit;
     }
 
-    // 2. Lưu token Golike vào danh sách
+    // 2. Lưu token vào danh sách
     if ($action === 'save_token') {
         $token = trim($_POST['token'] ?? '');
-        $result = save_or_update_golike_account($pdo, $userUuid, $token);
+        $platform = trim($_POST['platform'] ?? 'golike');
+        $result = save_or_update_platform_account($pdo, $userUuid, $platform, $token);
         echo json_encode($result);
         exit;
     }
@@ -381,12 +544,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     // 3. Làm mới số dư của tài khoản
     if ($action === 'refresh_account') {
         $recordId = (int)($_POST['record_id'] ?? 0);
-        $result = refresh_golike_account($pdo, $userUuid, $recordId);
+        $result = refresh_platform_account($pdo, $userUuid, $recordId);
         echo json_encode($result);
         exit;
     }
 
-    // 4. Xóa tài khoản Golike
+    // 4. Xóa tài khoản
     if ($action === 'delete_account') {
         $recordId = (int)($_POST['record_id'] ?? 0);
         ensure_tokens_table($pdo);
@@ -394,7 +557,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         $stmt->execute([$recordId, $userUuid]);
         echo json_encode([
             'success' => true,
-            'message' => 'Đã xóa tài khoản Golike khỏi danh sách.'
+            'message' => 'Đã xóa tài khoản khỏi danh sách.'
         ]);
         exit;
     }
