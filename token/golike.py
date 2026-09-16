@@ -16,8 +16,19 @@ def me(token):
         'sec-fetch-site': 'same-site',
         'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',
     }
+    try:
+        response = requests.get('https://gateway.golike.net/api/users/me', headers=headers).json()
+        return response
+    except Exception:
+        return {}
+        # if response["status"] == 200 and response["success"] == True:
+        #     name = response["data"]["name"]
+        #     username = response["data"]["username"]
+        #     id = response["data"]["id"]
+        #     coin = response["data"]["coin"]
+        #     _coin = f"{coin:,}".replace(",", ".")
+        #     print(name, username, id, _coin)
 
-    response = requests.get('https://gateway.golike.net/api/users/me', headers=headers)
 
 
 token = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOlwvXC9nYXRld2F5LmdvbGlrZS5uZXRcL2FwaVwvbG9naW4iLCJpYXQiOjE3ODg4ODY2OTksImV4cCI6MTgyMDQyMjY5OSwibmJmIjoxNzg4ODg2Njk5LCJqdGkiOiJ3aW1OOXNpWENVcXNYd3lIIiwic3ViIjozMTUwMTE5LCJwcnYiOiJiOTEyNzk5NzhmMTFhYTdiYzU2NzA0ODdmZmYwMWUyMjgyNTNmZTQ4In0.7J88gPRXhpxfufehPF9AUrbwbBO9MiEpYbx4SRBDYEE'
