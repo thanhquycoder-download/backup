@@ -1320,8 +1320,28 @@ $csrfToken = get_csrf_token();
             width: 100%;
         }
 
+        .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin;
+        }
+
+        .scroll-hint-badge {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.74rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            border: 1px dashed #cbd5e1;
+            margin-bottom: 12px;
+        }
+
         .history-table {
             width: 100%;
+            min-width: 820px;
             border-collapse: separate;
             border-spacing: 0;
         }
@@ -1343,6 +1363,7 @@ $csrfToken = get_csrf_token();
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.88rem;
             vertical-align: middle;
+            white-space: nowrap;
         }
 
         .history-table tr:hover td {
