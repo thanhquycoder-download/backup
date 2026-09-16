@@ -1650,7 +1650,42 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         .svg-warning .svg-exclamation-line { stroke: #f59e0b; }
         .svg-warning .svg-exclamation-dot { fill: #f59e0b; }
 
-        /* Responsive Mobile */
+        /* ==========================================================
+         * 4. RESPONSIVE MEDIA QUERIES (CHUẨN 1:1 THEO DEPOSIT.PHP)
+         * ========================================================== */
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .app-sidebar {
+                transform: translateX(-100%) !important;
+            }
+            body.sidebar-collapsed .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+
+        /* Nút đóng Sidebar trên Mobile */
+        .btn-close-sidebar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-close-sidebar:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
         @media (max-width: 991.98px) {
             .app-sidebar {
                 position: fixed !important;
@@ -1676,14 +1711,183 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             .sidebar-backdrop {
                 z-index: 1055 !important;
             }
-            .app-main { margin-left: 0 !important; padding: 20px 14px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .withdraw-hero { padding: 22px 20px; }
-            .hero-title { font-size: 1.35rem; }
-            .withdraw-card, .dash-card { padding: 20px 16px; }
+            .app-main {
+                margin-left: 0 !important;
+                margin-top: 56px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 16px 12px 50px !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+            .content-container {
+                padding: 16px 4px;
+            }
+            .withdraw-layout {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px;
+            }
         }
-        @media (max-width: 576px) {
-            .stats-grid { grid-template-columns: 1fr; }
+
+        @media (max-width: 767.98px) {
+            html, body {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+                touch-action: pan-y !important;
+            }
+            .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 56px !important;
+                padding: 16px 12px 50px !important;
+            }
+            .app-header {
+                height: 56px !important;
+                padding: 0 8px !important;
+            }
+            .brand-name {
+                font-size: 0.86rem !important;
+            }
+            .brand-tech-suffix {
+                display: none !important;
+            }
+            .user-avatar-small {
+                width: 28px !important;
+                height: 28px !important;
+            }
+            .user-profile-popup {
+                position: fixed !important;
+                top: 64px !important;
+                right: 12px !important;
+                left: 12px !important;
+                width: auto !important;
+                max-width: 360px !important;
+                margin: 0 auto !important;
+                z-index: 1060 !important;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px;
+            }
+            .stat-card {
+                padding: 14px 12px;
+            }
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            .stat-val {
+                font-size: 1.1rem;
+            }
+            .withdraw-card, .dash-card {
+                padding: 18px 14px;
+            }
+            .hero-title {
+                font-size: 1.35rem;
+            }
+            .hero-desc {
+                font-size: 0.86rem;
+            }
+            .amount-input-control {
+                font-size: 1.18rem !important;
+            }
+            .currency-symbol-badge {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 1.05rem !important;
+            }
+
+            /* Tiêu đề Card trên mobile: Không bị ép chữ thành hàng dọc */
+            .card-header-title {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            .card-title-text {
+                font-size: 1.05rem !important;
+                line-height: 1.35 !important;
+                width: 100% !important;
+            }
+
+            /* Nút chọn nhanh số tiền: Grid 4 cột cân đối */
+            .amount-quick-pills {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px !important;
+            }
+            .amount-pill-btn {
+                padding: 7px 2px !important;
+                font-size: 0.75rem !important;
+                border-radius: 10px !important;
+                text-align: center !important;
+                justify-content: center !important;
+                white-space: nowrap !important;
+                width: 100% !important;
+            }
+
+            /* Đảm bảo bảng lịch sử luôn cuộn ngang 1 dòng mượt mà */
+            .table-responsive {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                border-radius: 12px !important;
+            }
+            .history-table {
+                min-width: 820px !important;
+            }
+            .history-table th,
+            .history-table td {
+                white-space: nowrap !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .amount-quick-pills {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 5px !important;
+            }
+            .amount-pill-btn {
+                font-size: 0.69rem !important;
+                padding: 6px 1px !important;
+            }
+            .app-header {
+                padding: 0 6px !important;
+            }
+            .header-left {
+                gap: 8px !important;
+            }
+            .header-right {
+                gap: 6px !important;
+            }
+            .sidebar-toggle-btn {
+                width: 36px !important;
+                height: 36px !important;
+            }
+            .brand-icon {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 1rem !important;
+            }
+            .header-balance-card {
+                padding: 5px 10px !important;
+                gap: 8px !important;
+            }
+            .balance-wallet-icon {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 0.8rem !important;
+            }
+            .balance-title {
+                font-size: 0.62rem !important;
+            }
+            .balance-val {
+                font-size: 0.82rem !important;
+            }
         }
 
         /* Footer */
