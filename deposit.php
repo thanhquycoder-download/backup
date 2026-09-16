@@ -1510,6 +1510,151 @@ $csrfToken = get_csrf_token();
             background: #eff6ff;
         }
 
+        /* ==========================================================
+         * HÓA ĐƠN CHI TIẾT NẠP TIỀN & XUẤT WORD
+         * ========================================================== */
+        .invoice-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px 36px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            color: #0f172a;
+            max-width: 720px;
+            margin: 0 auto;
+            font-size: 0.92rem;
+            position: relative;
+        }
+
+        .invoice-top-brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px dashed #cbd5e1;
+            padding-bottom: 20px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .invoice-barcode-wrap {
+            text-align: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin: 18px 0;
+        }
+
+        .invoice-barcode-svg {
+            max-width: 260px;
+            height: 48px;
+            display: inline-block;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 0.88rem;
+        }
+
+        .invoice-table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            padding: 10px 12px;
+            border-top: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
+            text-align: left;
+        }
+
+        .invoice-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed #cbd5e1;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .signature-box {
+            text-align: center;
+            width: 45%;
+            min-width: 220px;
+            position: relative;
+        }
+
+        .red-stamp-seal {
+            width: 110px;
+            height: 110px;
+            position: absolute;
+            top: 25px;
+            right: 20px;
+            opacity: 0.88;
+            pointer-events: none;
+            transform: rotate(-8deg);
+            z-index: 2;
+        }
+
+        .signature-handwriting {
+            font-family: 'Brush Script MT', 'Dancing Script', cursive, sans-serif;
+            font-size: 2.2rem;
+            color: #1d4ed8;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin: 12px 0 6px;
+            transform: rotate(-4deg);
+            position: relative;
+            z-index: 3;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #depositInvoiceModal,
+            #depositInvoiceModal * {
+                visibility: visible !important;
+            }
+            #depositInvoiceModal {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .modal-header, .modal-footer, .btn-close {
+                display: none !important;
+            }
+            .modal-dialog {
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+            .modal-body {
+                padding: 0 !important;
+                background: transparent !important;
+            }
+            .invoice-card {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+        }
+
         /* FOOTER */
         .app-footer {
             background: #ffffff;
