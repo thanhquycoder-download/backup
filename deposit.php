@@ -1062,40 +1062,40 @@ $csrfToken = get_csrf_token();
             border-color: #4f46e5 !important;
         }
 
-        /* KHUNG NHẬP TIỀN CAO CẤP HIỆN ĐẠI (FINTECH STYLE) */
+        /* KHUNG NHẬP TIỀN CAO CẤP HIỆN ĐẠI (FINTECH STYLE - GỌN GÀNG TINH TẾ) */
         .premium-amount-box {
             background: #ffffff;
             border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 12px 18px;
+            border-radius: 13px;
+            padding: 6px 14px;
             display: flex;
             align-items: center;
-            gap: 14px;
-            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
 
         .premium-amount-box:focus-within {
             border-color: #6366f1;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12), 0 8px 24px rgba(99, 102, 241, 0.08);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), 0 4px 14px rgba(99, 102, 241, 0.06);
             background: #ffffff;
         }
 
         .currency-symbol-badge {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
             background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
             color: #4f46e5;
             border: 1.5px solid #c7d2fe;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.45rem;
+            font-size: 1.18rem;
             font-weight: 800;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.12);
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.10);
         }
 
         .amount-field-inner {
@@ -1103,16 +1103,17 @@ $csrfToken = get_csrf_token();
             display: flex;
             flex-direction: column;
             min-width: 0;
+            justify-content: center;
         }
 
         .amount-field-label {
-            font-size: 0.72rem;
+            font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             color: #94a3b8;
-            margin-bottom: 2px;
-            line-height: 1.2;
+            margin-bottom: 0px;
+            line-height: 1.1;
         }
 
         .amount-input-control {
@@ -1121,11 +1122,11 @@ $csrfToken = get_csrf_token();
             box-shadow: none !important;
             background: transparent !important;
             padding: 0 !important;
-            font-size: 1.65rem;
+            font-size: 1.3rem;
             font-weight: 800;
             color: #0f172a;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             width: 100%;
             height: auto !important;
             line-height: 1.2;
@@ -1133,7 +1134,7 @@ $csrfToken = get_csrf_token();
 
         .amount-input-control::placeholder {
             color: #cbd5e1;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 500;
             letter-spacing: 0;
         }
@@ -1142,9 +1143,9 @@ $csrfToken = get_csrf_token();
             background: #f8fafc;
             color: #475569;
             font-weight: 800;
-            font-size: 0.82rem;
-            padding: 6px 14px;
-            border-radius: 10px;
+            font-size: 0.76rem;
+            padding: 4px 10px;
+            border-radius: 8px;
             letter-spacing: 0.5px;
             border: 1px solid #e2e8f0;
             flex-shrink: 0;
