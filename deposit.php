@@ -2847,30 +2847,8 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center" style="text-align: center !important;">
-                                            <div class="d-inline-flex gap-1 justify-content-center align-items-center flex-wrap">
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1" 
-                                                        style="font-size: 0.76rem; font-weight: 700;" 
-                                                        title="Xem hóa đơn chi tiết & xuất file PDF" 
-                                                        onclick='showDepositInvoice(<?= htmlspecialchars(json_encode([
-                                                            'code' => $item['deposit_code'],
-                                                            'amount' => (float)$item['amount'],
-                                                            'amount_formatted' => format_currency($item['amount']),
-                                                            'bank_name' => $item['bank_name'],
-                                                            'account_number' => $item['account_number'],
-                                                            'account_name' => $item['account_name'],
-                                                            'transfer_content' => $item['transfer_content'],
-                                                            'created_at' => date('d/m/Y H:i:s', strtotime($item['created_at'])),
-                                                            'status' => $item['status'],
-                                                            'customer_name' => !empty($currentUser['name']) ? $currentUser['name'] : (!empty($currentUser['username']) ? ltrim($currentUser['username'], '@') : 'Khách hàng'),
-                                                            'customer_username' => ltrim($currentUser['username'] ?? '', '@'),
-                                                            'customer_email' => $currentUser['email'] ?? '',
-                                                        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)'>
-                                                    <i class="fa-solid fa-receipt me-1"></i> Chi tiết
-                                                </button>
-
+                                            <div class="d-inline-flex gap-2 justify-content-center align-items-center flex-wrap">
                                                 <?php if ($st === 'Pending'): ?>
-                                                    <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-2 py-1 fw-bold" style="font-size: 0.76rem;" title="Xem lại mã QR">
                                                         <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
                                                     </a>
                                                     <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
