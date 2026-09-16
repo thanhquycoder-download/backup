@@ -535,7 +535,9 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         }
         .popup-menu-item:hover { background: #f1f5f9; color: var(--primary); }
 
-        /* 2. Sidebar */
+        /* ==========================================================
+         * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI (CHUẨN 1:1 INDEX.PHP)
+         * ========================================================== */
         .app-sidebar {
             position: fixed;
             top: 70px;
@@ -544,77 +546,244 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             width: 260px;
             background: #ffffff;
             border-right: 1px solid var(--card-border);
-            padding: 20px 14px;
-            overflow-y: auto;
             z-index: 1030;
-            transition: transform 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 18px 12px 30px;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
         }
+
+        .app-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .app-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
         .sidebar-category {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 800;
-            color: #94a3b8;
             letter-spacing: 0.8px;
             text-transform: uppercase;
+            color: #94a3b8;
             padding: 12px 14px 6px;
+            margin-top: 4px;
         }
-        .sidebar-nav-list { list-style: none; margin: 0; padding: 0; }
+
+        .sidebar-nav-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
         .sidebar-link {
             display: flex;
             align-items: center;
             gap: 12px;
             padding: 10px 14px;
-            color: #475569;
-            text-decoration: none;
+            border-radius: 12px;
+            color: var(--text-body);
             font-size: 0.9rem;
             font-weight: 600;
-            border-radius: 10px;
+            text-decoration: none;
             transition: var(--transition);
+            border: 1px solid transparent;
             width: 100%;
             background: transparent;
-            border: none;
             text-align: left;
+            cursor: pointer;
         }
-        .sidebar-link:hover { color: var(--primary); background: #f8fafc; }
-        .sidebar-link.active {
-            background: #eff6ff;
+
+        .sidebar-link:hover {
+            background: #f1f5f9;
             color: var(--primary);
+        }
+
+        .sidebar-link.active {
+            background: #eef2ff;
+            color: var(--primary);
+            border-color: #c7d2fe;
             font-weight: 700;
         }
-        .sidebar-arrow { margin-left: auto; font-size: 0.75rem; transition: transform 0.2s ease; }
-        .sidebar-link:not(.collapsed) .sidebar-arrow { transform: rotate(180deg); }
-        .sidebar-submenu { list-style: none; padding: 4px 0 4px 34px; }
+
+        .sidebar-link.active .sidebar-icon {
+            color: var(--primary);
+        }
+
+        /* 1:1 Bounding Box & Đồng bộ khoảng cách, độ đậm nhạt Icon */
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            max-width: 24px;
+            font-size: 1.05rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #64748b;
+            flex-shrink: 0;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .sidebar-icon i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+
+        /* Đồng bộ độ đậm (stroke) để icon nét mảnh (fingerprint, headset) có cùng tỷ trọng quang học với icon khối đặc */
+        .sidebar-icon .fa-fingerprint {
+            font-size: 1.15rem;
+            stroke: currentColor;
+            stroke-width: 22px;
+        }
+
+        .sidebar-icon .fa-headset {
+            font-size: 1.1rem;
+            stroke: currentColor;
+            stroke-width: 18px;
+        }
+
+        .sidebar-icon .fa-gear {
+            font-size: 1.05rem;
+        }
+
+        .sidebar-link:hover .sidebar-icon {
+            color: var(--primary);
+        }
+
+        .sidebar-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-arrow {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            transition: transform 0.25s ease;
+        }
+
+        .sidebar-link:not(.collapsed) .sidebar-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Submenu accordion */
+        .sidebar-submenu {
+            list-style: none;
+            padding: 4px 0 6px 14px;
+            margin: 4px 0 4px 16px;
+            border-left: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
         .submenu-link {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 7px 12px;
-            color: #64748b;
-            text-decoration: none;
-            font-size: 0.84rem;
-            font-weight: 500;
+            gap: 8px;
+            padding: 8px 12px;
             border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.84rem;
+            font-weight: 600;
+            text-decoration: none;
             transition: var(--transition);
         }
-        .submenu-link:hover { color: var(--primary); background: #f8fafc; }
-        .submenu-link.active { color: var(--primary); background: #e0e7ff; font-weight: 700; }
-        .badge-history {
-            font-size: 0.65rem;
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: #f1f5f9;
-            color: #64748b;
+
+        .submenu-link:hover {
+            color: var(--primary);
+            background: #f8fafc;
+            padding-left: 15px;
         }
 
+        .submenu-link.active {
+            color: var(--primary);
+            background: #eef2ff;
+            font-weight: 700;
+        }
+
+        /* Huy hiệu Lịch Sử */
+        .badge-history {
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            padding: 2px 7px;
+            border-radius: 6px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            transition: var(--transition);
+        }
+
+        .submenu-link:hover .badge-history,
+        .sidebar-link:hover .badge-history {
+            background: #e0e7ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+        }
+
+        /* Nút đóng Sidebar trên Mobile */
+        .btn-close-sidebar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-close-sidebar:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
+        /* Backdrop cho mobile */
         .sidebar-backdrop {
-            display: none;
             position: fixed;
             inset: 0;
             background: rgba(15, 23, 42, 0.4);
             backdrop-filter: blur(4px);
-            z-index: 1020;
+            z-index: 1025;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
         }
-        .sidebar-backdrop.active { display: block; }
+
+        .sidebar-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
 
         /* 3. Main Layout */
         .app-main {
