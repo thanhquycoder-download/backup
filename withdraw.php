@@ -409,7 +409,9 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             padding: 0;
         }
 
-        /* 1. Header */
+        /* ==========================================================
+         * 1. THANH ĐIỀU HƯỚNG CỐ ĐỊNH TRÊN ĐẦU (HEADER CHUẨN 1:1 DEPOSIT.PHP)
+         * ========================================================== */
         .app-header {
             position: fixed;
             top: 0;
@@ -428,112 +430,221 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             padding: 0 24px;
         }
 
-        .header-left { display: flex; align-items: center; gap: 14px; }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+            flex-shrink: 1;
+        }
+
         .sidebar-toggle-btn {
             width: 40px;
             height: 40px;
             border-radius: 10px;
             border: 1px solid var(--card-border);
             background: #ffffff;
-            color: var(--text-body);
-            display: flex;
+            color: var(--text-heading);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.1rem;
             cursor: pointer;
             transition: var(--transition);
+            flex-shrink: 0;
         }
-        .sidebar-toggle-btn:hover { background: #f1f5f9; color: var(--primary); }
 
-        .brand-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .sidebar-toggle-btn:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: #cbd5e1;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            min-width: 0;
+        }
+
         .brand-icon {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
             background: var(--gradient-primary);
             color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+            font-size: 1.15rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            flex-shrink: 0;
         }
-        .brand-text { font-size: 1.2rem; font-weight: 800; color: var(--text-heading); letter-spacing: -0.3px; }
-        .brand-text span { color: var(--primary); }
 
-        .header-right { display: flex; align-items: center; gap: 12px; }
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+        }
 
+        .brand-name span {
+            color: var(--primary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Khối Số Dư Nạp Vào (Bên Phải Header - Click chuyển nạp tiền) */
         .header-balance-card {
             display: flex;
             align-items: center;
             gap: 10px;
-            background: #f8fafc;
-            border: 1px solid var(--card-border);
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
             padding: 6px 14px;
             border-radius: 50px;
-            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
             transition: var(--transition);
+            flex-shrink: 0;
+            text-decoration: none;
+            cursor: pointer;
         }
-        .header-balance-card:hover { border-color: var(--primary); background: #f0fdf4; }
+
+        .header-balance-card:hover {
+            border-color: #86efac;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
+        }
+
         .balance-wallet-icon {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #ecfdf5;
-            color: #10b981;
+            background: #10b981;
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
+            flex-shrink: 0;
         }
-        .balance-text-group { display: flex; flex-direction: column; }
-        .balance-title { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-        .balance-val { font-size: 0.9rem; font-weight: 800; color: #166534; font-family: 'Fira Code', monospace; }
 
-        .user-profile-container { position: relative; }
+        .balance-text-group {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .balance-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #15803d;
+            letter-spacing: 0.4px;
+        }
+
+        .balance-val {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #14532d;
+            white-space: nowrap;
+        }
+
+        /* Khối Avatar & Bảng Popup Hồ Sơ */
+        .user-profile-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+
         .user-profile-toggle {
-            background: transparent;
-            border: none;
-            padding: 0;
-            cursor: pointer;
             display: flex;
             align-items: center;
+            justify-content: center;
+            padding: 2px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        .user-profile-toggle:hover,
+        .user-profile-toggle:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
+            transform: scale(1.05);
+        }
+
         .user-avatar-small {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #e0e7ff;
+            display: block;
+            flex-shrink: 0;
+            pointer-events: none;
+            user-select: none;
+            background: #eef2ff;
         }
+
+        /* Bảng Popup Hồ Sơ */
         .user-profile-popup {
             position: absolute;
-            top: 52px;
+            top: calc(100% + 12px);
             right: 0;
-            width: 270px;
+            width: 290px;
             background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
-            border: 1px solid var(--card-border);
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.22), 0 4px 15px rgba(0, 0, 0, 0.06);
             padding: 16px;
+            z-index: 1060;
             display: none;
-            z-index: 1050;
+            animation: popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .user-profile-popup.active { display: block; animation: fadeInPopup 0.2s ease; }
-        @keyframes fadeInPopup { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+        @keyframes popupFadeIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .user-profile-popup.active {
+            display: block !important;
+        }
 
         .popup-menu-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            color: var(--text-body);
-            text-decoration: none;
-            border-radius: 8px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            color: #334155;
             font-size: 0.88rem;
             font-weight: 600;
+            text-decoration: none;
             transition: var(--transition);
+            cursor: pointer;
         }
-        .popup-menu-item:hover { background: #f1f5f9; color: var(--primary); }
+
+        .popup-menu-item:hover {
+            background: #f1f5f9;
+            color: #4f46e5;
+            transform: translateX(3px);
+        }
+
+        .popup-menu-item.text-danger:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
 
         /* ==========================================================
          * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI (CHUẨN 1:1 INDEX.PHP)
