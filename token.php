@@ -2216,7 +2216,6 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">TDS</span>
                                             <i class="fa-solid fa-check platform-item-check"></i>
                                         </div>
                                     </div>
@@ -2232,7 +2231,6 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">TTC</span>
                                             <i class="fa-solid fa-check platform-item-check"></i>
                                         </div>
                                     </div>
@@ -2248,7 +2246,6 @@ $flash = get_flash();
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-light text-secondary border rounded-pill px-2 py-1" style="font-size: 0.72rem;">Tùy biến</span>
                                             <i class="fa-solid fa-check platform-item-check"></i>
                                         </div>
                                     </div>
