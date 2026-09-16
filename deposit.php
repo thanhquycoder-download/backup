@@ -2166,6 +2166,145 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 font-size: 0.85rem !important;
             }
         }
+
+        /* ==========================================================
+         * DIALOG MODAL SVG STROKE DRAW ANIMATION (ĐỒNG BỘ MUA KEY & CLOUD)
+         * ========================================================== */
+        .svg-dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(5px);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .svg-dialog-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .svg-dialog-box {
+            background: #ffffff;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 440px;
+            padding: 30px 24px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .svg-dialog-overlay.active .svg-dialog-box {
+            transform: translateY(0) scale(1);
+        }
+
+        .svg-icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .svg-draw-icon {
+            width: 80px;
+            height: 80px;
+        }
+
+        .svg-circle {
+            stroke-dasharray: 215;
+            stroke-dashoffset: 215;
+            animation: drawStroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+            stroke-width: 4;
+            fill: none;
+        }
+
+        .svg-check {
+            stroke-dasharray: 60;
+            stroke-dashoffset: 60;
+            animation: drawStroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.5s forwards;
+            stroke-width: 4.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .svg-error .line-1 {
+            stroke: #ef4444;
+            stroke-dasharray: 50;
+            stroke-dashoffset: 50;
+            animation: drawStroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.45s forwards;
+            stroke-width: 4.5;
+            stroke-linecap: round;
+        }
+
+        .svg-error .line-2 {
+            stroke: #ef4444;
+            stroke-dasharray: 50;
+            stroke-dashoffset: 50;
+            animation: drawStroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+            stroke-width: 4.5;
+            stroke-linecap: round;
+        }
+
+        .svg-question {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: drawStroke 0.5s ease-out 0.4s forwards;
+            stroke-width: 4.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .svg-question-dot {
+            opacity: 0;
+            animation: fadeInDot 0.25s ease-out 0.85s forwards;
+        }
+
+        .svg-triangle {
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            animation: drawStroke 0.6s ease-out forwards;
+            stroke-width: 4;
+            fill: none;
+        }
+
+        .svg-exclamation-line {
+            stroke-dasharray: 30;
+            stroke-dashoffset: 30;
+            animation: drawStroke 0.3s 0.45s ease-out forwards;
+            stroke-width: 4.5;
+            stroke-linecap: round;
+        }
+
+        .svg-exclamation-dot {
+            transform: scale(0);
+            transform-origin: 40px 56px;
+            animation: scaleDot 0.25s 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes drawStroke { to { stroke-dashoffset: 0; } }
+        @keyframes fadeInDot { to { opacity: 1; } }
+        @keyframes scaleDot { from { transform: scale(0); opacity: 1; } to { transform: scale(1); opacity: 1; } }
+
+        .svg-success .svg-circle { stroke: #10b981; }
+        .svg-success .svg-check { stroke: #10b981; }
+        .svg-error .svg-circle { stroke: #ef4444; }
+        .svg-confirm .svg-circle { stroke: #0284c7; }
+        .svg-confirm .svg-question { stroke: #0284c7; }
+        .svg-confirm .svg-question-dot { fill: #0284c7; }
+        .svg-warning .svg-circle { stroke: #f59e0b; }
+        .svg-warning .svg-triangle { stroke: #f59e0b; }
+        .svg-warning .svg-exclamation-line { stroke: #f59e0b; }
+        .svg-warning .svg-exclamation-dot { fill: #f59e0b; }
     </style>
 </head>
 <body>
@@ -2265,7 +2404,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         </a>
                         <?php endif; ?>
                         <hr class="my-2 border-secondary-subtle">
-                        <a href="logout.php" class="popup-menu-item text-danger">
+                        <a href="logout.php" onclick="closeUserPopup(); confirmLogout(); return false;" class="popup-menu-item text-danger">
                             <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
                         </a>
                     </div>
@@ -2856,11 +2995,11 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                                         <i class="fa-solid fa-qrcode"></i>
                                                         <span>Quét QR</span>
                                                     </a>
-                                                    <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền #<?= htmlspecialchars($item['deposit_code']) ?>?');">
+                                                    <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" id="cancelForm_<?= $item['id'] ?>">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                         <input type="hidden" name="action" value="cancel_deposit">
                                                         <input type="hidden" name="deposit_id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn-action-cancel" title="Hủy lệnh nạp này">
+                                                        <button type="button" class="btn-action-cancel" title="Hủy lệnh nạp này" onclick="confirmCancelDeposit('cancelForm_<?= $item['id'] ?>', '<?= htmlspecialchars($item['deposit_code']) ?>')">
                                                             <i class="fa-solid fa-xmark"></i>
                                                             <span>Hủy đơn</span>
                                                         </button>
@@ -3137,6 +3276,20 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         </div>
     </div>
 
+    <!-- ==========================================================
+     * DIALOG SVG ANIMATION (THÔNG BÁO & XÁC NHẬN ĐỒNG BỘ MUA KEY & CLOUD)
+     * ========================================================== -->
+    <div class="svg-dialog-overlay" id="svgDialogOverlay">
+        <div class="svg-dialog-box">
+            <div class="svg-icon-container" id="svgDialogIcon"></div>
+            <h4 class="fw-bold mb-2 text-dark" id="svgDialogTitle">Thông báo</h4>
+            <div class="text-muted small mb-4" id="svgDialogMessage"></div>
+            <div class="d-flex justify-content-center gap-2" id="svgDialogActions">
+                <button type="button" class="btn btn-primary px-4 rounded-pill" onclick="closeSvgDialog()">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -3211,16 +3364,9 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         btnElement.innerHTML = origHtml;
                     }, 2000);
                 }
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Đã sao chép: ' + text,
-                    showConfirmButton: false,
-                    timer: 1800
-                });
+                showSvgAlert(`Đã sao chép nội dung vào bộ nhớ đệm:<br><strong class="text-primary font-monospace mt-2 d-inline-block p-2 bg-light border rounded" style="word-break: break-all;">${text}</strong>`, 'Sao chép thành công', 'success');
             }).catch(function(err) {
-                prompt('Sao chép thủ công:', text);
+                showSvgAlert(`Dữ liệu của bạn: <strong class="font-monospace">${text}</strong>`, 'Sao chép thủ công', 'warning');
             });
         }
 
@@ -3542,14 +3688,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
                         pdf.save(`Hoa_Don_Doanh_Nghiep_${data.code}.pdf`);
 
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Đã xuất hóa đơn PDF Full-Width thành công!',
-                            showConfirmButton: false,
-                            timer: 2500
-                        });
+                        showSvgAlert('Đã kết xuất và lưu hóa đơn chuẩn A4 Full-Width về thiết bị thành công!', 'Xuất file PDF thành công', 'success');
                     } catch (e) {
                         console.error('jsPDF generation error:', e);
                         fallbackToHtml2Pdf();
@@ -3736,13 +3875,164 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             }, 250);
         }
 
-        // Thông báo Flash nếu có
+        // ==========================================================
+        // DIALOG XÁC NHẬN HIỆU ỨNG SVG STROKE DRAW ANIMATION (CHUẨN 1:1)
+        // ==========================================================
+        const SVG_TEMPLATES = {
+            success: `
+                <svg class="svg-draw-icon svg-success" viewBox="0 0 80 80">
+                    <circle class="svg-circle" cx="40" cy="40" r="34" />
+                    <polyline class="svg-check" points="24,42 35,53 56,28" />
+                </svg>
+            `,
+            error: `
+                <svg class="svg-draw-icon svg-error" viewBox="0 0 80 80">
+                    <circle class="svg-circle" cx="40" cy="40" r="34" />
+                    <line class="line-1" x1="26" y1="26" x2="54" y2="54" />
+                    <line class="line-2" x1="54" y1="26" x2="26" y2="54" />
+                </svg>
+            `,
+            confirm: `
+                <svg class="svg-draw-icon svg-confirm" viewBox="0 0 80 80">
+                    <circle class="svg-circle" cx="40" cy="40" r="34" />
+                    <path class="svg-question" d="M30,30 C30,22 50,22 50,32 C50,40 40,42 40,48" />
+                    <circle class="svg-question-dot" cx="40" cy="56" r="3" />
+                </svg>
+            `,
+            warning: `
+                <svg class="svg-draw-icon svg-warning" viewBox="0 0 80 80">
+                    <circle class="svg-circle" cx="40" cy="40" r="34" />
+                    <line class="svg-exclamation-line" x1="40" y1="24" x2="40" y2="46" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round" />
+                    <circle class="svg-exclamation-dot" cx="40" cy="56" r="3" fill="#f59e0b" />
+                </svg>
+            `
+        };
+
+        function closeSvgDialog() {
+            const overlay = document.getElementById('svgDialogOverlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        function showSvgAlert(message, title = 'Thông báo', type = 'success', onClose = null) {
+            const overlay = document.getElementById('svgDialogOverlay');
+            const iconEl = document.getElementById('svgDialogIcon');
+            const titleEl = document.getElementById('svgDialogTitle');
+            const messageEl = document.getElementById('svgDialogMessage');
+            const actionsEl = document.getElementById('svgDialogActions');
+
+            if (!overlay) return;
+
+            let mappedType = type;
+            if (type === 'danger') mappedType = 'error';
+            if (type === 'info') mappedType = 'confirm';
+            if (!SVG_TEMPLATES[mappedType]) mappedType = 'success';
+
+            iconEl.innerHTML = SVG_TEMPLATES[mappedType];
+            titleEl.textContent = title;
+            messageEl.innerHTML = message;
+
+            let btnClass = 'btn-primary';
+            if (mappedType === 'error') btnClass = 'btn-danger';
+            else if (mappedType === 'warning') btnClass = 'btn-warning text-dark';
+
+            actionsEl.innerHTML = `
+                <button type="button" class="btn ${btnClass} px-4 rounded-pill" id="svgCloseBtn">
+                    <i class="fa-solid fa-check me-1"></i> Xác nhận
+                </button>
+            `;
+
+            overlay.classList.add('active');
+            document.getElementById('svgCloseBtn').onclick = () => {
+                overlay.classList.remove('active');
+                if (typeof onClose === 'function') onClose();
+            };
+        }
+
+        function showSvgConfirm(message, title = 'Xác nhận', onConfirm = null, onCancel = null, confirmText = 'Xác nhận', confirmClass = 'btn-primary') {
+            const overlay = document.getElementById('svgDialogOverlay');
+            const iconEl = document.getElementById('svgDialogIcon');
+            const titleEl = document.getElementById('svgDialogTitle');
+            const messageEl = document.getElementById('svgDialogMessage');
+            const actionsEl = document.getElementById('svgDialogActions');
+
+            if (!overlay) return;
+
+            iconEl.innerHTML = SVG_TEMPLATES.confirm;
+            titleEl.textContent = title;
+            messageEl.innerHTML = message;
+            actionsEl.innerHTML = `
+                <button type="button" class="btn btn-light border px-4 rounded-pill" id="svgCancelBtn">Hủy bỏ</button>
+                <button type="button" class="btn ${confirmClass} px-4 rounded-pill" id="svgConfirmBtn">${confirmText}</button>
+            `;
+
+            overlay.classList.add('active');
+
+            document.getElementById('svgCancelBtn').onclick = () => {
+                overlay.classList.remove('active');
+                if (typeof onCancel === 'function') onCancel();
+            };
+
+            document.getElementById('svgConfirmBtn').onclick = () => {
+                overlay.classList.remove('active');
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+        }
+
+        function confirmCancelDeposit(formId, depositCode) {
+            showSvgConfirm(
+                `Bạn có chắc chắn muốn hủy yêu cầu nạp tiền <strong>#${depositCode}</strong> không?<br><span class="text-danger small mt-2 d-block"><i class="fa-solid fa-triangle-exclamation me-1"></i> Sau khi hủy, giao dịch sẽ không thể kích hoạt lại.</span>`,
+                'Xác nhận hủy lệnh nạp',
+                () => {
+                    const form = document.getElementById(formId);
+                    if (form) form.submit();
+                },
+                null,
+                '<i class="fa-solid fa-ban me-1"></i> Xác nhận hủy',
+                'btn-danger'
+            );
+        }
+
+        function confirmLogout() {
+            showSvgConfirm(
+                'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?',
+                'Xác nhận đăng xuất',
+                () => {
+                    window.location.href = 'logout.php';
+                },
+                null,
+                '<i class="fa-solid fa-right-from-bracket me-1"></i> Đăng xuất',
+                'btn-danger'
+            );
+        }
+
+        // Bắt sự kiện tạo lệnh nạp tiền với kiểm tra hạn mức bằng SVG Dialog
+        const depositFormEl = document.getElementById('depositForm');
+        if (depositFormEl) {
+            depositFormEl.addEventListener('submit', function(e) {
+                const amtInput = document.getElementById('amountInput');
+                if (!amtInput) return;
+                const rawVal = parseInt(amtInput.value.replace(/\D/g, ''), 10) || 0;
+                if (rawVal < 10000) {
+                    e.preventDefault();
+                    showSvgAlert('Số tiền nạp tối thiểu là <strong>10.000 ₫</strong>. Vui lòng nhập lại số tiền hợp lệ!', 'Số tiền không hợp lệ', 'warning');
+                    return false;
+                }
+                if (rawVal > 50000000) {
+                    e.preventDefault();
+                    showSvgAlert('Số tiền nạp tối đa là <strong>50.000.000 ₫</strong> trên mỗi giao dịch.', 'Vượt quá hạn mức nạp', 'warning');
+                    return false;
+                }
+            });
+        }
+
+        // Tự động bật thông báo hiệu ứng SVG Stroke Draw nếu có Flash Message từ trang trước
         <?php if ($flash): ?>
-            Swal.fire({
-                icon: <?= json_encode($flash['type']) ?>,
-                title: <?= json_encode($flash['title'] ?: 'Thông báo') ?>,
-                text: <?= json_encode($flash['message']) ?>,
-                confirmButtonColor: '#4f46e5'
+            document.addEventListener('DOMContentLoaded', () => {
+                showSvgAlert(
+                    <?= json_encode($flash['message']) ?>,
+                    <?= json_encode($flash['title'] ?: 'Thông báo') ?>,
+                    <?= json_encode($flash['type'] === 'danger' ? 'error' : $flash['type']) ?>
+                );
             });
         <?php endif; ?>
     </script>
