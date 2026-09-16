@@ -284,15 +284,65 @@ $hideBalance = ($stmtHide->fetchColumn() === '1');
 $flash = get_flash();
 $csrfToken = get_csrf_token();
 
-// Đọc và chuẩn bị chữ ký người đại diện Phan Thành Quý
+// Cấu hình SĐT và Website động theo tên miền hiện tại
+$dynamicHost = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'thanhquytech.vn');
+$dynamicHost = preg_replace('/:\d+$/', '', $dynamicHost);
+$companyPhone = '0355879036';
+
+// Đọc và chuẩn bị chữ ký người đại diện Phan Thành Quý (Xử lý lọc nét ký trong suốt, khử sạch nền trắng)
 $signatureSource = 'C:/Users/admin/.gemini/antigravity-ide/brain/9b9e3d7d-8ebc-4447-93f8-00568d8227e1/.user_uploaded/media_1789531409754.png';
-$signatureLocal = __DIR__ . '/assets/images/signature.png';
-if (file_exists($signatureSource) && (!file_exists($signatureLocal) || filesize($signatureLocal) === 0)) {
-    @copy($signatureSource, $signatureLocal);
+$signatureLocalRaw = __DIR__ . '/assets/images/signature.png';
+$signatureLocalTrans = __DIR__ . '/assets/images/signature_transparent.png';
+
+if (file_exists($signatureSource) && (!file_exists($signatureLocalRaw) || filesize($signatureLocalRaw) === 0)) {
+    @copy($signatureSource, $signatureLocalRaw);
 }
+
+// Xử lý tạo ảnh chữ ký trong suốt (chỉ giữ nét mực đen, loại bỏ 100% nền trắng)
+if (!file_exists($signatureLocalTrans) || filesize($signatureLocalTrans) === 0) {
+    $srcToProcess = file_exists($signatureLocalRaw) ? $signatureLocalRaw : (file_exists($signatureSource) ? $signatureSource : null);
+    if ($srcToProcess && function_exists('imagecreatefrompng')) {
+        $srcImg = @imagecreatefrompng($srcToProcess);
+        if ($srcImg) {
+            $w = imagesx($srcImg);
+            $h = imagesy($srcImg);
+            $transImg = imagecreatetruecolor($w, $h);
+            imagealphablending($transImg, false);
+            imagesavealpha($transImg, true);
+            $transparentColor = imagecolorallocatealpha($transImg, 0, 0, 0, 127);
+            imagefilledrectangle($transImg, 0, 0, $w, $h, $transparentColor);
+
+            for ($x = 0; $x < $w; $x++) {
+                for ($y = 0; $y < $h; $y++) {
+                    $rgb = imagecolorat($srcImg, $x, $y);
+                    $r = ($rgb >> 16) & 0xFF;
+                    $g = ($rgb >> 8) & 0xFF;
+                    $b = $rgb & 0xFF;
+                    // Độ sáng (0: đen, 255: trắng)
+                    $brightness = ($r * 299 + $g * 587 + $b * 114) / 1000;
+                    if ($brightness > 210) {
+                        // Nền trắng -> Trong suốt hoàn toàn
+                        imagesetpixel($transImg, $x, $y, $transparentColor);
+                    } else {
+                        // Nét mực ký -> Giữ màu đen đậm và làm mềm viền (anti-aliasing)
+                        $alpha = (int)(($brightness / 210) * 55);
+                        $ink = imagecolorallocatealpha($transImg, 15, 23, 42, $alpha);
+                        imagesetpixel($transImg, $x, $y, $ink);
+                    }
+                }
+            }
+            @imagepng($transImg, $signatureLocalTrans);
+            imagedestroy($srcImg);
+            imagedestroy($transImg);
+        }
+    }
+}
+
 $signatureBase64 = '';
-if (file_exists($signatureLocal) && filesize($signatureLocal) > 0) {
-    $signatureBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signatureLocal));
+if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
+    $signatureBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signatureLocalTrans));
+} elseif (file_exists($signatureLocalRaw) && filesize($signatureLocalRaw) > 0) {
+    $signatureBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signatureLocalRaw));
 } elseif (file_exists($signatureSource)) {
     $signatureBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signatureSource));
 }
@@ -317,6 +367,8 @@ if (file_exists($signatureLocal) && filesize($signatureLocal) > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- html2pdf.js: Xuất hóa đơn sang file PDF chất lượng cao không thể chỉnh sửa -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         :root {
