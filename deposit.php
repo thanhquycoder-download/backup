@@ -1606,10 +1606,12 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             max-width: 260px;
         }
 
-        .invoice-barcode-svg {
-            width: 175px;
-            height: 22px;
+        .invoice-barcode-svg,
+        .invoice-barcode-img {
+            width: 180px;
+            height: 24px;
             display: inline-block;
+            image-rendering: pixelated;
         }
 
         /* Bảng thông tin khách hàng và thụ hưởng (Kẻ khung rõ nét) */
