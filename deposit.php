@@ -12,6 +12,23 @@ require_once __DIR__ . '/config/config.php';
 // Bắt buộc người dùng phải đăng nhập
 require_login();
 
+if (!function_exists('time_ago')) {
+    function time_ago($datetime): string {
+        if (empty($datetime)) return '';
+        $timestamp = is_numeric($datetime) ? (int)$datetime : strtotime($datetime);
+        if (!$timestamp) return '';
+        $diff = time() - $timestamp;
+        if ($diff < 60) return 'Vừa xong';
+        $minutes = floor($diff / 60);
+        if ($minutes < 60) return $minutes . ' phút trước';
+        $hours = floor($diff / 3600);
+        if ($hours < 24) return $hours . ' giờ trước';
+        $days = floor($diff / 86400);
+        if ($days < 30) return $days . ' ngày trước';
+        return date('d/m/Y H:i', $timestamp);
+    }
+}
+
 // ----------------------------------------------------------
 // 1. TỰ ĐỘNG KHỞI TẠO BẢNG CSDL NẾU CHƯA CÓ
 // ----------------------------------------------------------
@@ -2232,26 +2249,29 @@ $csrfToken = get_csrf_token();
                                             <small class="text-muted"><?= time_ago($item['created_at']) ?></small>
                                         </td>
                                         <td class="text-center">
-                                            <?php if ($item['status'] === 'Success'): ?>
-                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
-                                                    <i class="fa-solid fa-circle-check me-1"></i> Đã cộng tiền
+                                            <?php 
+                                            $st = ucfirst(strtolower($item['status'] ?? 'Pending'));
+                                            ?>
+                                            <?php if ($st === 'Success'): ?>
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
+                                                    <i class="fa-solid fa-circle-check me-1"></i> Hoàn thành
                                                 </span>
-                                            <?php elseif ($item['status'] === 'Pending'): ?>
-                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 rounded-pill text-dark">
-                                                    <i class="fa-solid fa-clock me-1"></i> Chờ chuyển tiền
+                                            <?php elseif ($st === 'Pending'): ?>
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 rounded-pill text-dark fw-semibold">
+                                                    <i class="fa-solid fa-clock me-1"></i> Đang chờ
                                                 </span>
-                                            <?php elseif ($item['status'] === 'Cancelled'): ?>
-                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
+                                            <?php elseif ($st === 'Cancelled'): ?>
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
                                                     <i class="fa-solid fa-ban me-1"></i> Đã hủy
                                                 </span>
                                             <?php else: ?>
-                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-1 rounded-pill">
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
                                                     <i class="fa-solid fa-circle-xmark me-1"></i> Thất bại
                                                 </span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            <?php if ($item['status'] === 'Pending'): ?>
+                                            <?php if ($st === 'Pending'): ?>
                                                 <div class="d-inline-flex gap-1">
                                                     <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;" title="Xem lại mã QR">
                                                         <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
