@@ -337,6 +337,8 @@ $flash = get_flash();
             display: flex;
             align-items: center;
             gap: 14px;
+            min-width: 0;
+            flex-shrink: 1;
         }
 
         .sidebar-toggle-btn {
@@ -352,6 +354,7 @@ $flash = get_flash();
             font-size: 1.1rem;
             cursor: pointer;
             transition: var(--transition);
+            flex-shrink: 0;
         }
 
         .sidebar-toggle-btn:hover {
@@ -365,6 +368,7 @@ $flash = get_flash();
             align-items: center;
             gap: 10px;
             text-decoration: none;
+            min-width: 0;
         }
 
         .brand-icon {
@@ -376,18 +380,22 @@ $flash = get_flash();
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            font-size: 1.15rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            flex-shrink: 0;
         }
 
         .brand-name {
             font-size: 1.25rem;
             font-weight: 800;
             color: var(--text-heading);
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
         }
 
-        .brand-name span { color: var(--primary); }
+        .brand-name span {
+            color: var(--primary);
+        }
 
         .header-right {
             display: flex;
@@ -1079,6 +1087,78 @@ $flash = get_flash();
             }
             .hero-title {
                 font-size: 1.45rem;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            html, body {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+                touch-action: pan-y !important;
+            }
+            .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 56px !important;
+                padding: 16px 12px 50px !important;
+            }
+            .app-header {
+                height: 56px !important;
+                padding: 0 8px !important;
+            }
+            .brand-name {
+                font-size: 0.86rem !important;
+            }
+            .brand-tech-suffix {
+                display: none !important;
+            }
+            .user-avatar-small {
+                width: 28px !important;
+                height: 28px !important;
+            }
+            .user-profile-popup {
+                position: fixed !important;
+                top: 64px !important;
+                right: 12px !important;
+                left: 12px !important;
+                width: auto !important;
+                max-width: 360px !important;
+                margin: 0 auto !important;
+                z-index: 1060 !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .app-header {
+                padding: 0 6px !important;
+            }
+            .header-left {
+                gap: 8px !important;
+            }
+            .header-right {
+                gap: 6px !important;
+            }
+            .sidebar-toggle-btn {
+                width: 36px !important;
+                height: 36px !important;
+            }
+            .brand-icon {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 1rem !important;
+            }
+            .header-balance-card {
+                padding: 5px 10px !important;
+                gap: 8px !important;
+            }
+            .balance-wallet-icon {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 0.8rem !important;
+            }
+            .balance-val {
+                font-size: 0.85rem !important;
             }
         }
     </style>
