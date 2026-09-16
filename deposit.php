@@ -1551,7 +1551,7 @@ $csrfToken = get_csrf_token();
                 font-size: 1.1rem;
             }
             .deposit-card, .qr-display-card, .history-card {
-                padding: 18px 16px;
+                padding: 18px 14px;
             }
             .bank-options-grid {
                 grid-template-columns: 1fr;
@@ -1570,9 +1570,88 @@ $csrfToken = get_csrf_token();
                 height: 34px !important;
                 font-size: 1.05rem !important;
             }
+
+            /* Tiêu đề Card trên mobile: Không bị ép chữ thành hàng dọc */
+            .card-header-title {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            .card-title-text {
+                font-size: 1.05rem !important;
+                line-height: 1.35 !important;
+                width: 100% !important;
+            }
+
+            /* Thẻ ngân hàng TPBank trên mobile */
+            .bank-card-premium {
+                padding: 14px 12px !important;
+            }
+            .bank-badge-code {
+                width: 42px !important;
+                height: 42px !important;
+                font-size: 0.95rem !important;
+            }
+
+            /* Nút chọn nhanh số tiền: Grid 4 cột cân đối 2 hàng */
+            .amount-quick-pills {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px !important;
+            }
+            .amount-pill-btn {
+                padding: 7px 2px !important;
+                font-size: 0.75rem !important;
+                border-radius: 10px !important;
+                text-align: center !important;
+                justify-content: center !important;
+                white-space: nowrap !important;
+                width: 100% !important;
+            }
+
+            /* Bảng chi tiết chuyển khoản trong Card QR: Label trên, giá trị dưới không bị ép dòng */
+            .transfer-details-box {
+                padding: 12px 14px !important;
+            }
+            .transfer-row {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 5px !important;
+                padding: 9px 0 !important;
+            }
+            .transfer-label {
+                font-size: 0.78rem !important;
+            }
+            .transfer-val {
+                width: 100% !important;
+                justify-content: space-between !important;
+                font-size: 0.95rem !important;
+            }
+
+            /* Đảm bảo bảng lịch sử luôn cuộn ngang 1 dòng mượt mà */
+            .table-responsive {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                border-radius: 12px !important;
+            }
+            .history-table {
+                min-width: 820px !important;
+            }
+            .history-table th,
+            .history-table td {
+                white-space: nowrap !important;
+            }
         }
 
         @media (max-width: 420px) {
+            .amount-quick-pills {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 5px !important;
+            }
+            .amount-pill-btn {
+                font-size: 0.69rem !important;
+                padding: 6px 1px !important;
+            }
             .app-header {
                 padding: 0 6px !important;
             }
@@ -2125,7 +2204,7 @@ $csrfToken = get_csrf_token();
                                     <a href="<?= htmlspecialchars($vietQrUrl) ?>" download="VietQR-TPBank-<?= htmlspecialchars($activeDeposit['deposit_code']) ?>.png" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
                                         <i class="fa-solid fa-download me-1"></i> Tải ảnh QR
                                     </a>
-                                    <a href="deposit.php" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                                    <a href="<?= htmlspecialchars($redirectRoute) ?>" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
                                         <i class="fa-solid fa-plus me-1"></i> Tạo lệnh nạp mới
                                     </a>
                                 </div>
@@ -2227,6 +2306,9 @@ $csrfToken = get_csrf_token();
                         </button>
                     </div>
                 <?php else: ?>
+                    <div class="d-md-none scroll-hint-badge">
+                        <i class="fa-solid fa-arrows-left-right me-2 text-primary"></i> Vuốt ngang để xem chi tiết các cột
+                    </div>
                     <div class="table-responsive">
                         <table class="history-table">
                             <thead>
