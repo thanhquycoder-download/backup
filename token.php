@@ -2065,11 +2065,6 @@ $flash = get_flash();
                             Hỗ trợ lưu trữ và tự động đồng bộ tài khoản Golike, Trao Đổi Sub (TDS), Tương Tác Chéo (TTC)... Nhập mã JWT token hoặc Access token để tự động trích xuất Họ tên, Username, ID và cập nhật số dư coin theo thời gian thực.
                         </p>
                     </div>
-                    <div class="flex-shrink-0">
-                        <a href="#addTokenCard" class="btn btn-light fw-bold px-4 py-2 rounded-3 shadow-sm">
-                            <i class="fa-solid fa-plus-circle text-primary me-2"></i> Thêm Token Mới
-                        </a>
-                    </div>
                 </div>
             </div>
 
