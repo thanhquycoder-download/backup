@@ -1587,6 +1587,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             padding: 18px 22px !important;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
             color: #0f172a !important;
+            width: 100% !important;
             max-width: 740px !important;
             margin: 0 auto !important;
             font-size: 0.82rem !important;
@@ -2821,7 +2822,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                     <div class="invoice-card" id="invoiceCardPrintArea">
                         <!-- 1. Quốc hiệu - Tiêu ngữ & Thông tin Công ty (Tối ưu gọn gàng) -->
                         <div class="d-flex justify-content-between align-items-start pb-2 border-bottom" style="gap: 15px;">
-                            <div class="text-start" style="flex: 1 1 58%;">
+                            <div class="text-start" style="flex: 1 1 auto; min-width: 0;">
                                 <div class="fw-bold text-primary text-uppercase" style="font-size: 0.88rem; letter-spacing: 0.3px; line-height: 1.25; margin-bottom: 2px;">
                                     CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
                                 </div>
@@ -2829,7 +2830,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                 <div style="font-size: 0.75rem; color: #475569; margin-bottom: 2px;">Địa chỉ: Tầng 12, Tòa nhà Công Nghệ Số, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
                                 <div style="font-size: 0.75rem; color: #475569;">SĐT: <strong>0355879036</strong> | Website: <strong id="invCompanyWebsite"><?= htmlspecialchars($dynamicHost) ?></strong></div>
                             </div>
-                            <div class="text-end" style="flex: 1 1 42%;">
+                            <div class="text-end" style="flex: 0 0 auto; white-space: nowrap;">
                                 <div class="fw-bold text-uppercase text-dark" style="font-size: 0.82rem; letter-spacing: 0.3px;">
                                     CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
                                 </div>
@@ -3336,54 +3337,103 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             }
         }
 
-        // Xuất hóa đơn ra file PDF chuẩn 1:1, khớp tuyệt đối 1 trang A4 duy nhất
+        // Xuất hóa đơn ra file PDF chuẩn Full-Width 1:1, khớp tuyệt đối 1 trang A4 duy nhất
         function exportCurrentInvoiceToPdf() {
             if (!currentInvoiceData) return;
             const data = currentInvoiceData;
             const element = document.getElementById('invoiceCardPrintArea');
             if (!element) return;
 
+            // Cuộn modal lên trên cùng để tránh lệch toạ độ
+            const modalBody = document.querySelector('#depositInvoiceModal .modal-body');
+            if (modalBody) modalBody.scrollTop = 0;
+
             Swal.fire({
                 title: 'Đang khởi tạo file PDF...',
-                text: 'Hệ thống đang kết xuất hóa đơn chuẩn A4 1 trang...',
+                text: 'Hệ thống đang kết xuất hóa đơn chuẩn A4 Full-Width...',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
 
-            const opt = {
-                margin: [6, 8, 6, 8],
-                filename: `Hoa_Don_Doanh_Nghiep_${data.code}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true, 
-                    logging: false,
-                    letterRendering: true,
-                    scrollY: 0,
-                    windowWidth: 760
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: 'avoid-all' }
+            // Lấy trực tiếp constructor jsPDF từ bundle hoặc window
+            const getJsPdfClass = () => {
+                if (typeof window.jspdf !== 'undefined' && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+                if (typeof window.jsPDF === 'function') return window.jsPDF;
+                return null;
             };
 
-            if (typeof html2pdf !== 'undefined') {
-                html2pdf().set(opt).from(element).save().then(function() {
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Đã xuất hóa đơn PDF thành công!',
-                        showConfirmButton: false,
-                        timer: 2500
-                    });
-                }).catch(function(err) {
-                    console.error('PDF Export Error:', err);
-                    window.print();
+            const jsPdfClass = getJsPdfClass();
+
+            if (typeof html2canvas !== 'undefined' && jsPdfClass) {
+                html2canvas(element, {
+                    scale: 2.5,
+                    useCORS: true,
+                    logging: false,
+                    letterRendering: true,
+                    backgroundColor: '#ffffff',
+                    scrollX: 0,
+                    scrollY: 0
+                }).then(canvas => {
+                    try {
+                        const pdf = new jsPdfClass('p', 'mm', 'a4');
+                        const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
+                        const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+                        
+                        // Lề 8mm hai bên -> Hóa đơn chiếm trọn vẹn 194mm (Full-Width cực đẹp như trên web)
+                        const margin = 8;
+                        const imgWidth = pageWidth - (margin * 2); // 194 mm
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        
+                        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                        pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
+                        pdf.save(`Hoa_Don_Doanh_Nghiep_${data.code}.pdf`);
+
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Đã xuất hóa đơn PDF Full-Width thành công!',
+                            showConfirmButton: false,
+                            timer: 2500
+                        });
+                    } catch (e) {
+                        console.error('jsPDF generation error:', e);
+                        fallbackToHtml2Pdf();
+                    }
+                }).catch(err => {
+                    console.error('html2canvas error:', err);
+                    fallbackToHtml2Pdf();
                 });
             } else {
-                window.print();
+                fallbackToHtml2Pdf();
+            }
+
+            function fallbackToHtml2Pdf() {
+                if (typeof html2pdf !== 'undefined') {
+                    const opt = {
+                        margin: [8, 8, 8, 8],
+                        filename: `Hoa_Don_Doanh_Nghiep_${data.code}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { 
+                            scale: 2.5, 
+                            useCORS: true, 
+                            scrollY: 0, 
+                            scrollX: 0 
+                        },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: 'avoid-all' }
+                    };
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        Swal.close();
+                    }).catch(e => {
+                        console.error('Fallback export error:', e);
+                        window.print();
+                    });
+                } else {
+                    window.print();
+                }
             }
         }
 
