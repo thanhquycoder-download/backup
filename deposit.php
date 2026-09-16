@@ -2356,10 +2356,14 @@ $csrfToken = get_csrf_token();
                         </h4>
                         <p class="text-muted small mb-0">Theo dõi chi tiết mã đơn nạp, ngân hàng thụ hưởng và trạng thái cộng tiền tự động của bạn</p>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-light text-dark border px-3 py-2">
-                            Tổng đơn đã tạo: <strong><?= count($depositHistory) ?></strong>
-                        </span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="history-count-badge">
+                            <span class="count-badge-icon">
+                                <i class="fa-solid fa-receipt"></i>
+                            </span>
+                            <span class="count-badge-label">Tổng đơn đã tạo:</span>
+                            <span class="count-badge-number"><?= count($depositHistory) ?></span>
+                        </div>
                         <a href="<?= htmlspecialchars($redirectRoute) ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
                             <i class="fa-solid fa-arrows-rotate me-1"></i> Làm mới
                         </a>
@@ -2378,9 +2382,6 @@ $csrfToken = get_csrf_token();
                         </button>
                     </div>
                 <?php else: ?>
-                    <div class="d-md-none scroll-hint-badge">
-                        <i class="fa-solid fa-arrows-left-right me-2 text-primary"></i> Vuốt ngang để xem chi tiết các cột
-                    </div>
                     <div class="table-responsive">
                         <table class="history-table">
                             <thead>
