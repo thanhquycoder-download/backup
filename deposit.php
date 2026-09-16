@@ -2622,23 +2622,42 @@ $csrfToken = get_csrf_token();
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center" style="text-align: center !important;">
-                                            <?php if ($st === 'Pending'): ?>
-                                                <div class="d-inline-flex gap-1 justify-content-center">
-                                                    <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;" title="Xem lại mã QR">
+                                            <div class="d-inline-flex gap-1 justify-content-center align-items-center flex-wrap">
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1" 
+                                                        style="font-size: 0.76rem; font-weight: 700;" 
+                                                        title="Xem hóa đơn chi tiết & xuất file Word" 
+                                                        onclick='showDepositInvoice(<?= htmlspecialchars(json_encode([
+                                                            'code' => $item['deposit_code'],
+                                                            'amount' => (float)$item['amount'],
+                                                            'amount_formatted' => format_currency($item['amount']),
+                                                            'bank_name' => $item['bank_name'],
+                                                            'account_number' => $item['account_number'],
+                                                            'account_name' => $item['account_name'],
+                                                            'transfer_content' => $item['transfer_content'],
+                                                            'created_at' => date('d/m/Y H:i:s', strtotime($item['created_at'])),
+                                                            'status' => $item['status'],
+                                                            'customer_name' => !empty($currentUser['fullname']) ? $currentUser['fullname'] : $currentUser['username'],
+                                                            'customer_username' => $currentUser['username'],
+                                                            'customer_email' => $currentUser['email'] ?? '',
+                                                        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)'>
+                                                    <i class="fa-solid fa-receipt me-1"></i> Chi tiết
+                                                </button>
+
+                                                <?php if ($st === 'Pending'): ?>
+                                                    <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-2 py-1 fw-bold" style="font-size: 0.76rem;" title="Xem lại mã QR">
                                                         <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
                                                     </a>
                                                     <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                         <input type="hidden" name="action" value="cancel_deposit">
                                                         <input type="hidden" name="deposit_id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" style="font-size: 0.78rem;" title="Hủy lệnh nạp">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" style="font-size: 0.76rem;" title="Hủy lệnh nạp">
                                                             <i class="fa-solid fa-xmark"></i> Hủy
                                                         </button>
                                                     </form>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-muted small"><i class="fa-solid fa-check-double text-success me-1"></i> Hoàn tất</span>
-                                            <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -2661,6 +2680,200 @@ $csrfToken = get_csrf_token();
             </div>
         </footer>
     </main>
+
+    <!-- ==========================================================
+     * MODAL HÓA ĐƠN GIAO DỊCH NẠP TIỀN & XUẤT FILE WORD
+     * ========================================================== -->
+    <div class="modal fade" id="depositInvoiceModal" tabindex="-1" aria-labelledby="depositInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+                <div class="modal-header bg-light border-0 py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-circle bg-primary bg-opacity-10 text-primary">
+                            <i class="fa-solid fa-file-invoice fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="depositInvoiceModalLabel">Hóa Đơn Nạp Tiền Điện Tử</h5>
+                            <small class="text-muted">Chứng từ xác thực giao dịch chính thức</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" onclick="exportCurrentInvoiceToWord()">
+                            <i class="fa-solid fa-file-word me-1"></i> Xuất file Word
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" onclick="printCurrentInvoice()">
+                            <i class="fa-solid fa-print me-1"></i> In hóa đơn
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body p-3 p-md-4 bg-light bg-opacity-50">
+                    <div class="invoice-card" id="invoiceCardPrintArea">
+                        <!-- 1. Header Đơn vị phát hành -->
+                        <div class="invoice-top-brand">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">
+                                        <i class="fa-solid fa-bolt-lightning"></i>
+                                    </div>
+                                    <h4 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">THANH QUY TECH</h4>
+                                </div>
+                                <div class="text-muted small">HỆ THỐNG DỊCH VỤ CÔNG NGHỆ SỐ & GIẢI PHÁP TỰ ĐỘNG</div>
+                                <div class="text-muted small">Hotline: <strong>0987.654.321</strong> | Website: <strong>thanhquytech.vn</strong></div>
+                                <div class="text-muted small">Địa chỉ: Tòa nhà Công Nghệ, TP. Hồ Chí Minh, Việt Nam</div>
+                            </div>
+                            <div class="text-md-end">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-bold mb-2 d-inline-block">
+                                    HÓA ĐƠN ĐIỆN TỬ
+                                </span>
+                                <div class="fw-bold text-dark fs-6" id="invModalCode">#---</div>
+                                <div class="text-muted small" id="invModalDate">--/--/---- --:--</div>
+                                <div class="mt-1" id="invModalStatusBadge">
+                                    <span class="badge bg-success text-white px-2 py-1 rounded-pill">Hoàn tất</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Tiêu đề Hóa Đơn & Barcode Siêu Thị -->
+                        <div class="text-center my-3">
+                            <h3 class="fw-bold text-dark mb-1" style="letter-spacing: 0.5px; text-transform: uppercase;">HÓA ĐƠN GIAO DỊCH NẠP TIỀN</h3>
+                            <div class="text-muted small mb-2">(Bản thể hiện điện tử phục vụ lưu trữ và đối soát khách hàng)</div>
+                            
+                            <!-- Mã vạch Barcode siêu thị -->
+                            <div class="invoice-barcode-wrap">
+                                <div class="text-muted small mb-1" style="font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase;">Mã vạch kiểm duyệt (Retail Barcode)</div>
+                                <div id="invModalBarcodeSvg"></div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Thông tin Khách hàng & Ngân hàng chuyển tiền -->
+                        <div class="row g-3 my-2" style="font-size: 0.88rem;">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100 border text-start">
+                                    <div class="fw-bold text-primary mb-2"><i class="fa-solid fa-user me-1"></i> THÔNG TIN KHÁCH HÀNG</div>
+                                    <div class="mb-1">Người nạp: <strong class="text-dark" id="invModalCustomerName">---</strong></div>
+                                    <div class="mb-1">Tài khoản: <span class="font-monospace text-secondary" id="invModalCustomerUsername">---</span></div>
+                                    <div>Email: <span class="text-muted" id="invModalCustomerEmail">---</span></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded-3 h-100 border text-start">
+                                    <div class="fw-bold text-primary mb-2"><i class="fa-solid fa-building-columns me-1"></i> THỤ HƯỞNG & PHƯƠNG THỨC</div>
+                                    <div class="mb-1">Ngân hàng: <strong class="text-dark" id="invModalBankName">---</strong></div>
+                                    <div class="mb-1">Số tài khoản: <span class="font-monospace text-dark fw-bold" id="invModalAccountNumber">---</span></div>
+                                    <div class="mb-1">Chủ tài khoản: <span class="text-uppercase text-dark" id="invModalAccountName">---</span></div>
+                                    <div>Nội dung CK: <span class="font-monospace text-danger fw-bold" id="invModalTransferContent">---</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Bảng chi tiết dịch vụ thanh toán -->
+                        <table class="invoice-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px; text-align: center !important;">STT</th>
+                                    <th>Nội dung / Khoản mục thanh toán</th>
+                                    <th style="text-align: center !important;">Phương thức</th>
+                                    <th class="text-end" style="width: 140px; text-align: right !important;">Số tiền (VNĐ)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="text-align: center !important;">01</td>
+                                    <td style="text-align: left !important;">
+                                        <div class="fw-bold text-dark">Nạp số dư tài khoản dịch vụ</div>
+                                        <small class="text-muted">Cộng tiền tự động vào ví số dư ThanhQuyTech qua VietQR Napas 24/7</small>
+                                    </td>
+                                    <td style="text-align: center !important;">
+                                        <span class="badge bg-light text-dark border">VietQR / TPBank</span>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark" style="text-align: right !important;" id="invModalAmountItem">0 đ</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end text-muted" style="text-align: right !important;">Phí xử lý giao dịch:</td>
+                                    <td class="text-end text-success fw-semibold" style="text-align: right !important;">0 đ (Miễn phí)</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end text-muted" style="text-align: right !important;">Thuế GTGT (VAT):</td>
+                                    <td class="text-end text-muted" style="text-align: right !important;">0 đ</td>
+                                </tr>
+                                <tr style="background: #f8fafc;">
+                                    <td colspan="3" class="text-end fw-bold text-dark fs-6" style="text-align: right !important;">TỔNG TIỀN THANH TOÁN:</td>
+                                    <td class="text-end fw-bold text-success fs-5" style="text-align: right !important;" id="invModalTotalAmount">0 đ</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="p-2 px-3 bg-light rounded-3 border mb-3 small text-start">
+                            <strong>Số tiền viết bằng chữ:</strong> <span class="fst-italic text-dark" id="invModalAmountWords">---</span>
+                        </div>
+
+                        <!-- 5. Phần Chữ Ký & Con Dấu Xác Nhận -->
+                        <div class="signature-section">
+                            <div class="signature-box">
+                                <div class="fw-bold text-dark text-uppercase">NGƯỜI NẠP TIỀN</div>
+                                <div class="text-muted small fst-italic mb-5">(Ký, ghi rõ họ tên)</div>
+                                <div class="fw-bold text-dark mt-4" id="invModalSignCustomer">---</div>
+                                <div class="text-muted small">Khách hàng hệ thống</div>
+                            </div>
+
+                            <div class="signature-box">
+                                <div class="fw-bold text-dark text-uppercase">ĐẠI DIỆN HỆ THỐNG / GIÁM ĐỐC</div>
+                                <div class="text-muted small fst-italic">(Ký điện tử & Đóng dấu chứng thực)</div>
+                                
+                                <!-- Con dấu tròn đỏ thẩm mỹ cao SVG -->
+                                <div class="red-stamp-seal">
+                                    <svg viewBox="0 0 160 160" width="100%" height="100%">
+                                        <circle cx="80" cy="80" r="74" fill="none" stroke="#dc2626" stroke-width="3.5" />
+                                        <circle cx="80" cy="80" r="67" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,3" />
+                                        <circle cx="80" cy="80" r="48" fill="none" stroke="#dc2626" stroke-width="1.5" />
+                                        
+                                        <!-- Chữ cong hình tròn phía trên -->
+                                        <path id="curveTop" d="M 22,80 A 58,58 0 1,1 138,80" fill="none" />
+                                        <text font-size="10.5" font-weight="900" fill="#dc2626" letter-spacing="1">
+                                            <textPath href="#curveTop" startOffset="50%" text-anchor="middle">
+                                                THANH QUY TECH
+                                            </textPath>
+                                        </text>
+                                        
+                                        <!-- Chữ cong hình tròn phía dưới -->
+                                        <path id="curveBottom" d="M 138,80 A 58,58 0 0,1 22,80" fill="none" />
+                                        <text font-size="9" font-weight="700" fill="#dc2626" letter-spacing="1">
+                                            <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">
+                                                ★ DỊCH VỤ CÔNG NGHỆ ★
+                                            </textPath>
+                                        </text>
+                                        
+                                        <!-- Ngôi sao và nội dung trung tâm -->
+                                        <polygon points="80,56 83,64 91,64 85,69 87,77 80,72 73,77 75,69 69,64 77,64" fill="#dc2626" />
+                                        <text x="80" y="93" font-size="11" font-weight="900" fill="#dc2626" text-anchor="middle" letter-spacing="0.5">ĐÃ XÁC NHẬN</text>
+                                        <text x="80" y="106" font-size="8.5" font-weight="700" fill="#dc2626" text-anchor="middle">THANH TOÁN</text>
+                                    </svg>
+                                </div>
+
+                                <!-- Chữ ký tay nghệ thuật Phan Thành Quý -->
+                                <div>
+                                    <span class="signature-handwriting">Phan Thành Quý</span>
+                                </div>
+                                <div class="fw-bold text-dark fs-6 mt-1">Phan Thành Quý</div>
+                                <div class="text-muted small">Người đại diện hệ thống</div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Footer Lời Cảm Ơn -->
+                        <div class="mt-4 pt-3 border-top text-center text-muted small">
+                            <div><i class="fa-solid fa-heart text-danger me-1"></i> Cảm ơn quý khách đã tin tưởng và đồng hành cùng <strong>ThanhQuyTech</strong>!</div>
+                            <div style="font-size: 0.75rem;">Chứng từ này được tạo tự động từ hệ thống và có giá trị xác nhận giao dịch hợp lệ. Mọi thắc mắc xin liên hệ Hotline: 0987.654.321.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-2 px-4 justify-content-between">
+                    <span class="text-muted small"><i class="fa-solid fa-shield-halved text-success me-1"></i> Chứng từ hóa đơn bảo mật & xác thực</span>
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -2768,6 +2981,409 @@ $csrfToken = get_csrf_token();
             if (input) {
                 input.value = new Intl.NumberFormat('vi-VN').format(amount);
             }
+        }
+
+        // 6. Xử lý hiển thị Hóa đơn nạp tiền & Xuất file Word
+        let currentInvoiceData = null;
+
+        function docSoTien(so) {
+            if (!so || so == 0) return 'Không đồng chẵn.';
+            const ChuSo = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+            const Tien = ['', ' nghìn', ' triệu', ' tỷ', ' nghìn tỷ', ' triệu tỷ'];
+            let soTien = Math.abs(parseInt(so, 10));
+            if (isNaN(soTien)) return 'Không đồng chẵn.';
+
+            function doc3So(baso) {
+                let tram = Math.floor(baso / 100);
+                let chuc = Math.floor((baso % 100) / 10);
+                let donvi = baso % 10;
+                let kq = '';
+                if (tram === 0 && chuc === 0 && donvi === 0) return '';
+                if (tram !== 0) {
+                    kq += ChuSo[tram] + ' trăm ';
+                    if (chuc === 0 && donvi !== 0) kq += 'lẻ ';
+                }
+                if (chuc !== 0 && chuc !== 1) {
+                    kq += ChuSo[chuc] + ' mươi';
+                    if (chuc === 0 && donvi !== 0) kq += ' linh ';
+                }
+                if (chuc === 1) kq += 'mười';
+                switch (donvi) {
+                    case 1:
+                        if (chuc > 1) kq += ' mốt';
+                        else kq += ' một';
+                        break;
+                    case 5:
+                        if (chuc === 0) kq += ' năm';
+                        else kq += ' lăm';
+                        break;
+                    default:
+                        if (donvi !== 0) kq += ' ' + ChuSo[donvi];
+                        break;
+                }
+                return kq.trim();
+            }
+
+            let viTri = [];
+            let temp = soTien;
+            while (temp > 0) {
+                viTri.push(temp % 1000);
+                temp = Math.floor(temp / 1000);
+            }
+            let ketQua = '';
+            for (let j = viTri.length - 1; j >= 0; j--) {
+                let doc = doc3So(viTri[j]);
+                if (doc !== '') {
+                    ketQua += doc + Tien[j] + ' ';
+                }
+            }
+            ketQua = ketQua.trim();
+            if (!ketQua) return 'Không đồng chẵn.';
+            return ketQua.charAt(0).toUpperCase() + ketQua.slice(1) + ' đồng chẵn.';
+        }
+
+        function generateBarcodeSvg(code) {
+            return `
+                <svg class="invoice-barcode-svg" viewBox="0 0 260 52">
+                    <rect x="10" y="0" width="3" height="38" fill="#111827"/>
+                    <rect x="15" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="18" y="0" width="4" height="38" fill="#111827"/>
+                    <rect x="25" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="30" y="0" width="5" height="38" fill="#111827"/>
+                    <rect x="38" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="42" y="0" width="3.5" height="38" fill="#111827"/>
+                    <rect x="48" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="53" y="0" width="4.5" height="38" fill="#111827"/>
+                    <rect x="60" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="64" y="0" width="3" height="38" fill="#111827"/>
+                    <rect x="70" y="0" width="5" height="38" fill="#111827"/>
+                    <rect x="78" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="83" y="0" width="3" height="38" fill="#111827"/>
+                    <rect x="89" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="93" y="0" width="4" height="38" fill="#111827"/>
+                    <rect x="100" y="0" width="2.5" height="38" fill="#111827"/>
+                    <rect x="105" y="0" width="5" height="38" fill="#111827"/>
+                    <rect x="113" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="118" y="0" width="3.5" height="38" fill="#111827"/>
+                    <rect x="124" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="128" y="0" width="4" height="38" fill="#111827"/>
+                    <rect x="135" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="140" y="0" width="5" height="38" fill="#111827"/>
+                    <rect x="148" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="152" y="0" width="3" height="38" fill="#111827"/>
+                    <rect x="158" y="0" width="2.5" height="38" fill="#111827"/>
+                    <rect x="163" y="0" width="4" height="38" fill="#111827"/>
+                    <rect x="170" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="174" y="0" width="3.5" height="38" fill="#111827"/>
+                    <rect x="180" y="0" width="5" height="38" fill="#111827"/>
+                    <rect x="188" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="193" y="0" width="3" height="38" fill="#111827"/>
+                    <rect x="199" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="203" y="0" width="4" height="38" fill="#111827"/>
+                    <rect x="210" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="215" y="0" width="3.5" height="38" fill="#111827"/>
+                    <rect x="221" y="0" width="2" height="38" fill="#111827"/>
+                    <rect x="226" y="0" width="4" height="38" fill="#111827"/>
+                    <rect x="233" y="0" width="1.5" height="38" fill="#111827"/>
+                    <rect x="238" y="0" width="3" height="38" fill="#111827"/>
+                    <text x="130" y="50" font-family="'Courier New', Courier, monospace" font-size="11.5" font-weight="700" fill="#1e293b" text-anchor="middle" letter-spacing="3">*${code}*</text>
+                </svg>
+            `;
+        }
+
+        function showDepositInvoice(data) {
+            if (!data) return;
+            currentInvoiceData = data;
+
+            // Đổ dữ liệu vào Modal
+            document.getElementById('invModalCode').innerText = '#' + data.code;
+            document.getElementById('invModalDate').innerText = data.created_at;
+
+            // Trạng thái badge
+            const statusEl = document.getElementById('invModalStatusBadge');
+            const st = (data.status || 'Pending').toLowerCase();
+            if (st === 'success') {
+                statusEl.innerHTML = '<span class="badge bg-success text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i> ĐÃ HOÀN THÀNH</span>';
+            } else if (st === 'pending') {
+                statusEl.innerHTML = '<span class="badge bg-warning text-dark px-3 py-1 rounded-pill"><i class="fa-solid fa-clock me-1"></i> ĐANG CHỜ CHUYỂN TIỀN</span>';
+            } else if (st === 'cancelled') {
+                statusEl.innerHTML = '<span class="badge bg-secondary text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-ban me-1"></i> ĐÃ HỦY</span>';
+            } else {
+                statusEl.innerHTML = '<span class="badge bg-danger text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-xmark me-1"></i> THẤT BẠI</span>';
+            }
+
+            // Thông tin người nạp
+            document.getElementById('invModalCustomerName').innerText = data.customer_name || data.customer_username;
+            document.getElementById('invModalCustomerUsername').innerText = '@' + data.customer_username;
+            document.getElementById('invModalCustomerEmail').innerText = data.customer_email || 'Chưa cập nhật';
+            document.getElementById('invModalSignCustomer').innerText = data.customer_name || data.customer_username;
+
+            // Thông tin ngân hàng
+            document.getElementById('invModalBankName').innerText = data.bank_name;
+            document.getElementById('invModalAccountNumber').innerText = data.account_number;
+            document.getElementById('invModalAccountName').innerText = data.account_name;
+            document.getElementById('invModalTransferContent').innerText = data.transfer_content;
+
+            // Số tiền
+            document.getElementById('invModalAmountItem').innerText = data.amount_formatted;
+            document.getElementById('invModalTotalAmount').innerText = data.amount_formatted;
+            document.getElementById('invModalAmountWords').innerText = docSoTien(data.amount);
+
+            // Barcode siêu thị
+            document.getElementById('invModalBarcodeSvg').innerHTML = generateBarcodeSvg(data.code);
+
+            // Mở Modal
+            const modalEl = document.getElementById('depositInvoiceModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                let modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (!modalInstance) {
+                    modalInstance = new bootstrap.Modal(modalEl);
+                }
+                modalInstance.show();
+            } else {
+                modalEl.classList.add('show');
+                modalEl.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
+        }
+
+        // Xuất hóa đơn ra file Microsoft Word (.doc)
+        function exportCurrentInvoiceToWord() {
+            if (!currentInvoiceData) return;
+            const data = currentInvoiceData;
+            const words = docSoTien(data.amount);
+            const statusText = (data.status === 'Success') ? 'ĐÃ HOÀN TẤT THANH TOÁN' : (data.status === 'Pending' ? 'ĐANG CHỜ THANH TOÁN' : data.status);
+            const statusColor = (data.status === 'Success') ? '#16a34a' : (data.status === 'Pending' ? '#d97706' : '#dc2626');
+
+            const wordHtml = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>Hóa Đơn Giao Dịch Nạp Tiền #${data.code}</title>
+                <!--[if gte mso 9]>
+                <xml>
+                <w:WordDocument>
+                <w:View>Print</w:View>
+                <w:Zoom>100</w:Zoom>
+                <w:DoNotOptimizeForBrowser/>
+                </w:WordDocument>
+                </xml>
+                <![endif]-->
+                <style>
+                    @page {
+                        size: A4;
+                        margin: 20mm 15mm 20mm 15mm;
+                    }
+                    body {
+                        font-family: 'Times New Roman', Times, serif;
+                        font-size: 13pt;
+                        line-height: 1.4;
+                        color: #111111;
+                    }
+                    .text-center { text-align: center; }
+                    .text-right { text-align: right; }
+                    .text-left { text-align: left; }
+                    .fw-bold { font-weight: bold; }
+                    .table-main {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 15px;
+                        margin-bottom: 15px;
+                    }
+                    .table-main th, .table-main td {
+                        border: 1px solid #333333;
+                        padding: 8px 10px;
+                        font-size: 12pt;
+                    }
+                    .table-main th {
+                        background-color: #f1f5f9;
+                    }
+                    .barcode-text {
+                        font-family: 'Courier New', Courier, monospace;
+                        font-size: 14pt;
+                        font-weight: bold;
+                        letter-spacing: 5px;
+                        text-align: center;
+                        margin: 6px 0;
+                    }
+                    .barcode-bars {
+                        letter-spacing: 1px;
+                        font-family: 'Courier New', Courier, monospace;
+                        font-size: 20pt;
+                        line-height: 1;
+                        font-weight: bold;
+                    }
+                    .stamp-box {
+                        display: inline-block;
+                        border: 2px solid #dc2626;
+                        color: #dc2626;
+                        padding: 6px 14px;
+                        font-weight: bold;
+                        text-align: center;
+                        border-radius: 8px;
+                    }
+                </style>
+            </head>
+            <body>
+                <!-- Header -->
+                <table style="width: 100%; border: none; margin-bottom: 10px;">
+                    <tr>
+                        <td style="width: 60%; border: none; vertical-align: top;">
+                            <div style="font-size: 15pt; font-weight: bold; color: #1e3a8a;">THANH QUY TECH</div>
+                            <div style="font-size: 10.5pt; color: #555555;">HỆ THỐNG DỊCH VỤ CÔNG NGHỆ SỐ & GIẢI PHÁP TỰ ĐỘNG</div>
+                            <div style="font-size: 10.5pt; color: #555555;">Hotline: 0987.654.321 | Website: thanhquytech.vn</div>
+                            <div style="font-size: 10.5pt; color: #555555;">Địa chỉ: Tòa nhà Công Nghệ, TP. Hồ Chí Minh, Việt Nam</div>
+                        </td>
+                        <td style="width: 40%; border: none; text-align: right; vertical-align: top;">
+                            <div style="font-size: 11pt; font-weight: bold; color: #4338ca;">HÓA ĐƠN ĐIỆN TỬ</div>
+                            <div style="font-size: 13pt; font-weight: bold;">#${data.code}</div>
+                            <div style="font-size: 10.5pt; color: #555555;">Ngày lập: ${data.created_at}</div>
+                            <div style="margin-top: 5px;">
+                                <span style="font-size: 10pt; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 4px;">
+                                    ${statusText}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr style="border: 0; border-top: 1px dashed #999999; margin: 12px 0;" />
+
+                <!-- Tiêu đề Hóa Đơn -->
+                <div class="text-center" style="margin: 15px 0 5px;">
+                    <div style="font-size: 18pt; font-weight: bold; color: #0f172a; text-transform: uppercase;">HÓA ĐƠN GIAO DỊCH NẠP TIỀN</div>
+                    <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Bản thể hiện điện tử phục vụ chứng từ, lưu trữ và đối soát)</div>
+                </div>
+
+                <!-- Mã vạch siêu thị -->
+                <div class="text-center" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; margin: 12px auto; max-width: 320px;">
+                    <div style="font-size: 8.5pt; text-transform: uppercase; color: #666666;">Mã vạch kiểm duyệt (Retail Barcode)</div>
+                    <div class="barcode-bars">||| | |||| | ||||| | ||| || |||| | |||</div>
+                    <div class="barcode-text">*${data.code}*</div>
+                </div>
+
+                <!-- Thông tin khách hàng và ngân hàng -->
+                <table style="width: 100%; border: 1px solid #cccccc; margin-top: 14px; background: #fafafa;">
+                    <tr>
+                        <td style="width: 50%; border: none; padding: 10px; vertical-align: top;">
+                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px;">1. THÔNG TIN KHÁCH HÀNG</div>
+                            <div>- Họ tên người nạp: <b>${data.customer_name || data.customer_username}</b></div>
+                            <div>- Tài khoản hệ thống: <b>@${data.customer_username}</b></div>
+                            <div>- Email liên hệ: ${data.customer_email || 'Chưa cập nhật'}</div>
+                        </td>
+                        <td style="width: 50%; border: none; padding: 10px; vertical-align: top;">
+                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px;">2. THÔNG TIN THỤ HƯỞNG</div>
+                            <div>- Ngân hàng nhận: <b>${data.bank_name}</b></div>
+                            <div>- Số tài khoản: <b>${data.account_number}</b></div>
+                            <div>- Chủ tài khoản: <b>${data.account_name}</b></div>
+                            <div>- Nội dung chuyển khoản: <b style="color: #dc2626;">${data.transfer_content}</b></div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Bảng chi tiết khoản mục -->
+                <table class="table-main">
+                    <thead>
+                        <tr>
+                            <th style="width: 8%; text-align: center;">STT</th>
+                            <th style="width: 52%; text-align: left;">Diễn giải dịch vụ / Khoản mục</th>
+                            <th style="width: 20%; text-align: center;">Phương thức</th>
+                            <th style="width: 20%; text-align: right;">Số tiền (VNĐ)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-center">01</td>
+                            <td>
+                                <b>Nạp số dư tài khoản dịch vụ</b>
+                                <div style="font-size: 10pt; color: #555555;">Cộng tiền tự động vào ví số dư ThanhQuyTech qua Napas 24/7</div>
+                            </td>
+                            <td class="text-center">VietQR / TPBank</td>
+                            <td class="text-right"><b>${data.amount_formatted}</b></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-right" style="color: #555555;">Phí xử lý giao dịch:</td>
+                            <td class="text-right" style="color: #16a34a; font-weight: bold;">0 đ (Miễn phí)</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-right" style="color: #555555;">Thuế GTGT (VAT):</td>
+                            <td class="text-right">0 đ</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td colspan="3" class="text-right" style="font-weight: bold; font-size: 13pt;">TỔNG TIỀN THANH TOÁN:</td>
+                            <td class="text-right" style="font-weight: bold; font-size: 14pt; color: #16a34a;">${data.amount_formatted}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin: 8px 0; font-size: 12pt;">
+                    <b>Số tiền viết bằng chữ:</b> <i>${words}</i>
+                </div>
+
+                <hr style="border: 0; border-top: 1px dashed #cccccc; margin: 25px 0 15px;" />
+
+                <!-- Phần chữ ký & dấu mộc -->
+                <table style="width: 100%; border: none; margin-top: 15px;">
+                    <tr>
+                        <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
+                            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI NẠP TIỀN</div>
+                            <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Ký, ghi rõ họ tên)</div>
+                            <div style="height: 60px;"></div>
+                            <div style="font-weight: bold; font-size: 12pt;">${data.customer_name || data.customer_username}</div>
+                            <div style="font-size: 10pt; color: #666666;">Khách hàng hệ thống</div>
+                        </td>
+                        <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
+                            <div style="font-weight: bold; text-transform: uppercase;">ĐẠI DIỆN HỆ THỐNG / GIÁM ĐỐC</div>
+                            <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Ký điện tử & đóng dấu chứng thực)</div>
+                            <div style="margin: 10px auto;">
+                                <div class="stamp-box">
+                                    ★ THANH QUY TECH ★<br/>
+                                    <span style="font-size: 13pt; font-weight: 900;">ĐÃ XÁC NHẬN THANH TOÁN</span><br/>
+                                    <span style="font-size: 9pt;">CHỨNG TỪ ĐIỆN TỬ HỢP LỆ</span>
+                                </div>
+                            </div>
+                            <div style="font-size: 20pt; font-family: 'Brush Script MT', cursive; color: #1d4ed8; font-weight: bold; margin-top: 5px;">
+                                Phan Thành Quý
+                            </div>
+                            <div style="font-weight: bold; font-size: 13pt; color: #0f172a;">Phan Thành Quý</div>
+                            <div style="font-size: 10pt; color: #666666;">Người đại diện pháp lý / Giám đốc</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Lời cảm ơn -->
+                <div class="text-center" style="margin-top: 35px; padding-top: 15px; border-top: 1px solid #eeeeee; font-size: 10pt; color: #777777;">
+                    <div>Cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của <b>ThanhQuyTech</b>!</div>
+                    <div>Chứng từ điện tử này được lưu trữ vĩnh viễn trên hệ thống và có giá trị xác nhận đối soát.</div>
+                </div>
+            </body>
+            </html>
+            `;
+
+            const blob = new Blob(['\ufeff', wordHtml], {
+                type: 'application/msword;charset=utf-8'
+            });
+            const downloadUrl = URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = downloadUrl;
+            downloadLink.download = `Hoa_Don_Nap_Tien_${data.code}.doc`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(downloadUrl);
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Đã xuất hóa đơn file Word (.doc) thành công!',
+                showConfirmButton: false,
+                timer: 2500
+            });
+        }
+
+        function printCurrentInvoice() {
+            window.print();
         }
 
         // Thông báo Flash nếu có
