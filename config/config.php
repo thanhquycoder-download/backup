@@ -181,6 +181,24 @@ function format_currency($amount): string {
 }
 
 /**
+ * Định dạng khoảng thời gian tương đối
+ */
+function time_ago($datetime): string {
+    if (empty($datetime)) return '';
+    $timestamp = is_numeric($datetime) ? (int)$datetime : strtotime($datetime);
+    if (!$timestamp) return '';
+    $diff = time() - $timestamp;
+    if ($diff < 60) return 'Vừa xong';
+    $minutes = floor($diff / 60);
+    if ($minutes < 60) return $minutes . ' phút trước';
+    $hours = floor($diff / 3600);
+    if ($hours < 24) return $hours . ' giờ trước';
+    $days = floor($diff / 86400);
+    if ($days < 30) return $days . ' ngày trước';
+    return date('d/m/Y H:i', $timestamp);
+}
+
+/**
  * Kiểm tra trạng thái đăng nhập
  */
 function is_logged_in(): bool {
