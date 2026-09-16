@@ -79,13 +79,23 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
 
-    // Tự động đảm bảo ngân hàng Admin chỉ có duy nhất TPBank
+    // Tự động đảm bảo và đồng bộ ngân hàng Admin TPBank với STK và Chủ TK mới nhất
+    $pdo->exec("
+        UPDATE `bank_accounts` 
+        SET `account_number` = '10004397102', `account_name` = 'PHAN THANH QUY'
+        WHERE `bank_code` = 'TPB' OR `id` = 1;
+
+        UPDATE `deposits` 
+        SET `account_number` = '10004397102', `account_name` = 'PHAN THANH QUY'
+        WHERE `account_number` = '0987654321' OR `account_name` = 'TRAN THANH QUY';
+    ");
+
     $stmtCheckTpb = $pdo->query("SELECT COUNT(*) FROM bank_accounts WHERE bank_code = 'TPB'");
     if ($stmtCheckTpb->fetchColumn() == 0) {
         $pdo->exec("
             DELETE FROM `bank_accounts`;
             INSERT INTO `bank_accounts` (`id`, `bank_code`, `bank_name`, `account_number`, `account_name`, `branch`, `qr_template`, `min_deposit`, `max_deposit`, `is_default`, `status`) VALUES
-            (1, 'TPB', 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active');
+            (1, 'TPB', 'TPBank (Ngân Hàng Tiên Phong)', '10004397102', 'PHAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active');
         ");
     }
 } catch (Exception $e) {
