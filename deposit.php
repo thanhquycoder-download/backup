@@ -271,6 +271,7 @@ $csrfToken = get_csrf_token();
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <base href="/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nạp Tiền Tài Khoản Tự Động - <?= htmlspecialchars(APP_NAME) ?></title>
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
@@ -1492,7 +1493,7 @@ $csrfToken = get_csrf_token();
 
         <div class="header-right">
             <!-- Số dư tài khoản: Bấm vào khung để chuyển qua nạp tiền -->
-            <a href="deposit.php" class="header-balance-card" title="Nạp tiền vào tài khoản">
+            <a href="/payments/deposit" class="header-balance-card" title="Nạp tiền vào tài khoản">
                 <div class="balance-wallet-icon">
                     <i class="fa-solid fa-wallet"></i>
                 </div>
@@ -1539,7 +1540,7 @@ $csrfToken = get_csrf_token();
                             <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
                             <div class="fw-bold" style="color: #15803d; font-size: 0.95rem;"><?= !empty($hideBalance) ? '****** đ' : format_currency($currentUser['balance']) ?></div>
                         </div>
-                        <a href="deposit.php" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                        <a href="/payments/deposit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
                             <i class="fa-solid fa-circle-arrow-down me-1"></i> Nạp tiền
                         </a>
                     </div>
@@ -1549,7 +1550,7 @@ $csrfToken = get_csrf_token();
                         <a href="profile.php" class="popup-menu-item">
                             <i class="fa-solid fa-user-gear me-2 text-primary"></i> Thông tin cá nhân
                         </a>
-                        <a href="deposit.php" class="popup-menu-item" style="color: #4f46e5; background: #eef2ff;">
+                        <a href="/payments/deposit" class="popup-menu-item" style="color: #4f46e5; background: #eef2ff;">
                             <i class="fa-solid fa-wallet me-2 text-success"></i> Nạp tiền tài khoản
                         </a>
                         <a href="buy-key.php" class="popup-menu-item">
@@ -1718,7 +1719,7 @@ $csrfToken = get_csrf_token();
                             </a>
                         </li>
                         <li>
-                            <a href="deposit.php" class="submenu-link active">
+                            <a href="/payments/deposit" class="submenu-link active">
                                 <span><i class="fa-solid fa-circle-arrow-down me-1 text-success"></i> Nạp tiền</span>
                                 <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
                             </a>
@@ -1850,7 +1851,7 @@ $csrfToken = get_csrf_token();
                         <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1">Tự động VietQR 24/7</span>
                     </div>
 
-                    <form action="deposit.php" method="POST" id="depositForm">
+                    <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" id="depositForm">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                         <input type="hidden" name="action" value="create_deposit">
 
@@ -2089,7 +2090,7 @@ $csrfToken = get_csrf_token();
                         <span class="badge bg-light text-dark border px-3 py-2">
                             Tổng đơn đã tạo: <strong><?= count($depositHistory) ?></strong>
                         </span>
-                        <a href="deposit.php" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
+                        <a href="<?= htmlspecialchars($redirectRoute) ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
                             <i class="fa-solid fa-arrows-rotate me-1"></i> Làm mới
                         </a>
                     </div>
@@ -2171,10 +2172,10 @@ $csrfToken = get_csrf_token();
                                         <td class="text-end">
                                             <?php if ($item['status'] === 'Pending'): ?>
                                                 <div class="d-inline-flex gap-1">
-                                                    <a href="deposit.php?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;" title="Xem lại mã QR">
+                                                    <a href="<?= htmlspecialchars($redirectRoute) ?>?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;" title="Xem lại mã QR">
                                                         <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
                                                     </a>
-                                                    <form action="deposit.php" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
+                                                    <form action="<?= htmlspecialchars($redirectRoute) ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                         <input type="hidden" name="action" value="cancel_deposit">
                                                         <input type="hidden" name="deposit_id" value="<?= $item['id'] ?>">
