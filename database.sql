@@ -313,6 +313,58 @@ CREATE TABLE IF NOT EXISTS `settings` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------------------------------------
+-- 13. Bảng: bank_accounts (Quản lý tài khoản ngân hàng nhận tiền của Admin)
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `bank_accounts` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+    `bank_code` VARCHAR(20) NOT NULL COMMENT 'Mã định danh ngân hàng chuẩn VietQR (MB, VCB, TCB, ACB, ICB, MOMO...)',
+    `bank_name` VARCHAR(100) NOT NULL COMMENT 'Tên đầy đủ ngân hàng (MBBank Quân Đội, Vietcombank...)',
+    `account_number` VARCHAR(50) NOT NULL COMMENT 'Số tài khoản / Số điện thoại ví nhận tiền',
+    `account_name` VARCHAR(100) NOT NULL COMMENT 'Tên chủ tài khoản (Admin)',
+    `branch` VARCHAR(100) DEFAULT NULL COMMENT 'Chi nhánh ngân hàng',
+    `qr_template` VARCHAR(20) NOT NULL DEFAULT 'compact2' COMMENT 'Mẫu VietQR hiển thị (compact2, compact, qr_only)',
+    `min_deposit` DECIMAL(15, 2) NOT NULL DEFAULT 10000.00 COMMENT 'Hạn mức nạp tối thiểu (VND)',
+    `max_deposit` DECIMAL(15, 2) NOT NULL DEFAULT 50000000.00 COMMENT 'Hạn mức nạp tối đa (VND)',
+    `is_default` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1: Ưu tiên chọn mặc định',
+    `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái hoạt động',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX `idx_ba_bank_code` (`bank_code`),
+    INDEX `idx_ba_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 14. Bảng: deposits (Quản lý các lệnh nạp tiền của người dùng)
+-- Liên kết khóa ngoại với users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `deposits` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Liên kết bảng users.uuid',
+    `deposit_code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã nạp tiền độc nhất (VD: NAP8492015, TQ260901...)',
+    `bank_id` INT DEFAULT NULL COMMENT 'Liên kết bank_accounts.id (nếu có)',
+    `bank_name` VARCHAR(100) NOT NULL COMMENT 'Tên ngân hàng chuyển đến',
+    `account_number` VARCHAR(50) NOT NULL COMMENT 'Số tài khoản Admin nhận',
+    `account_name` VARCHAR(100) NOT NULL COMMENT 'Tên chủ tài khoản Admin',
+    `amount` DECIMAL(15, 2) NOT NULL COMMENT 'Số tiền nạp (VND)',
+    `transfer_content` VARCHAR(100) NOT NULL COMMENT 'Nội dung chuyển khoản chính xác để duyệt tự động',
+    `status` ENUM('Pending', 'Success', 'Failed', 'Cancelled') NOT NULL DEFAULT 'Pending' COMMENT 'Trạng thái giao dịch nạp',
+    `proof_image` VARCHAR(255) DEFAULT NULL COMMENT 'Đường dẫn ảnh chụp bill chuyển khoản',
+    `admin_note` VARCHAR(255) DEFAULT NULL COMMENT 'Ghi chú đối soát của Quản trị viên',
+    `approved_at` DATETIME DEFAULT NULL COMMENT 'Thời điểm duyệt lệnh nạp và cộng tiền',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX `idx_dep_user_uuid` (`user_uuid`),
+    INDEX `idx_dep_code` (`deposit_code`),
+    INDEX `idx_dep_status` (`status`),
+    INDEX `idx_dep_created_at` (`created_at`),
+    CONSTRAINT `fk_deposits_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- DỮ LIỆU KHỞI TẠO MẪU (SEED DATA)
 -- ==========================================================
@@ -427,4 +479,21 @@ INSERT INTO `settings` (`user_uuid`, `setting_key`, `setting_value`, `setting_gr
 ('0191eb50-0002-7000-8000-000000000002', 'auto_renew_key', '0', 'general', 'Tự động gia hạn key khi hết hạn'),
 ('0191eb50-0002-7000-8000-000000000002', 'hide_balance_header', '0', 'general', 'Ẩn hiển thị số dư trên thanh tiêu đề')
 ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
+
+-- 11. Dữ liệu Tài khoản ngân hàng nhận tiền mẫu của Admin (bank_accounts)
+INSERT INTO `bank_accounts` (`id`, `bank_code`, `bank_name`, `account_number`, `account_name`, `branch`, `qr_template`, `min_deposit`, `max_deposit`, `is_default`, `status`) VALUES
+(1, 'MB', 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active'),
+(2, 'VCB', 'Vietcombank (Ngoại Thương Việt Nam)', '1018899889', 'TRAN THANH QUY', 'Chi Nhánh Ba Đình', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
+(3, 'TCB', 'Techcombank (Kỹ Thương Việt Nam)', '19036688990011', 'TRAN THANH QUY', 'Chi Nhánh Thăng Long', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
+(4, 'MOMO', 'Ví Điện Tử MoMo', '0987654321', 'TRAN THANH QUY', 'Toàn Quốc', 'compact2', 10000.00, 20000000.00, 0, 'Active')
+ON DUPLICATE KEY UPDATE `bank_name` = VALUES(`bank_name`), `account_number` = VALUES(`account_number`), `account_name` = VALUES(`account_name`);
+
+-- 12. Dữ liệu lệnh nạp tiền mẫu của người dùng (deposits)
+INSERT INTO `deposits` (`user_uuid`, `deposit_code`, `bank_id`, `bank_name`, `account_number`, `account_name`, `amount`, `transfer_content`, `status`, `approved_at`, `created_at`) VALUES
+('0191eb50-0002-7000-8000-000000000002', 'NAP6839204-01', 1, 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 2000000.00, 'NAP 6839204', 'Success', DATE_SUB(NOW(), INTERVAL 3 HOUR), DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+('0191eb50-0003-7000-8000-000000000003', 'NAP3185927-01', 1, 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 850000.00, 'NAP 3185927', 'Success', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('0191eb50-0004-7000-8000-000000000004', 'NAP7524918-01', 2, 'Vietcombank (Ngoại Thương Việt Nam)', '1018899889', 'TRAN THANH QUY', 320000.00, 'NAP 7524918', 'Success', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('0191eb50-0002-7000-8000-000000000002', 'NAP6839204-02', 1, 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 500000.00, 'NAP 6839204', 'Pending', NULL, DATE_SUB(NOW(), INTERVAL 15 MINUTE))
+ON DUPLICATE KEY UPDATE `amount` = VALUES(`amount`), `status` = VALUES(`status`);
+
 

@@ -1,0 +1,2367 @@
+<?php
+/**
+ * ==========================================================
+ * TRANG NẠP TIỀN TỰ ĐỘNG QUA NGÂN HÀNG & VIETQR (VIETNAMESE QR)
+ * File: deposit.php & payments/deposit.php
+ * Website: ThanhQuyTech
+ * ==========================================================
+ */
+
+require_once __DIR__ . '/config/config.php';
+
+// Bắt buộc người dùng phải đăng nhập
+require_login();
+
+// ----------------------------------------------------------
+// 1. TỰ ĐỘNG KHỞI TẠO BẢNG CSDL NẾU CHƯA CÓ
+// ----------------------------------------------------------
+try {
+    // Bảng tài khoản ngân hàng của Admin
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `bank_accounts` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `bank_code` VARCHAR(20) NOT NULL COMMENT 'Mã chuẩn VietQR (MB, VCB, TCB, ACB...)',
+            `bank_name` VARCHAR(100) NOT NULL,
+            `account_number` VARCHAR(50) NOT NULL,
+            `account_name` VARCHAR(100) NOT NULL,
+            `branch` VARCHAR(100) DEFAULT NULL,
+            `qr_template` VARCHAR(20) NOT NULL DEFAULT 'compact2',
+            `min_deposit` DECIMAL(15, 2) NOT NULL DEFAULT 10000.00,
+            `max_deposit` DECIMAL(15, 2) NOT NULL DEFAULT 50000000.00,
+            `is_default` TINYINT(1) NOT NULL DEFAULT 0,
+            `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX `idx_ba_bank_code` (`bank_code`),
+            INDEX `idx_ba_status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // Bảng lệnh nạp tiền của người dùng
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `deposits` (
+            `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `user_uuid` CHAR(36) NOT NULL,
+            `deposit_code` VARCHAR(50) NOT NULL UNIQUE,
+            `bank_id` INT DEFAULT NULL,
+            `bank_name` VARCHAR(100) NOT NULL,
+            `account_number` VARCHAR(50) NOT NULL,
+            `account_name` VARCHAR(100) NOT NULL,
+            `amount` DECIMAL(15, 2) NOT NULL,
+            `transfer_content` VARCHAR(100) NOT NULL,
+            `status` ENUM('Pending', 'Success', 'Failed', 'Cancelled') NOT NULL DEFAULT 'Pending',
+            `proof_image` VARCHAR(255) DEFAULT NULL,
+            `admin_note` VARCHAR(255) DEFAULT NULL,
+            `approved_at` DATETIME DEFAULT NULL,
+            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX `idx_dep_user_uuid` (`user_uuid`),
+            INDEX `idx_dep_code` (`deposit_code`),
+            INDEX `idx_dep_status` (`status`),
+            INDEX `idx_dep_created_at` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    // Tự động chèn ngân hàng mẫu của Admin nếu bảng chưa có dữ liệu
+    $stmtCheckBanks = $pdo->query("SELECT COUNT(*) FROM bank_accounts");
+    if ($stmtCheckBanks->fetchColumn() == 0) {
+        $pdo->exec("
+            INSERT INTO `bank_accounts` (`id`, `bank_code`, `bank_name`, `account_number`, `account_name`, `branch`, `qr_template`, `min_deposit`, `max_deposit`, `is_default`, `status`) VALUES
+            (1, 'MB', 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active'),
+            (2, 'VCB', 'Vietcombank (Ngoại Thương Việt Nam)', '1018899889', 'TRAN THANH QUY', 'Chi Nhánh Ba Đình', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
+            (3, 'TCB', 'Techcombank (Kỹ Thương Việt Nam)', '19036688990011', 'TRAN THANH QUY', 'Chi Nhánh Thăng Long', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
+            (4, 'MOMO', 'Ví Điện Tử MoMo', '0987654321', 'TRAN THANH QUY', 'Toàn Quốc', 'compact2', 10000.00, 20000000.00, 0, 'Active');
+        ");
+    }
+} catch (Exception $e) {
+    // Ghi log nếu lỗi
+    error_log("Deposit Table Setup Error: " . $e->getMessage());
+}
+
+// ----------------------------------------------------------
+// 2. LẤY DỮ LIỆU TÀI KHOẢN NGƯỜI DÙNG ĐANG ĐĂNG NHẬP
+// ----------------------------------------------------------
+$stmtUser = $pdo->prepare("SELECT * FROM users WHERE uuid = ? LIMIT 1");
+$stmtUser->execute([$_SESSION['user_uuid']]);
+$currentUser = $stmtUser->fetch();
+
+if (!$currentUser) {
+    session_destroy();
+    header("Location: login.php");
+    exit;
+}
+
+$isAdmin = ($currentUser['role'] === 'Admin');
+
+// Lấy danh sách ngân hàng Admin đang hoạt động
+$stmtBanks = $pdo->query("SELECT * FROM bank_accounts WHERE status = 'Active' ORDER BY is_default DESC, id ASC");
+$bankAccounts = $stmtBanks->fetchAll();
+
+// Cú pháp chuyển khoản mặc định dựa trên UID: NAP + UID (VD: NAP 6839204)
+$defaultTransferContent = 'NAP ' . $currentUser['uid'];
+
+// ----------------------------------------------------------
+// 3. XỬ LÝ POST: TẠO LỆNH NẠP TIỀN HOẶC HỦY LỆNH
+// ----------------------------------------------------------
+$activeDeposit = null; // Lệnh nạp đang mở để quét QR
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = trim($_POST['action'] ?? '');
+    $submittedToken = $_POST['csrf_token'] ?? '';
+
+    if (!verify_csrf_token($submittedToken)) {
+        set_flash('error', 'Yêu cầu không hợp lệ hoặc phiên bảo mật đã hết hạn. Vui lòng tải lại trang.', 'Bảo Mật CSRF');
+        header("Location: deposit.php");
+        exit;
+    }
+
+    // A. TẠO LỆNH NẠP TIỀN MỚI
+    if ($action === 'create_deposit') {
+        $bankId = (int)($_POST['bank_id'] ?? 0);
+        $amount = (float)str_replace(['.', ',', ' '], '', $_POST['amount'] ?? '0');
+
+        // Tìm ngân hàng được chọn
+        $selectedBank = null;
+        foreach ($bankAccounts as $b) {
+            if ($b['id'] == $bankId) {
+                $selectedBank = $b;
+                break;
+            }
+        }
+
+        if (!$selectedBank) {
+            set_flash('warning', 'Vui lòng chọn ngân hàng bạn muốn chuyển tiền vào.', 'Chưa Chọn Ngân Hàng');
+            header("Location: deposit.php");
+            exit;
+        }
+
+        $minDep = (float)$selectedBank['min_deposit'];
+        $maxDep = (float)$selectedBank['max_deposit'];
+
+        if ($amount < $minDep) {
+            set_flash('warning', 'Số tiền nạp tối thiểu là ' . format_currency($minDep) . '.', 'Số Tiền Không Hợp Lệ');
+            header("Location: deposit.php");
+            exit;
+        }
+
+        if ($amount > $maxDep) {
+            set_flash('warning', 'Số tiền nạp tối đa là ' . format_currency($maxDep) . '.', 'Số Tiền Quá Lớn');
+            header("Location: deposit.php");
+            exit;
+        }
+
+        // Tạo mã nạp tiền duy nhất
+        $depositCode = 'NAP' . $currentUser['uid'] . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 4));
+        $transferContent = 'NAP ' . $currentUser['uid'];
+
+        try {
+            $stmtInsert = $pdo->prepare("
+                INSERT INTO deposits (user_uuid, deposit_code, bank_id, bank_name, account_number, account_name, amount, transfer_content, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())
+            ");
+            $stmtInsert->execute([
+                $currentUser['uuid'],
+                $depositCode,
+                $selectedBank['id'],
+                $selectedBank['bank_name'],
+                $selectedBank['account_number'],
+                $selectedBank['account_name'],
+                $amount,
+                $transferContent
+            ]);
+
+            set_flash('success', 'Đã tạo lệnh nạp ' . format_currency($amount) . ' thành công! Vui lòng quét mã VietQR hoặc chuyển khoản đúng nội dung bên dưới.', 'Lệnh Nạp Sẵn Sàng');
+            header("Location: deposit.php?code=" . urlencode($depositCode));
+            exit;
+
+        } catch (Exception $e) {
+            set_flash('error', 'Lỗi hệ thống khi tạo lệnh nạp: ' . $e->getMessage(), 'Lỗi Xử Lý');
+            header("Location: deposit.php");
+            exit;
+        }
+    }
+
+    // B. HỦY LỆNH NẠP TIỀN
+    if ($action === 'cancel_deposit') {
+        $depId = (int)($_POST['deposit_id'] ?? 0);
+        $stmtCancel = $pdo->prepare("
+            UPDATE deposits 
+            SET status = 'Cancelled' 
+            WHERE id = ? AND user_uuid = ? AND status = 'Pending'
+        ");
+        $stmtCancel->execute([$depId, $currentUser['uuid']]);
+
+        if ($stmtCancel->rowCount() > 0) {
+            set_flash('info', 'Đã hủy lệnh nạp tiền thành công.', 'Đã Hủy Lệnh');
+        } else {
+            set_flash('warning', 'Không tìm thấy lệnh nạp cần hủy hoặc lệnh đã được xử lý trước đó.', 'Thông Báo');
+        }
+        header("Location: deposit.php");
+        exit;
+    }
+}
+
+// ----------------------------------------------------------
+// 4. LẤY LỆNH NẠP TIỀN HIỆN TẠI ĐỂ HIỂN THỊ VIETQR
+// ----------------------------------------------------------
+$requestedCode = trim($_GET['code'] ?? '');
+if (!empty($requestedCode)) {
+    $stmtFindDep = $pdo->prepare("
+        SELECT d.*, b.bank_code, b.qr_template 
+        FROM deposits d
+        LEFT JOIN bank_accounts b ON d.bank_id = b.id
+        WHERE d.deposit_code = ? AND d.user_uuid = ?
+        LIMIT 1
+    ");
+    $stmtFindDep->execute([$requestedCode, $currentUser['uuid']]);
+    $activeDeposit = $stmtFindDep->fetch();
+}
+
+// Nếu không chỉ định code cụ thể, tìm lệnh nạp Pending gần nhất
+if (!$activeDeposit) {
+    $stmtLatestPending = $pdo->prepare("
+        SELECT d.*, b.bank_code, b.qr_template 
+        FROM deposits d
+        LEFT JOIN bank_accounts b ON d.bank_id = b.id
+        WHERE d.user_uuid = ? AND d.status = 'Pending'
+        ORDER BY d.id DESC LIMIT 1
+    ");
+    $stmtLatestPending->execute([$currentUser['uuid']]);
+    $activeDeposit = $stmtLatestPending->fetch();
+}
+
+// Mặc định chọn ngân hàng đầu tiên nếu chưa có lệnh nạp active
+$defaultBank = !empty($bankAccounts) ? $bankAccounts[0] : null;
+
+// ----------------------------------------------------------
+// 5. THỐNG KÊ VÀ LỊCH SỬ NẠP TIỀN CỦA NGƯỜI DÙNG
+// ----------------------------------------------------------
+// Lịch sử 50 giao dịch gần nhất
+$stmtHistory = $pdo->prepare("
+    SELECT * FROM deposits 
+    WHERE user_uuid = ? 
+    ORDER BY id DESC 
+    LIMIT 50
+");
+$stmtHistory->execute([$currentUser['uuid']]);
+$depositHistory = $stmtHistory->fetchAll();
+
+// Tổng nạp thành công
+$stmtTotalSuccess = $pdo->prepare("
+    SELECT COALESCE(SUM(amount), 0) AS total_amount, COUNT(*) AS total_count 
+    FROM deposits 
+    WHERE user_uuid = ? AND status = 'Success'
+");
+$stmtTotalSuccess->execute([$currentUser['uuid']]);
+$statsSuccess = $stmtTotalSuccess->fetch();
+$totalDeposited = (float)($statsSuccess['total_amount'] ?? 0);
+$successCount = (int)($statsSuccess['total_count'] ?? 0);
+
+// Đếm số lệnh đang chờ
+$stmtPendingCount = $pdo->prepare("
+    SELECT COUNT(*) FROM deposits 
+    WHERE user_uuid = ? AND status = 'Pending'
+");
+$stmtPendingCount->execute([$currentUser['uuid']]);
+$pendingCount = (int)$stmtPendingCount->fetchColumn();
+
+// Đọc cài đặt ẩn/hiện số dư trên thanh tiêu đề
+$stmtHide = $pdo->prepare("SELECT setting_value FROM settings WHERE user_uuid = ? AND setting_key = 'hide_balance_header' LIMIT 1");
+$stmtHide->execute([$currentUser['uuid']]);
+$hideBalance = ($stmtHide->fetchColumn() === '1');
+
+$flash = get_flash();
+$csrfToken = get_csrf_token();
+?>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nạp Tiền Tài Khoản Tự Động - <?= htmlspecialchars(APP_NAME) ?></title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --text-heading: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #06b6d4 100%);
+            --gradient-success: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+            --gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.02);
+            --transition: all 0.25s ease-in-out;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            position: relative;
+            touch-action: pan-y;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            background-color: var(--bg-body) !important;
+            color: var(--text-body) !important;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ==========================================================
+         * 1. THANH ĐIỀU HƯỚNG CỐ ĐỊNH TRÊN ĐẦU (HEADER)
+         * ========================================================== */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            z-index: 1040;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--card-border);
+            box-shadow: 0 4px 20px -8px rgba(15, 23, 42, 0.07);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+            flex-shrink: 1;
+        }
+
+        .sidebar-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #ffffff;
+            color: var(--text-heading);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-color: #cbd5e1;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            min-width: 0;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--gradient-primary);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+        }
+
+        .brand-name span {
+            color: var(--primary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Khối Số Dư Nạp Vào (Bên Phải Header - Click chuyển nạp tiền) */
+        .header-balance-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+            padding: 6px 14px;
+            border-radius: 50px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+            transition: var(--transition);
+            flex-shrink: 0;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .header-balance-card:hover {
+            border-color: #86efac;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .balance-wallet-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #10b981;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.88rem;
+            flex-shrink: 0;
+        }
+
+        .balance-text-group {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .balance-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #15803d;
+            letter-spacing: 0.4px;
+        }
+
+        .balance-val {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #14532d;
+            white-space: nowrap;
+        }
+
+        /* Khối Avatar & Bảng Popup Hồ Sơ */
+        .user-profile-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .user-profile-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .user-profile-toggle:hover,
+        .user-profile-toggle:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.22);
+            transform: scale(1.05);
+        }
+
+        .user-avatar-small {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            flex-shrink: 0;
+            pointer-events: none;
+            user-select: none;
+            background: #eef2ff;
+        }
+
+        /* Bảng Popup Hồ Sơ */
+        .user-profile-popup {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 290px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.22), 0 4px 15px rgba(0, 0, 0, 0.06);
+            padding: 16px;
+            z-index: 1060;
+            display: none;
+            animation: popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes popupFadeIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .user-profile-popup.active {
+            display: block !important;
+        }
+
+        .popup-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 9px 12px;
+            border-radius: 10px;
+            color: #334155;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .popup-menu-item:hover {
+            background: #f1f5f9;
+            color: #4f46e5;
+            transform: translateX(3px);
+        }
+
+        .popup-menu-item.text-danger:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        /* ==========================================================
+         * 2. SIDEBAR MENU CỐ ĐỊNH TRÁI (CHUẨN 1:1 THEO BUY-KEY & INDEX)
+         * ========================================================== */
+        .app-sidebar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            bottom: 0;
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid var(--card-border);
+            z-index: 1030;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 18px 12px 30px;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .app-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .app-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .app-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        .sidebar-category {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            padding: 12px 14px 6px;
+            margin-top: 4px;
+        }
+
+        .sidebar-nav-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: var(--text-body);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            width: 100%;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .sidebar-link:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+        }
+
+        .sidebar-link.active {
+            background: #eef2ff;
+            color: var(--primary);
+            border-color: #c7d2fe;
+            font-weight: 700;
+        }
+
+        .sidebar-link.active .sidebar-icon {
+            color: var(--primary);
+        }
+
+        /* 1:1 Bounding Box & Đồng bộ khoảng cách, độ đậm nhạt Icon */
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            max-width: 24px;
+            font-size: 1.05rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #64748b;
+            flex-shrink: 0;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .sidebar-icon i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+
+        .sidebar-icon .fa-fingerprint {
+            font-size: 1.15rem;
+            stroke: currentColor;
+            stroke-width: 22px;
+        }
+
+        .sidebar-icon .fa-headset {
+            font-size: 1.1rem;
+            stroke: currentColor;
+            stroke-width: 18px;
+        }
+
+        .sidebar-icon .fa-gear {
+            font-size: 1.05rem;
+        }
+
+        .sidebar-link:hover .sidebar-icon {
+            color: var(--primary);
+        }
+
+        .sidebar-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-arrow {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            transition: transform 0.25s ease;
+        }
+
+        .sidebar-link:not(.collapsed) .sidebar-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Submenu accordion */
+        .sidebar-submenu {
+            list-style: none;
+            padding: 4px 0 6px 14px;
+            margin: 4px 0 4px 16px;
+            border-left: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .submenu-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.84rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .submenu-link:hover {
+            color: var(--primary);
+            background: #f8fafc;
+            padding-left: 15px;
+        }
+
+        .submenu-link.active {
+            color: var(--primary);
+            background: #eef2ff;
+            font-weight: 700;
+        }
+
+        /* Huy hiệu Lịch Sử */
+        .badge-history {
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            padding: 2px 7px;
+            border-radius: 6px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            transition: var(--transition);
+        }
+
+        .submenu-link:hover .badge-history,
+        .sidebar-link:hover .badge-history {
+            background: #e0e7ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+        }
+
+        /* Backdrop cho mobile */
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1025;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .sidebar-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* ==========================================================
+         * 3. NỘI DUNG CHÍNH (APP MAIN)
+         * ========================================================== */
+        .app-main {
+            margin-left: 260px;
+            padding-top: 70px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            background-color: var(--bg-body);
+        }
+
+        .content-container {
+            padding: 28px;
+            flex-grow: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* BREADCRUMB */
+        .breadcrumb-custom {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb-custom a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .breadcrumb-custom a:hover {
+            color: var(--primary);
+        }
+
+        .breadcrumb-custom i {
+            font-size: 0.72rem;
+            opacity: 0.6;
+        }
+
+        /* HERO BANNER */
+        .deposit-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            border-radius: var(--radius-lg);
+            padding: 32px 36px;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 35px -10px rgba(30, 27, 75, 0.35);
+            margin-bottom: 28px;
+        }
+
+        .deposit-hero::before {
+            content: "";
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: #a5b4fc;
+            margin-bottom: 12px;
+        }
+
+        .hero-title {
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.25;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-desc {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            max-width: 780px;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+
+        /* THẺ THỐNG KÊ NHANH */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-card);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
+            border-color: #cbd5e1;
+        }
+
+        .stat-card.card-balance-highlight {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #86efac;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+        }
+
+        .stat-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .stat-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            white-space: nowrap;
+        }
+
+        /* KHỐI 2 CỘT: FORM NẠP TIỀN & VIETQR BOX */
+        .deposit-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .deposit-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 26px 28px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .card-header-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .card-title-text {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* DANH SÁCH NGÂN HÀNG RADIO CARD */
+        .bank-options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .bank-radio-label {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .bank-radio-label:hover {
+            border-color: #a5b4fc;
+            background: #fdfefe;
+        }
+
+        .bank-radio-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .bank-radio-input:checked + .bank-radio-label {
+            border-color: var(--primary);
+            background: #eef2ff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+        }
+
+        .bank-badge-code {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: var(--primary);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            flex-shrink: 0;
+        }
+
+        .bank-name-text {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            line-height: 1.3;
+        }
+
+        .bank-acc-sub {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* NÚT CHỌN NHANH SỐ TIỀN */
+        .amount-quick-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .amount-pill-btn {
+            background: #f8fafc;
+            border: 1px solid var(--card-border);
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-body);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .amount-pill-btn:hover {
+            background: #eef2ff;
+            color: var(--primary);
+            border-color: #c7d2fe;
+            transform: translateY(-1px);
+        }
+
+        .amount-pill-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-gradient-primary {
+            background: var(--gradient-primary);
+            color: #ffffff;
+            font-weight: 700;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .btn-gradient-primary:hover {
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
+        }
+
+        /* KHUNG VIETQR & THÔNG TIN CHUYỂN KHOẢN BÊN PHẢI */
+        .qr-display-card {
+            background: #ffffff;
+            border: 2px dashed #cbd5e1;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+            position: relative;
+        }
+
+        .qr-image-wrapper {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 16px;
+            display: inline-block;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+            margin-bottom: 18px;
+            max-width: 100%;
+        }
+
+        .qr-image-wrapper img {
+            width: 250px;
+            height: auto;
+            max-width: 100%;
+            display: block;
+            border-radius: 8px;
+        }
+
+        /* BẢNG THÔNG TIN CHUYỂN KHOẢN CHI TIẾT */
+        .transfer-details-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: left;
+            margin-bottom: 16px;
+        }
+
+        .transfer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 0.88rem;
+        }
+
+        .transfer-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .transfer-label {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .transfer-val {
+            font-weight: 700;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .transfer-val.highlight-code {
+            color: #dc2626;
+            font-size: 1.05rem;
+            font-family: 'Fira Code', monospace;
+            background: #fee2e2;
+            padding: 2px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-copy-mini {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: var(--text-body);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-copy-mini:hover {
+            background: #eef2ff;
+            color: var(--primary);
+            border-color: #c7d2fe;
+        }
+
+        /* BẢNG LỊCH SỬ NẠP TIỀN */
+        .history-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .badge-status {
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .badge-status.status-success {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+
+        .badge-status.status-pending {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fcd34d;
+        }
+
+        .badge-status.status-cancelled {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* FOOTER */
+        .app-footer {
+            background: #ffffff;
+            border-top: 1px solid var(--card-border);
+            padding: 16px 28px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* ==========================================================
+         * 4. RESPONSIVE MEDIA QUERIES (CHUẨN 1:1 THEO INDEX & BUY-KEY)
+         * ========================================================== */
+        @media (min-width: 992px) {
+            body.sidebar-collapsed .app-sidebar {
+                transform: translateX(-100%) !important;
+            }
+            body.sidebar-collapsed .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+
+        /* Nút đóng Sidebar trên Mobile */
+        .btn-close-sidebar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-close-sidebar:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
+        @media (max-width: 991.98px) {
+            .app-sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 280px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                z-index: 1060 !important;
+                padding: 16px 14px 30px !important;
+                box-shadow: none;
+            }
+            .app-sidebar.sidebar-open {
+                transform: translateX(0) !important;
+                box-shadow: 4px 0 30px rgba(0, 0, 0, 0.25) !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            .sidebar-backdrop {
+                z-index: 1055 !important;
+            }
+            .app-main {
+                margin-left: 0 !important;
+                margin-top: 56px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                padding: 16px 12px 50px !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+            .content-container {
+                padding: 16px 4px;
+            }
+            .deposit-layout {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            html, body {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+                touch-action: pan-y !important;
+            }
+            .app-main {
+                margin-left: 0 !important;
+                width: 100% !important;
+                margin-top: 56px !important;
+                padding: 16px 12px 50px !important;
+            }
+            .app-header {
+                height: 56px !important;
+                padding: 0 8px !important;
+            }
+            .brand-name {
+                font-size: 0.86rem !important;
+            }
+            .brand-tech-suffix {
+                display: none !important;
+            }
+            .user-avatar-small {
+                width: 28px !important;
+                height: 28px !important;
+            }
+            .user-profile-popup {
+                position: fixed !important;
+                top: 64px !important;
+                right: 12px !important;
+                left: 12px !important;
+                width: auto !important;
+                max-width: 360px !important;
+                margin: 0 auto !important;
+                z-index: 1060 !important;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .stat-card {
+                padding: 14px 12px;
+            }
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            .stat-val {
+                font-size: 1.1rem;
+            }
+            .deposit-card, .qr-display-card, .history-card {
+                padding: 18px 16px;
+            }
+            .bank-options-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-title {
+                font-size: 1.35rem;
+            }
+            .hero-desc {
+                font-size: 0.86rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .app-header {
+                padding: 0 6px !important;
+            }
+            .header-left {
+                gap: 8px !important;
+            }
+            .header-right {
+                gap: 6px !important;
+            }
+            .sidebar-toggle-btn {
+                width: 36px !important;
+                height: 36px !important;
+            }
+            .brand-icon {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 1rem !important;
+            }
+            .header-balance-card {
+                padding: 5px 10px !important;
+                gap: 8px !important;
+            }
+            .balance-wallet-icon {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 0.8rem !important;
+            }
+            .balance-val {
+                font-size: 0.85rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================
+     * 1. THANH ĐIỀU HƯỚNG CỐ ĐỊNH TRÊN ĐẦU (HEADER)
+     * ========================================================== -->
+    <header class="app-header">
+        <div class="header-left">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" onclick="toggleAppSidebar(event)" title="Đóng/Mở Menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <a href="index.php" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="brand-name">
+                    ThanhQuy<span>Tech</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <!-- Số dư tài khoản: Bấm vào khung để chuyển qua nạp tiền -->
+            <a href="deposit.php" class="header-balance-card" title="Nạp tiền vào tài khoản">
+                <div class="balance-wallet-icon">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="balance-text-group">
+                    <span class="balance-title">Số dư</span>
+                    <span class="balance-val"><?= !empty($hideBalance) ? '****** đ' : format_currency($currentUser['balance']) ?></span>
+                </div>
+            </a>
+
+            <!-- Ảnh avatar hồ sơ & Bảng Popup Hồ Sơ -->
+            <div class="user-profile-container" id="userDropdownContainer">
+                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)" aria-expanded="false" title="<?= htmlspecialchars($currentUser['name']) ?>">
+                    <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
+                         alt="Avatar" 
+                         class="user-avatar-small"
+                         onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
+                </button>
+
+                <!-- Bảng Popup Thông Tin & Chức Năng Hồ Sơ -->
+                <div class="user-profile-popup" id="userProfilePopup">
+                    <!-- Thông tin người dùng -->
+                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-3">
+                        <img src="<?= htmlspecialchars($currentUser['avatar']) ?>" 
+                             alt="Avatar" 
+                             style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff; background: #eef2ff;"
+                             onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
+                        <div style="min-width: 0; flex-grow: 1;">
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.95rem;"><?= htmlspecialchars($currentUser['name']) ?></div>
+                            <div class="text-muted small text-truncate"><?= htmlspecialchars($currentUser['username']) ?></div>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge font-monospace text-primary bg-primary-subtle px-2 py-0" style="font-size: 0.7rem;">UID: #<?= htmlspecialchars($currentUser['uid']) ?></span>
+                                <?php if ($isAdmin): ?>
+                                    <span class="badge bg-danger text-white px-2 py-0" style="font-size: 0.68rem;">Admin</span>
+                                <?php else: ?>
+                                    <span class="badge bg-info-subtle text-info px-2 py-0" style="font-size: 0.68rem;">Thành viên</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khung xem số dư và nạp tiền nhanh trong popup -->
+                    <div class="p-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div>
+                            <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
+                            <div class="fw-bold" style="color: #15803d; font-size: 0.95rem;"><?= !empty($hideBalance) ? '****** đ' : format_currency($currentUser['balance']) ?></div>
+                        </div>
+                        <a href="deposit.php" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-arrow-down me-1"></i> Nạp tiền
+                        </a>
+                    </div>
+
+                    <!-- Danh sách liên kết nhanh -->
+                    <div class="d-flex flex-column gap-1">
+                        <a href="profile.php" class="popup-menu-item">
+                            <i class="fa-solid fa-user-gear me-2 text-primary"></i> Thông tin cá nhân
+                        </a>
+                        <a href="deposit.php" class="popup-menu-item" style="color: #4f46e5; background: #eef2ff;">
+                            <i class="fa-solid fa-wallet me-2 text-success"></i> Nạp tiền tài khoản
+                        </a>
+                        <a href="buy-key.php" class="popup-menu-item">
+                            <i class="fa-solid fa-key me-2 text-warning"></i> Mua key bản quyền
+                        </a>
+                        <a href="token.php" class="popup-menu-item">
+                            <i class="fa-solid fa-fingerprint me-2 text-info"></i> Quản lý Access Token
+                        </a>
+                        <a href="settings.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gear me-2 text-secondary"></i> Cài đặt tài khoản
+                        </a>
+                        <?php if ($isAdmin): ?>
+                        <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
+                            <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
+                        </a>
+                        <?php endif; ?>
+                        <hr class="my-2 border-secondary-subtle">
+                        <a href="logout.php" class="popup-menu-item text-danger">
+                            <i class="fa-solid fa-right-from-bracket me-2"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================================
+     * 2. MENU SIDEBAR CỐ ĐỊNH TRÁI
+     * ========================================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+        <!-- Header cho Sidebar trên Mobile -->
+        <div class="sidebar-mobile-header d-flex d-lg-none align-items-center justify-content-between pb-3 mb-2 border-bottom">
+            <a href="index.php" class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="brand-name">
+                    ThanhQuy<span>Tech</span>
+                </div>
+            </a>
+            <button type="button" class="btn-close-sidebar" onclick="closeAppSidebar()" title="Đóng menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="sidebar-category">BẢNG ĐIỀU KHIỂN</div>
+        <ul class="sidebar-nav-list">
+            <li>
+                <a href="index.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-house"></i></span>
+                    <span class="sidebar-title">Trang chủ</span>
+                </a>
+            </li>
+            <li>
+                <a href="buy-key.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-key"></i></span>
+                    <span class="sidebar-title">Mua key</span>
+                </a>
+            </li>
+            <li>
+                <a href="cloud.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-cloud"></i></span>
+                    <span class="sidebar-title">Thuê cloud</span>
+                </a>
+            </li>
+            <li>
+                <a href="token.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-fingerprint"></i></span>
+                    <span class="sidebar-title">Access Token</span>
+                </a>
+            </li>
+            <li>
+                <a href="settings.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-gear"></i></span>
+                    <span class="sidebar-title">Cấu hình</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-category">CÔNG CỤ & DỊCH VỤ</div>
+        <ul class="sidebar-nav-list">
+            <!-- Tool Golike -->
+            <li>
+                <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuGolike" aria-expanded="false">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-robot"></i></span>
+                    <span class="sidebar-title">Tool Golike</span>
+                    <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
+                </button>
+                <div class="collapse" id="submenuGolike">
+                    <ul class="sidebar-submenu">
+                        <li>
+                            <a href="/jobs/golike" class="submenu-link fw-bold text-dark">
+                                <span><i class="fa-solid fa-arrow-right-to-bracket me-1 text-primary"></i> Tổng quan</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/jobs/golike/instagram" class="submenu-link">
+                                <span><i class="fa-brands fa-instagram me-1 text-danger"></i> Instagram</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/jobs/golike/threads" class="submenu-link">
+                                <span><i class="fa-brands fa-threads me-1 text-dark"></i> Threads</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/jobs/golike/pinterest" class="submenu-link">
+                                <span><i class="fa-brands fa-pinterest me-1 text-danger"></i> Pinterest</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Account -->
+            <li>
+                <button class="sidebar-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#submenuAccount" aria-expanded="false">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-users-gear"></i></span>
+                    <span class="sidebar-title">Account</span>
+                    <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
+                </button>
+                <div class="collapse" id="submenuAccount">
+                    <ul class="sidebar-submenu">
+                        <li>
+                            <a href="/products/accounts" class="submenu-link fw-bold text-dark">
+                                <span><i class="fa-solid fa-layer-group me-1 text-primary"></i> Kho tài khoản</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/products/accounts/instagram" class="submenu-link">
+                                <span><i class="fa-brands fa-instagram me-1 text-danger"></i> Instagram</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/products/accounts/threads" class="submenu-link">
+                                <span><i class="fa-brands fa-threads me-1 text-dark"></i> Threads</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/products/accounts/pinterest" class="submenu-link">
+                                <span><i class="fa-brands fa-pinterest me-1 text-danger"></i> Pinterest</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Payment (Đang mở) -->
+            <li>
+                <button class="sidebar-link" type="button" data-bs-toggle="collapse" data-bs-target="#submenuPayment" aria-expanded="true">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-credit-card"></i></span>
+                    <span class="sidebar-title">Payment</span>
+                    <i class="fa-solid fa-chevron-down sidebar-arrow"></i>
+                </button>
+                <div class="collapse show" id="submenuPayment">
+                    <ul class="sidebar-submenu">
+                        <li>
+                            <a href="/payments" class="submenu-link fw-bold text-dark">
+                                <span><i class="fa-solid fa-wallet me-1 text-success"></i> Thanh toán</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="deposit.php" class="submenu-link active">
+                                <span><i class="fa-solid fa-circle-arrow-down me-1 text-success"></i> Nạp tiền</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/payments/withdraw" class="submenu-link">
+                                <span><i class="fa-solid fa-circle-arrow-up me-1 text-warning"></i> Rút tiền</span>
+                                <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+        </ul>
+
+        <div class="sidebar-category">TIỆN ÍCH & HỆ THỐNG</div>
+        <ul class="sidebar-nav-list">
+            <li>
+                <a href="referral.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-share-nodes"></i></span>
+                    <span class="sidebar-title">Giới thiệu</span>
+                    <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                </a>
+            </li>
+            <li>
+                <a href="support.php" class="sidebar-link">
+                    <span class="sidebar-icon"><i class="fa-solid fa-fw fa-headset"></i></span>
+                    <span class="sidebar-title">Hỗ trợ</span>
+                    <span class="badge-history ms-auto"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
+                </a>
+            </li>
+            <?php if ($isAdmin): ?>
+            <li>
+                <a href="/admin/dashboard" class="sidebar-link text-danger fw-bold">
+                    <span class="sidebar-icon text-danger"><i class="fa-solid fa-fw fa-shield-halved"></i></span>
+                    <span class="sidebar-title">Admin Panel</span>
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 ms-auto" style="font-size: 0.65rem; padding: 2px 7px;">Admin</span>
+                </a>
+            </li>
+            <?php endif; ?>
+        </ul>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAppSidebar()"></div>
+
+    <!-- ==========================================================
+     * 3. NỘI DUNG CHÍNH (APP MAIN)
+     * ========================================================== -->
+    <main class="app-main">
+        <div class="content-container">
+
+            <!-- BREADCRUMB -->
+            <div class="breadcrumb-custom">
+                <a href="index.php"><i class="fa-solid fa-house me-1"></i> Trang chủ</a>
+                <i class="fa-solid fa-chevron-right"></i>
+                <span>Thanh toán</span>
+                <i class="fa-solid fa-chevron-right"></i>
+                <span class="text-primary">Nạp tiền tài khoản</span>
+            </div>
+
+            <!-- HERO BANNER -->
+            <div class="deposit-hero">
+                <div class="hero-badge">
+                    <i class="fa-solid fa-bolt-lightning text-warning"></i> Cổng Nạp Tự Động VietQR 24/7
+                </div>
+                <h1 class="hero-title">Nạp Tiền Vào Ví Tài Khoản</h1>
+                <p class="hero-desc">
+                    Hệ thống tự động kiểm tra giao dịch và cộng số dư tức thì trong 30 giây đến 2 phút. Quý khách chỉ cần mở ứng dụng ngân hàng, quét mã VietQR và xác nhận chuyển khoản.
+                </p>
+            </div>
+
+            <!-- 4 THẺ THỐNG KÊ NHANH -->
+            <div class="stats-grid">
+                <!-- Thẻ 1: Số Dư Hiện Tại -->
+                <div class="stat-card card-balance-highlight">
+                    <div class="stat-icon bg-success bg-opacity-20 text-success">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Số Dư Hiện Tại</div>
+                        <div class="stat-val text-success"><?= format_currency($currentUser['balance']) ?></div>
+                    </div>
+                </div>
+
+                <!-- Thẻ 2: Tổng Tiền Đã Nạp -->
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-circle-arrow-down"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Tổng Tiền Đã Nạp</div>
+                        <div class="stat-val text-primary"><?= format_currency($totalDeposited) ?></div>
+                    </div>
+                </div>
+
+                <!-- Thẻ 3: Đơn Nạp Thành Công -->
+                <div class="stat-card">
+                    <div class="stat-icon bg-info bg-opacity-10 text-info">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Giao Dịch Thành Công</div>
+                        <div class="stat-val text-info"><?= number_format($successCount) ?> đơn</div>
+                    </div>
+                </div>
+
+                <!-- Thẻ 4: Lệnh Đang Chờ -->
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Đang Chờ Xử Lý</div>
+                        <div class="stat-val text-warning"><?= number_format($pendingCount) ?> lệnh</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KHỐI CHÍNH: FORM NẠP TIỀN & KHUNG VIETQR -->
+            <div class="deposit-layout">
+
+                <!-- CỘT TRÁI: FORM TẠO LỆNH NẠP TIỀN -->
+                <div class="deposit-card">
+                    <div class="card-header-title">
+                        <div class="card-title-text">
+                            <i class="fa-solid fa-money-bill-transfer text-primary"></i>
+                            <span>Tạo Yêu Cầu Nạp Tiền</span>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1">Khuyên dùng VietQR</span>
+                    </div>
+
+                    <form action="deposit.php" method="POST" id="depositForm">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                        <input type="hidden" name="action" value="create_deposit">
+
+                        <!-- BƯỚC 1: CHỌN NGÂN HÀNG THỤ HƯỞNG CỦA ADMIN -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark mb-2">
+                                1. Chọn ngân hàng / phương thức thanh toán: <span class="text-danger">*</span>
+                            </label>
+                            
+                            <div class="bank-options-grid">
+                                <?php if (!empty($bankAccounts)): ?>
+                                    <?php foreach ($bankAccounts as $idx => $bank): ?>
+                                        <?php 
+                                            $isChecked = false;
+                                            if ($activeDeposit && $activeDeposit['bank_id'] == $bank['id']) {
+                                                $isChecked = true;
+                                            } elseif (!$activeDeposit && $idx === 0) {
+                                                $isChecked = true;
+                                            }
+                                        ?>
+                                        <div>
+                                            <input type="radio" 
+                                                   name="bank_id" 
+                                                   id="bank_<?= $bank['id'] ?>" 
+                                                   value="<?= $bank['id'] ?>" 
+                                                   class="bank-radio-input"
+                                                   data-bank-code="<?= htmlspecialchars($bank['bank_code']) ?>"
+                                                   data-acc-num="<?= htmlspecialchars($bank['account_number']) ?>"
+                                                   data-acc-name="<?= htmlspecialchars($bank['account_name']) ?>"
+                                                   data-min="<?= (float)$bank['min_deposit'] ?>"
+                                                   data-max="<?= (float)$bank['max_deposit'] ?>"
+                                                   <?= $isChecked ? 'checked' : '' ?>
+                                                   onchange="onSelectBank(this)">
+                                            <label for="bank_<?= $bank['id'] ?>" class="bank-radio-label">
+                                                <div class="bank-badge-code">
+                                                    <?= htmlspecialchars($bank['bank_code']) ?>
+                                                </div>
+                                                <div style="min-width: 0;">
+                                                    <div class="bank-name-text text-truncate"><?= htmlspecialchars($bank['bank_name']) ?></div>
+                                                    <div class="bank-acc-sub text-truncate">STK: <?= htmlspecialchars($bank['account_number']) ?></div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="col-12 text-muted small">Chưa có ngân hàng nào được thiết lập. Vui lòng liên hệ Admin.</div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- BƯỚC 2: NHẬP SỐ TIỀN CẦN NẠP -->
+                        <div class="mb-4">
+                            <label for="amountInput" class="form-label fw-bold text-dark mb-2">
+                                2. Số tiền muốn nạp (VND): <span class="text-danger">*</span>
+                            </label>
+
+                            <!-- Các nút chọn nhanh số tiền -->
+                            <div class="amount-quick-pills">
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(20000, this)">20.000 ₫</button>
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(50000, this)">50.000 ₫</button>
+                                <button type="button" class="amount-pill-btn active" onclick="selectQuickAmount(100000, this)">100.000 ₫</button>
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(200000, this)">200.000 ₫</button>
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(500000, this)">500.000 ₫</button>
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(1000000, this)">1.000.000 ₫</button>
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(2000000, this)">2.000.000 ₫</button>
+                                <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(5000000, this)">5.000.000 ₫</button>
+                            </div>
+
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-white border-end-0 text-muted">
+                                    <i class="fa-solid fa-dong-sign"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control border-start-0 ps-0 fw-bold fs-5 text-primary" 
+                                       id="amountInput" 
+                                       name="amount" 
+                                       value="100.000" 
+                                       placeholder="Nhập số tiền (tối thiểu 10.000đ)" 
+                                       required
+                                       oninput="formatCurrencyInput(this)"
+                                       onchange="updateLiveQR()">
+                                <span class="input-group-text bg-light text-muted fw-bold">VND</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small mt-1">
+                                <span>Tối thiểu: <strong class="text-dark">10.000 ₫</strong></span>
+                                <span>Tối đa: <strong class="text-dark">50.000.000 ₫</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- BƯỚC 3: CÚ PHÁP CHUYỂN KHOẢN TỰ ĐỘNG -->
+                        <div class="p-3 rounded-3 mb-4" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-muted text-uppercase">Nội dung chuyển khoản mặc định:</span>
+                                <span class="badge bg-danger text-white" style="font-size: 0.68rem;">Bắt buộc chính xác</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="fw-extrabold text-danger fs-5 font-monospace" id="displayTransferContent"><?= htmlspecialchars($defaultTransferContent) ?></span>
+                                <button type="button" class="btn-copy-mini" onclick="copyText('<?= htmlspecialchars($defaultTransferContent) ?>', this)">
+                                    <i class="fa-regular fa-copy"></i> Sao chép
+                                </button>
+                            </div>
+                            <div class="small text-muted mt-2" style="font-size: 0.8rem; line-height: 1.4;">
+                                <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                                Quý khách vui lòng điền đúng <strong><?= htmlspecialchars($defaultTransferContent) ?></strong> khi chuyển khoản từ app ngân hàng để bot đối soát và cộng tiền ngay tức thì.
+                            </div>
+                        </div>
+
+                        <!-- NÚT TẠO LỆNH -->
+                        <button type="submit" class="btn-gradient-primary">
+                            <i class="fa-solid fa-qrcode fs-5"></i> Tạo Lệnh Nạp Tiền & Lấy Mã VietQR
+                        </button>
+                    </form>
+                </div>
+
+                <!-- CỘT PHẢI: KHUNG MÃ VIETQR VÀ THÔNG TIN CHUYỂN KHOẢN -->
+                <div class="qr-display-card" id="qrDisplayCard">
+                    <?php 
+                        // Xác định dữ liệu hiển thị QR
+                        $qrBankCode = 'MB';
+                        $qrAccNum = '0987654321';
+                        $qrAccName = 'TRAN THANH QUY';
+                        $qrAmount = 100000;
+                        $qrContent = $defaultTransferContent;
+                        $qrBankName = 'MBBank';
+
+                        if ($activeDeposit) {
+                            $qrBankCode = !empty($activeDeposit['bank_code']) ? $activeDeposit['bank_code'] : 'MB';
+                            $qrAccNum = $activeDeposit['account_number'];
+                            $qrAccName = $activeDeposit['account_name'];
+                            $qrAmount = (float)$activeDeposit['amount'];
+                            $qrContent = $activeDeposit['transfer_content'];
+                            $qrBankName = $activeDeposit['bank_name'];
+                        } elseif ($defaultBank) {
+                            $qrBankCode = $defaultBank['bank_code'];
+                            $qrAccNum = $defaultBank['account_number'];
+                            $qrAccName = $defaultBank['account_name'];
+                            $qrBankName = $defaultBank['bank_name'];
+                        }
+
+                        // Link tạo mã QR chuẩn VietQR
+                        $vietQrUrl = sprintf(
+                            "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%d&addInfo=%s&accountName=%s",
+                            urlencode($qrBankCode),
+                            urlencode($qrAccNum),
+                            (int)$qrAmount,
+                            urlencode($qrContent),
+                            urlencode($qrAccName)
+                        );
+                    ?>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-start">
+                            <h5 class="fw-bold mb-0 text-dark">Quét Mã VietQR Chuyển Khoản</h5>
+                            <div class="small text-muted">Mở app Ngân hàng hoặc MoMo để quét mã</div>
+                        </div>
+                        <?php if ($activeDeposit && $activeDeposit['status'] === 'Pending'): ?>
+                            <span class="badge bg-warning text-dark px-2 py-1 fw-bold">
+                                <i class="fa-solid fa-spinner fa-spin me-1"></i> Đang chờ chuyển
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Khung ảnh QR VietQR -->
+                    <div class="qr-image-wrapper">
+                        <img src="<?= htmlspecialchars($vietQrUrl) ?>" 
+                             alt="VietQR Chuyển Khoản" 
+                             id="vietQrImage"
+                             loading="lazy">
+                    </div>
+
+                    <!-- Bảng chi tiết chuyển khoản -->
+                    <div class="transfer-details-box">
+                        <!-- Ngân hàng -->
+                        <div class="transfer-row">
+                            <span class="transfer-label">Ngân hàng thụ hưởng:</span>
+                            <span class="transfer-val" id="detailBankName"><?= htmlspecialchars($qrBankName) ?></span>
+                        </div>
+
+                        <!-- Số tài khoản -->
+                        <div class="transfer-row">
+                            <span class="transfer-label">Số tài khoản Admin:</span>
+                            <div class="transfer-val">
+                                <span class="font-monospace text-primary fw-bold fs-6" id="detailAccNum"><?= htmlspecialchars($qrAccNum) ?></span>
+                                <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailAccNum').innerText, this)">
+                                    <i class="fa-regular fa-copy"></i> Chép
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chủ tài khoản -->
+                        <div class="transfer-row">
+                            <span class="transfer-label">Chủ tài khoản:</span>
+                            <span class="transfer-val" id="detailAccName"><?= htmlspecialchars($qrAccName) ?></span>
+                        </div>
+
+                        <!-- Số tiền -->
+                        <div class="transfer-row">
+                            <span class="transfer-label">Số tiền chuyển:</span>
+                            <div class="transfer-val">
+                                <span class="text-success fw-bold" id="detailAmount"><?= format_currency($qrAmount) ?></span>
+                                <button type="button" class="btn-copy-mini" onclick="copyText('<?= (int)$qrAmount ?>', this)">
+                                    <i class="fa-regular fa-copy"></i> Chép
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Nội dung chuyển khoản -->
+                        <div class="transfer-row">
+                            <span class="transfer-label">Nội dung chuyển khoản:</span>
+                            <div class="transfer-val">
+                                <span class="transfer-val highlight-code" id="detailContent"><?= htmlspecialchars($qrContent) ?></span>
+                                <button type="button" class="btn-copy-mini" onclick="copyText(document.getElementById('detailContent').innerText, this)">
+                                    <i class="fa-regular fa-copy"></i> Chép
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="<?= htmlspecialchars($vietQrUrl) ?>" download="VietQR-ThanhQuyTech.png" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-download me-1"></i> Tải ảnh QR
+                        </a>
+                        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 fw-bold" onclick="checkDepositSuccess()">
+                            <i class="fa-solid fa-circle-check me-1"></i> Tôi đã chuyển khoản
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================================================
+             * BẢNG LỊCH SỬ NẠP TIỀN CỦA NGƯỜI DÙNG
+             * ====================================================== -->
+            <div class="history-card">
+                <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                    <div>
+                        <h4 class="fw-bold mb-1 text-dark">
+                            <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Lịch Sử Nạp Tiền
+                        </h4>
+                        <div class="text-muted small">Danh sách các yêu cầu nạp tiền và trạng thái xử lý gần đây của bạn</div>
+                    </div>
+                    <div>
+                        <a href="deposit.php" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> Làm mới
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr>
+                                <th style="width: 140px;">Mã Giao Dịch</th>
+                                <th>Ngân Hàng Nhận</th>
+                                <th>Số Tiền</th>
+                                <th>Nội Dung CK</th>
+                                <th>Thời Gian Tạo</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-end">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($depositHistory)): ?>
+                                <?php foreach ($depositHistory as $item): ?>
+                                    <tr>
+                                        <td>
+                                            <span class="font-monospace fw-bold text-dark"><?= htmlspecialchars($item['deposit_code']) ?></span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-dark" style="font-size: 0.9rem;"><?= htmlspecialchars($item['bank_name']) ?></div>
+                                            <div class="text-muted small font-monospace">STK: <?= htmlspecialchars($item['account_number']) ?> (<?= htmlspecialchars($item['account_name']) ?>)</div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-success fs-6">+<?= format_currency($item['amount']) ?></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border font-monospace px-2 py-1"><?= htmlspecialchars($item['transfer_content']) ?></span>
+                                        </td>
+                                        <td class="text-muted small">
+                                            <?= date('d/m/Y H:i:s', strtotime($item['created_at'])) ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($item['status'] === 'Success'): ?>
+                                                <span class="badge-status status-success">
+                                                    <i class="fa-solid fa-circle-check"></i> Đã cộng tiền
+                                                </span>
+                                            <?php elseif ($item['status'] === 'Pending'): ?>
+                                                <span class="badge-status status-pending">
+                                                    <i class="fa-solid fa-clock"></i> Chờ chuyển tiền
+                                                </span>
+                                            <?php elseif ($item['status'] === 'Cancelled'): ?>
+                                                <span class="badge-status status-cancelled">
+                                                    <i class="fa-solid fa-ban"></i> Đã hủy
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge-status text-danger bg-danger-subtle border border-danger border-opacity-25">
+                                                    <i class="fa-solid fa-circle-xmark"></i> Thất bại
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-end">
+                                            <?php if ($item['status'] === 'Pending'): ?>
+                                                <div class="d-inline-flex gap-1">
+                                                    <a href="deposit.php?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-2 py-1" style="font-size: 0.76rem;" title="Xem lại mã QR">
+                                                        <i class="fa-solid fa-qrcode"></i> Lấy QR
+                                                    </a>
+                                                    <form action="deposit.php" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                        <input type="hidden" name="action" value="cancel_deposit">
+                                                        <input type="hidden" name="deposit_id" value="<?= $item['id'] ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" style="font-size: 0.76rem;" title="Hủy lệnh nạp">
+                                                            <i class="fa-solid fa-xmark"></i> Hủy
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-muted small"><i class="fa-solid fa-check text-muted"></i> Hoàn tất</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <div class="mb-2"><i class="fa-solid fa-receipt fs-1 text-secondary opacity-50"></i></div>
+                                        <p class="mb-0">Bạn chưa có giao dịch nạp tiền nào. Hãy chọn số tiền và tạo lệnh nạp ở khung phía trên.</p>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="app-footer">
+            <div>
+                © <?= date('Y') ?> <strong><?= htmlspecialchars(APP_NAME) ?></strong>. Bản quyền thuộc về hệ thống dịch vụ công nghệ tự động.
+            </div>
+            <div class="d-flex gap-3">
+                <a href="support.php" class="text-muted text-decoration-none small">Hỗ trợ 24/7</a>
+                <a href="terms.php" class="text-muted text-decoration-none small">Điều khoản sử dụng</a>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 1. Điều khiển Sidebar Mobile & Desktop Collapse (Chuẩn 1:1)
+        function toggleAppSidebar(e) {
+            if (e) e.stopPropagation();
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (window.innerWidth >= 992) {
+                document.body.classList.toggle('sidebar-collapsed');
+            } else {
+                if (sidebar) sidebar.classList.toggle('sidebar-open');
+                if (backdrop) backdrop.classList.toggle('active');
+            }
+        }
+
+        function closeAppSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) sidebar.classList.remove('sidebar-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+
+        // 2. User Popup Menu (Chuẩn 1:1)
+        function toggleUserPopup(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (!popup) return;
+            const isOpen = popup.classList.contains('active');
+            if (isOpen) {
+                popup.classList.remove('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            } else {
+                popup.classList.add('active');
+                if (toggle) toggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function closeUserPopup() {
+            const popup = document.getElementById('userProfilePopup');
+            const toggle = document.getElementById('userProfileToggle');
+            if (popup) popup.classList.remove('active');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        }
+
+        document.addEventListener('click', function (e) {
+            const container = document.getElementById('userDropdownContainer');
+            if (container && !container.contains(e.target)) {
+                closeUserPopup();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeUserPopup();
+            }
+        });
+
+        // 3. Sao chép nhanh vào Clipboard
+        function copyText(text, btnElement) {
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(function() {
+                if (btnElement) {
+                    var origHtml = btnElement.innerHTML;
+                    btnElement.innerHTML = '<i class="fa-solid fa-check text-success"></i> Đã chép';
+                    setTimeout(function() {
+                        btnElement.innerHTML = origHtml;
+                    }, 2000);
+                }
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Đã sao chép: ' + text,
+                    showConfirmButton: false,
+                    timer: 1800
+                });
+            }).catch(function(err) {
+                prompt('Sao chép thủ công:', text);
+            });
+        }
+
+        // 4. Định dạng tiền tệ trong ô nhập
+        function formatCurrencyInput(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val === '') {
+                input.value = '';
+                return;
+            }
+            let formatted = new Intl.NumberFormat('vi-VN').format(val);
+            input.value = formatted;
+            updateLiveQR();
+        }
+
+        // 5. Nút chọn nhanh số tiền
+        function selectQuickAmount(amount, btn) {
+            document.querySelectorAll('.amount-pill-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            var input = document.getElementById('amountInput');
+            if (input) {
+                input.value = new Intl.NumberFormat('vi-VN').format(amount);
+                updateLiveQR();
+            }
+        }
+
+        // 6. Chọn ngân hàng thụ hưởng
+        function onSelectBank(radio) {
+            updateLiveQR();
+        }
+
+        // 7. Cập nhật xem trước VietQR trực tiếp theo Form
+        function updateLiveQR() {
+            var selectedRadio = document.querySelector('input[name="bank_id"]:checked');
+            var amountInput = document.getElementById('amountInput');
+            if (!selectedRadio || !amountInput) return;
+
+            var bankCode = selectedRadio.getAttribute('data-bank-code') || 'MB';
+            var accNum = selectedRadio.getAttribute('data-acc-num') || '0987654321';
+            var accName = selectedRadio.getAttribute('data-acc-name') || 'TRAN THANH QUY';
+            var bankName = selectedRadio.parentElement.querySelector('.bank-name-text').innerText || 'MBBank';
+            
+            var rawAmount = parseInt(amountInput.value.replace(/\D/g, '') || '0', 10);
+            if (rawAmount < 10000) rawAmount = 10000;
+
+            var content = 'NAP ' + <?= json_encode($currentUser['uid']) ?>;
+
+            // Cập nhật thông tin chi tiết trên card bên phải
+            document.getElementById('detailBankName').innerText = bankName;
+            document.getElementById('detailAccNum').innerText = accNum;
+            document.getElementById('detailAccName').innerText = accName;
+            document.getElementById('detailAmount').innerText = new Intl.NumberFormat('vi-VN').format(rawAmount) + ' ₫';
+            document.getElementById('detailContent').innerText = content;
+
+            // Tạo link VietQR động
+            var qrUrl = 'https://img.vietqr.io/image/' + encodeURIComponent(bankCode) + '-' + encodeURIComponent(accNum) + '-compact2.png'
+                + '?amount=' + encodeURIComponent(rawAmount)
+                + '&addInfo=' + encodeURIComponent(content)
+                + '&accountName=' + encodeURIComponent(accName);
+
+            var img = document.getElementById('vietQrImage');
+            if (img) {
+                img.src = qrUrl;
+            }
+        }
+
+        // 8. Báo hoàn tất chuyển khoản
+        function checkDepositSuccess() {
+            Swal.fire({
+                title: 'Đã hoàn tất chuyển khoản?',
+                html: 'Hệ thống đang tự động kiểm tra sao kê ngân hàng.<br>Số dư sẽ được cộng trong <strong>30 giây đến 2 phút</strong> nếu quý khách điền đúng nội dung chuyển khoản.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-rotate me-1"></i> Tải lại trang kiểm tra',
+                cancelButtonText: 'Đóng'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.reload();
+                }
+            });
+        }
+
+        // Thông báo Flash nếu có
+        <?php if ($flash): ?>
+            Swal.fire({
+                icon: <?= json_encode($flash['type']) ?>,
+                title: <?= json_encode($flash['title'] ?: 'Thông báo') ?>,
+                text: <?= json_encode($flash['message']) ?>,
+                confirmButtonColor: '#4f46e5'
+            });
+        <?php endif; ?>
+    </script>
+</body>
+</html>

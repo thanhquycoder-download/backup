@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Chuyển hướng /payments/deposit và /payments sang payments/deposit.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^payments/deposit/?$ payments/deposit.php [L,QSA]
+RewriteRule ^payments/?$ payments/deposit.php [L,QSA]
+</IfModule>
