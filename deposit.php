@@ -1057,70 +1057,6 @@ $csrfToken = get_csrf_token();
             background: #4f46e5 !important;
             color: #ffffff !important;
             border-color: #4f46e5 !important;
-            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35) !important;
-        }
-
-        .bank-badge-code {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 0.95rem;
-            color: var(--primary);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-            flex-shrink: 0;
-        }
-
-        .bank-name-text {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: var(--text-heading);
-            line-height: 1.3;
-        }
-
-        .bank-acc-sub {
-            font-size: 0.76rem;
-            color: var(--text-muted);
-            font-family: 'Fira Code', monospace;
-        }
-
-        /* NÚT CHỌN NHANH SỐ TIỀN */
-        .amount-quick-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 18px;
-        }
-
-        .amount-pill-btn {
-            background: #f8fafc;
-            border: 1px solid var(--card-border);
-            padding: 7px 14px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-body);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .amount-pill-btn:hover {
-            background: #eef2ff;
-            color: var(--primary);
-            border-color: #c7d2fe;
-            transform: translateY(-1px);
-        }
-
-        .amount-pill-btn.active {
-            background: var(--primary);
-            color: #ffffff;
-            border-color: var(--primary);
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
         }
 
         .btn-gradient-primary {
@@ -1264,42 +1200,78 @@ $csrfToken = get_csrf_token();
             border-color: #c7d2fe;
         }
 
-        /* BẢNG LỊCH SỬ NẠP TIỀN */
-        .history-card {
+        /* BẢNG LỊCH SỬ CHUẨN BUY-KEY */
+        .dash-card {
             background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: var(--radius-lg);
-            padding: 24px 28px;
+            padding: 24px;
             box-shadow: var(--shadow-card);
+            margin-bottom: 24px;
+            width: 100%;
         }
 
-        .badge-status {
-            padding: 4px 10px;
-            border-radius: 50px;
+        .history-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .history-table th {
+            background: #f8fafc;
+            color: #64748b;
             font-size: 0.75rem;
             font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
+            text-transform: uppercase;
+            padding: 12px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            letter-spacing: 0.4px;
             white-space: nowrap;
         }
 
-        .badge-status.status-success {
-            background: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
+        .history-table td {
+            padding: 14px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.88rem;
+            vertical-align: middle;
         }
 
-        .badge-status.status-pending {
-            background: #fef3c7;
-            color: #b45309;
-            border: 1px solid #fcd34d;
+        .history-table tr:hover td {
+            background: #f8faff;
         }
 
-        .badge-status.status-cancelled {
-            background: #f1f5f9;
-            color: #64748b;
+        .key-code-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafc;
             border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #0f172a;
+        }
+
+        .btn-copy-key {
+            border: none;
+            background: #e2e8f0;
+            color: #475569;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-copy-key:hover {
+            background: var(--primary);
+            color: #ffffff;
         }
 
         /* FOOTER */
@@ -1816,22 +1788,22 @@ $csrfToken = get_csrf_token();
                 </p>
             </div>
 
-            <!-- 4 THẺ THỐNG KÊ NHANH -->
+            <!-- 4 THẺ THỐNG KÊ NHANH (ĐỒNG BỘ MÀU SẮC & ICON RÕ NÉT) -->
             <div class="stats-grid">
                 <!-- Thẻ 1: Số Dư Hiện Tại -->
                 <div class="stat-card card-balance-highlight">
-                    <div class="stat-icon bg-success bg-opacity-20 text-success">
+                    <div class="stat-icon" style="background: #ecfdf5; color: #10b981; border: 1.5px solid #a7f3d0; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);">
                         <i class="fa-solid fa-wallet"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-label">Số Dư Hiện Tại</div>
-                        <div class="stat-val text-success"><?= format_currency($currentUser['balance']) ?></div>
+                        <div class="stat-label" style="color: #15803d;">Số Dư Hiện Tại</div>
+                        <div class="stat-val" style="color: #166534;"><?= format_currency($currentUser['balance']) ?></div>
                     </div>
                 </div>
 
                 <!-- Thẻ 2: Tổng Tiền Đã Nạp -->
                 <div class="stat-card">
-                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <div class="stat-icon" style="background: #eef2ff; color: #4f46e5; border: 1.5px solid #c7d2fe; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);">
                         <i class="fa-solid fa-circle-arrow-down"></i>
                     </div>
                     <div class="stat-info">
@@ -1842,23 +1814,23 @@ $csrfToken = get_csrf_token();
 
                 <!-- Thẻ 3: Đơn Nạp Thành Công -->
                 <div class="stat-card">
-                    <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <div class="stat-icon" style="background: #ecfeff; color: #0891b2; border: 1.5px solid #a5f3fc; box-shadow: 0 4px 10px rgba(6, 182, 212, 0.15);">
                         <i class="fa-solid fa-circle-check"></i>
                     </div>
                     <div class="stat-info">
                         <div class="stat-label">Giao Dịch Thành Công</div>
-                        <div class="stat-val text-info"><?= number_format($successCount) ?> đơn</div>
+                        <div class="stat-val" style="color: #0e7490;"><?= number_format($successCount) ?> đơn</div>
                     </div>
                 </div>
 
                 <!-- Thẻ 4: Lệnh Đang Chờ -->
                 <div class="stat-card">
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <div class="stat-icon" style="background: #fffbeb; color: #d97706; border: 1.5px solid #fde68a; box-shadow: 0 4px 10px rgba(217, 119, 6, 0.15);">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
                     <div class="stat-info">
                         <div class="stat-label">Đang Chờ Xử Lý</div>
-                        <div class="stat-val text-warning"><?= number_format($pendingCount) ?> lệnh</div>
+                        <div class="stat-val" style="color: #b45309;"><?= number_format($pendingCount) ?> lệnh</div>
                     </div>
                 </div>
             </div>
@@ -1866,7 +1838,7 @@ $csrfToken = get_csrf_token();
             <!-- KHỐI CHÍNH: FORM NẠP TIỀN & KHUNG VIETQR -->
             <div class="deposit-layout">
 
-                <!-- CỘT TRÁI: FORM TẠO LỆNH NẠP TIỀN -->
+                <!-- CARD 1: FORM TẠO LỆNH NẠP TIỀN (CHIẾM TRỌN 100% CHIỀU RỘNG) -->
                 <div class="deposit-card">
                     <div class="card-header-title">
                         <div class="card-title-text">
@@ -1886,39 +1858,32 @@ $csrfToken = get_csrf_token();
                                 1. Chọn ngân hàng / phương thức thanh toán: <span class="text-danger">*</span>
                             </label>
                             
-                            <div class="bank-options-grid" style="grid-template-columns: 1fr;">
-                                <?php if (!empty($bankAccounts)): ?>
-                                    <?php foreach ($bankAccounts as $idx => $bank): ?>
-                                        <div>
-                                            <input type="radio" 
-                                                   name="bank_id" 
-                                                   id="bank_<?= $bank['id'] ?>" 
-                                                   value="<?= $bank['id'] ?>" 
-                                                   class="bank-radio-input"
-                                                   data-bank-code="<?= htmlspecialchars($bank['bank_code']) ?>"
-                                                   data-acc-num="<?= htmlspecialchars($bank['account_number']) ?>"
-                                                   data-acc-name="<?= htmlspecialchars($bank['account_name']) ?>"
-                                                   data-min="<?= (float)$bank['min_deposit'] ?>"
-                                                   data-max="<?= (float)$bank['max_deposit'] ?>"
-                                                   checked>
-                                            <label for="bank_<?= $bank['id'] ?>" class="bank-radio-label selected" style="cursor: default; border-color: #4f46e5; background: #faf5ff;">
-                                                <div class="bank-badge-code" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; font-weight: 800;">
-                                                    TPB
-                                                </div>
-                                                <div style="min-width: 0;">
-                                                    <div class="bank-name-text text-truncate fw-bold text-dark"><?= htmlspecialchars($bank['bank_name']) ?></div>
-                                                    <div class="bank-acc-sub text-truncate text-muted">STK: <strong class="text-primary font-monospace"><?= htmlspecialchars($bank['account_number']) ?></strong> (<?= htmlspecialchars($bank['account_name']) ?>)</div>
-                                                </div>
-                                                <div class="ms-auto d-none d-sm-block">
-                                                    <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i> Tự động 24/7</span>
-                                                </div>
-                                            </label>
+                            <?php if (!empty($bankAccounts)): ?>
+                                <?php $bank = $bankAccounts[0]; ?>
+                                <input type="hidden" name="bank_id" value="<?= $bank['id'] ?>">
+                                <div class="bank-card-premium">
+                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                        <div class="bank-badge-code">
+                                            TPB
                                         </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <div class="col-12 text-muted small">Đang nạp thông tin ngân hàng TPBank...</div>
-                                <?php endif; ?>
-                            </div>
+                                        <div style="min-width: 0;">
+                                            <div class="fw-bold text-dark fs-6 mb-1"><?= htmlspecialchars($bank['bank_name']) ?></div>
+                                            <div class="text-muted small">
+                                                STK: <strong class="text-primary font-monospace fs-6"><?= htmlspecialchars($bank['account_number']) ?></strong> 
+                                                <span class="mx-1 text-muted">•</span> 
+                                                <span>Chủ TK: <strong class="text-dark"><?= htmlspecialchars($bank['account_name']) ?></strong></span>
+                                            </div>
+                                        </div>
+                                        <div class="ms-auto">
+                                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-bold">
+                                                <i class="fa-solid fa-circle-check me-1"></i> Tự động 24/7 (Napas 247)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="col-12 text-muted small">Đang nạp thông tin ngân hàng TPBank...</div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- BƯỚC 2: NHẬP SỐ TIỀN CẦN NẠP -->
@@ -1927,7 +1892,7 @@ $csrfToken = get_csrf_token();
                                 2. Số tiền muốn nạp (VND): <span class="text-danger">*</span>
                             </label>
 
-                            <!-- Các nút chọn nhanh số tiền -->
+                            <!-- Các nút chọn nhanh số tiền bo tròn pill đẹp mắt -->
                             <div class="amount-quick-pills">
                                 <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(20000, this)">20.000 ₫</button>
                                 <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(50000, this)">50.000 ₫</button>
@@ -1939,33 +1904,33 @@ $csrfToken = get_csrf_token();
                                 <button type="button" class="amount-pill-btn" onclick="selectQuickAmount(5000000, this)">5.000.000 ₫</button>
                             </div>
 
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-white border-end-0 text-muted">
+                            <div class="input-group input-group-lg" style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border-radius: 12px; overflow: hidden;">
+                                <span class="input-group-text bg-white border-end-0 text-primary fw-bold fs-5 px-3">
                                     <i class="fa-solid fa-dong-sign"></i>
                                 </span>
                                 <input type="text" 
-                                       class="form-control border-start-0 ps-0 fw-bold fs-5 text-primary" 
+                                       class="form-control border-start-0 border-end-0 px-2 fw-bold fs-4 text-primary font-monospace" 
                                        id="amountInput" 
                                        name="amount" 
                                        value="100.000" 
                                        placeholder="Nhập số tiền (tối thiểu 10.000đ)" 
                                        required
                                        oninput="formatCurrencyInput(this)">
-                                <span class="input-group-text bg-light text-muted fw-bold">VND</span>
+                                <span class="input-group-text bg-light text-muted fw-bold px-3">VND</span>
                             </div>
-                            <div class="d-flex justify-content-between text-muted small mt-1">
-                                <span>Tối thiểu: <strong class="text-dark">10.000 ₫</strong></span>
+                            <div class="d-flex justify-content-between text-muted small mt-2">
+                                <span><i class="fa-solid fa-circle-info text-primary me-1"></i> Tối thiểu: <strong class="text-dark">10.000 ₫</strong></span>
                                 <span>Tối đa: <strong class="text-dark">50.000.000 ₫</strong></span>
                             </div>
                         </div>
 
                         <!-- BƯỚC 3: CÚ PHÁP CHUYỂN KHOẢN TỰ ĐỘNG -->
-                        <div class="p-3 rounded-3 mb-4" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                        <div class="p-3 rounded-3 mb-4" style="background: linear-gradient(135deg, #f8faff 0%, #f1f5f9 100%); border: 1px solid #e2e8f0;">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="small fw-bold text-muted text-uppercase">Nội dung chuyển khoản tự động:</span>
                                 <span class="badge bg-danger text-white" style="font-size: 0.68rem;">Khớp mã tự động</span>
                             </div>
-                            <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                 <?php if ($activeDeposit): ?>
                                     <span class="fw-extrabold text-danger fs-5 font-monospace" id="displayTransferContent"><?= htmlspecialchars($activeDeposit['transfer_content']) ?></span>
                                     <button type="button" class="btn-copy-mini" onclick="copyText('<?= htmlspecialchars($activeDeposit['transfer_content']) ?>', this)">
@@ -2109,108 +2074,123 @@ $csrfToken = get_csrf_token();
                 <?php endif; ?>
             </div>
 
-            <!-- ======================================================
-             * BẢNG LỊCH SỬ NẠP TIỀN CỦA NGƯỜI DÙNG
-             * ====================================================== -->
-            <div class="history-card">
-                <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+            <!-- ================= BẢNG LỊCH SỬ NẠP TIỀN (CHUẨN 1:1 THEO BUY-KEY) ================= -->
+            <div class="dash-card">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <div>
-                        <h4 class="fw-bold mb-1 text-dark">
-                            <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Lịch Sử Nạp Tiền
+                        <h4 class="fw-bold text-dark mb-1">
+                            <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Lịch Sử Giao Dịch Nạp Tiền
                         </h4>
-                        <div class="text-muted small">Danh sách các yêu cầu nạp tiền và trạng thái xử lý gần đây của bạn</div>
+                        <p class="text-muted small mb-0">Theo dõi chi tiết mã đơn nạp, ngân hàng thụ hưởng và trạng thái cộng tiền tự động của bạn</p>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border px-3 py-2">
+                            Tổng đơn đã tạo: <strong><?= count($depositHistory) ?></strong>
+                        </span>
                         <a href="deposit.php" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
                             <i class="fa-solid fa-arrows-rotate me-1"></i> Làm mới
                         </a>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light text-muted small text-uppercase">
-                            <tr>
-                                <th style="width: 150px;">Mã Đơn</th>
-                                <th>Ngân Hàng Nhận</th>
-                                <th>Số Tiền</th>
-                                <th>Nội Dung CK</th>
-                                <th>Thời Gian Tạo</th>
-                                <th>Trạng Thái</th>
-                                <th class="text-end">Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($depositHistory)): ?>
+                <?php if (empty($depositHistory)): ?>
+                    <div class="text-center py-5">
+                        <div class="p-3 bg-light rounded-circle d-inline-flex align-items-center justify-content-center text-muted mb-3" style="width: 70px; height: 70px;">
+                            <i class="fa-solid fa-receipt fs-2 text-primary opacity-50"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Bạn chưa có đơn nạp tiền nào</h5>
+                        <p class="text-muted small mb-3">Hãy chọn số tiền và bấm Tạo Yêu Cầu Nạp Tiền ở phía trên để nạp số dư vào ví tức thì.</p>
+                        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="window.scrollTo({top: 300, behavior: 'smooth'})">
+                            <i class="fa-solid fa-plus me-1"></i> Tạo lệnh nạp ngay
+                        </button>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Ngân hàng nhận</th>
+                                    <th class="text-end">Số tiền nạp</th>
+                                    <th>Nội dung chuyển khoản</th>
+                                    <th>Thời gian tạo</th>
+                                    <th class="text-center">Trạng thái</th>
+                                    <th class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 <?php foreach ($depositHistory as $item): ?>
                                     <tr>
                                         <td>
-                                            <span class="font-monospace fw-bold text-primary" style="font-size: 0.95rem;">#<?= htmlspecialchars($item['deposit_code']) ?></span>
+                                            <strong class="font-monospace text-primary fs-6">#<?= htmlspecialchars($item['deposit_code']) ?></strong>
+                                            <div class="text-muted" style="font-size: 0.72rem;"><?= date('d/m/Y H:i', strtotime($item['created_at'])) ?></div>
                                         </td>
                                         <td>
-                                            <div class="fw-bold text-dark" style="font-size: 0.9rem;"><?= htmlspecialchars($item['bank_name']) ?></div>
-                                            <div class="text-muted small font-monospace">STK: <?= htmlspecialchars($item['account_number']) ?> (<?= htmlspecialchars($item['account_name']) ?>)</div>
+                                            <div class="fw-bold text-dark"><?= htmlspecialchars($item['bank_name']) ?></div>
+                                            <small class="text-muted font-monospace">STK: <?= htmlspecialchars($item['account_number']) ?> (<?= htmlspecialchars($item['account_name']) ?>)</small>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="text-success fs-6">+<?= format_currency($item['amount']) ?></strong>
                                         </td>
                                         <td>
-                                            <span class="fw-bold text-success fs-6">+<?= format_currency($item['amount']) ?></span>
+                                            <div class="key-code-box">
+                                                <span class="text-danger fw-bold font-monospace"><?= htmlspecialchars($item['transfer_content']) ?></span>
+                                                <button type="button" 
+                                                        class="btn-copy-key" 
+                                                        title="Sao chép nội dung chuyển khoản" 
+                                                        onclick="copyText('<?= htmlspecialchars($item['transfer_content']) ?>', this)">
+                                                    <i class="fa-regular fa-copy"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                         <td>
-                                            <span class="badge bg-light text-dark border font-monospace px-2 py-1"><?= htmlspecialchars($item['transfer_content']) ?></span>
+                                            <div class="small fw-semibold text-dark"><?= date('d/m/Y H:i', strtotime($item['created_at'])) ?></div>
+                                            <small class="text-muted"><?= time_ago($item['created_at']) ?></small>
                                         </td>
-                                        <td class="text-muted small">
-                                            <?= date('d/m/Y H:i:s', strtotime($item['created_at'])) ?>
-                                        </td>
-                                        <td>
+                                        <td class="text-center">
                                             <?php if ($item['status'] === 'Success'): ?>
-                                                <span class="badge-status status-success">
-                                                    <i class="fa-solid fa-circle-check"></i> Đã cộng tiền
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill">
+                                                    <i class="fa-solid fa-circle-check me-1"></i> Đã cộng tiền
                                                 </span>
                                             <?php elseif ($item['status'] === 'Pending'): ?>
-                                                <span class="badge-status status-pending">
-                                                    <i class="fa-solid fa-clock"></i> Chờ chuyển tiền
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 rounded-pill text-dark">
+                                                    <i class="fa-solid fa-clock me-1"></i> Chờ chuyển tiền
                                                 </span>
                                             <?php elseif ($item['status'] === 'Cancelled'): ?>
-                                                <span class="badge-status status-cancelled">
-                                                    <i class="fa-solid fa-ban"></i> Đã hủy
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill">
+                                                    <i class="fa-solid fa-ban me-1"></i> Đã hủy
                                                 </span>
                                             <?php else: ?>
-                                                <span class="badge-status text-danger bg-danger-subtle border border-danger border-opacity-25">
-                                                    <i class="fa-solid fa-circle-xmark"></i> Thất bại
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-1 rounded-pill">
+                                                    <i class="fa-solid fa-circle-xmark me-1"></i> Thất bại
                                                 </span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end">
                                             <?php if ($item['status'] === 'Pending'): ?>
                                                 <div class="d-inline-flex gap-1">
-                                                    <a href="deposit.php?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-2 py-1" style="font-size: 0.76rem;" title="Xem lại mã QR">
-                                                        <i class="fa-solid fa-qrcode"></i> Lấy QR
+                                                    <a href="deposit.php?code=<?= urlencode($item['deposit_code']) ?>" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.78rem;" title="Xem lại mã QR">
+                                                        <i class="fa-solid fa-qrcode me-1"></i> Lấy QR
                                                     </a>
                                                     <form action="deposit.php" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy lệnh nạp tiền này?');">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                         <input type="hidden" name="action" value="cancel_deposit">
                                                         <input type="hidden" name="deposit_id" value="<?= $item['id'] ?>">
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" style="font-size: 0.76rem;" title="Hủy lệnh nạp">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" style="font-size: 0.78rem;" title="Hủy lệnh nạp">
                                                             <i class="fa-solid fa-xmark"></i> Hủy
                                                         </button>
                                                     </form>
                                                 </div>
                                             <?php else: ?>
-                                                <span class="text-muted small"><i class="fa-solid fa-check text-muted"></i> Hoàn tất</span>
+                                                <span class="text-muted small"><i class="fa-solid fa-check-double text-success me-1"></i> Hoàn tất</span>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="7" class="text-center py-5 text-muted">
-                                        <div class="mb-2"><i class="fa-solid fa-receipt fs-1 text-secondary opacity-50"></i></div>
-                                        <p class="mb-0">Bạn chưa có giao dịch nạp tiền nào. Hãy chọn số tiền và tạo lệnh nạp ở khung phía trên.</p>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
 
         </div>
