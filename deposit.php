@@ -3227,17 +3227,49 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             }
             bitString += '1100011101011'; // Stop B + terminal
             
-            let x = 6;
-            const barW = 1.35;
-            const h = 22;
-            let rects = '';
-            for (let i = 0; i < bitString.length; i++) {
-                if (bitString[i] === '1') {
-                    rects += `<rect x="${(x + i * barW).toFixed(2)}" y="0" width="${barW.toFixed(2)}" height="${h}" fill="#0f172a"/>`;
+            // Vẽ bằng Canvas xuất ra ảnh PNG độ phân giải cao 
+            // Khắc phục triệt để lỗi html2canvas làm chập/mất vạch khi xuất PDF
+            try {
+                const canvas = document.createElement('canvas');
+                const scale = 2;
+                const barW = 2; // Độ rộng từng vạch chuẩn integer pixel
+                const h = 26;
+                const quiet = 10;
+                const width = (quiet * 2) + (bitString.length * barW);
+                
+                canvas.width = width * scale;
+                canvas.height = h * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                
+                // Nền trắng tinh khiết
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, h);
+                
+                // Vẽ các vạch đen theo chuẩn mã vạch bán lẻ siêu thị
+                ctx.fillStyle = '#0f172a';
+                for (let i = 0; i < bitString.length; i++) {
+                    if (bitString[i] === '1') {
+                        ctx.fillRect(quiet + i * barW, 0, barW, h);
+                    }
                 }
+                
+                const pngUrl = canvas.toDataURL('image/png');
+                return `<img src="${pngUrl}" alt="Retail Barcode ${code}" class="invoice-barcode-img" style="width: 180px; height: 24px; display: inline-block; image-rendering: pixelated; vertical-align: middle;" />`;
+            } catch (e) {
+                // Fallback nếu canvas bị lỗi
+                let x = 6;
+                const barW = 1.35;
+                const h = 22;
+                let rects = '';
+                for (let i = 0; i < bitString.length; i++) {
+                    if (bitString[i] === '1') {
+                        rects += `<rect x="${(x + i * barW).toFixed(2)}" y="0" width="${barW.toFixed(2)}" height="${h}" fill="#0f172a"/>`;
+                    }
+                }
+                const totalW = Math.ceil(x * 2 + bitString.length * barW);
+                return `<svg class="invoice-barcode-svg" viewBox="0 0 ${totalW} ${h}" style="width: 175px; height: 22px; display: inline-block;">${rects}</svg>`;
             }
-            const totalW = Math.ceil(x * 2 + bitString.length * barW);
-            return `<svg class="invoice-barcode-svg" viewBox="0 0 ${totalW} ${h}" style="width: 175px; height: 22px; display: inline-block;">${rects}</svg>`;
         }
 
         // Chuyển đổi trạng thái giao dịch sang Tiếng Việt chuẩn
