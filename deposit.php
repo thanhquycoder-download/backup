@@ -103,6 +103,7 @@ if (empty($bankAccounts)) {
 // 3. XỬ LÝ POST: TẠO LỆNH NẠP TIỀN HOẶC HỦY LỆNH
 // ----------------------------------------------------------
 $activeDeposit = null; // Lệnh nạp đang mở để quét QR
+$redirectRoute = (strpos($_SERVER['REQUEST_URI'] ?? '', '/payments/deposit') !== false) ? '/payments/deposit' : 'deposit.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim($_POST['action'] ?? '');
@@ -110,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!verify_csrf_token($submittedToken)) {
         set_flash('error', 'Yêu cầu không hợp lệ hoặc phiên bảo mật đã hết hạn. Vui lòng tải lại trang.', 'Bảo Mật CSRF');
-        header("Location: deposit.php");
+        header("Location: " . $redirectRoute);
         exit;
     }
 
@@ -134,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$selectedBank) {
             set_flash('warning', 'Vui lòng chọn ngân hàng bạn muốn chuyển tiền vào.', 'Chưa Chọn Ngân Hàng');
-            header("Location: deposit.php");
+            header("Location: " . $redirectRoute);
             exit;
         }
 
@@ -143,13 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($amount < $minDep) {
             set_flash('warning', 'Số tiền nạp tối thiểu là ' . format_currency($minDep) . '.', 'Số Tiền Không Hợp Lệ');
-            header("Location: deposit.php");
+            header("Location: " . $redirectRoute);
             exit;
         }
 
         if ($amount > $maxDep) {
             set_flash('warning', 'Số tiền nạp tối đa là ' . format_currency($maxDep) . '.', 'Số Tiền Quá Lớn');
-            header("Location: deposit.php");
+            header("Location: " . $redirectRoute);
             exit;
         }
 
@@ -174,13 +175,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $transferContent
             ]);
 
-            set_flash('success', 'Đã tạo lệnh nạp #' . $depositCode . ' thành công! Vui lòng quét mã VietQR TPBank bên phải để hoàn tất chuyển tiền.', 'Lệnh Nạp Sẵn Sàng');
-            header("Location: deposit.php?code=" . urlencode($depositCode));
+            set_flash('success', 'Đã tạo lệnh nạp #' . $depositCode . ' thành công! Vui lòng quét mã VietQR TPBank bên dưới để hoàn tất chuyển tiền.', 'Lệnh Nạp Sẵn Sàng');
+            $redirectUrl = (strpos($redirectRoute, '?') !== false) ? ($redirectRoute . '&code=' . urlencode($depositCode)) : ($redirectRoute . '?code=' . urlencode($depositCode));
+            header("Location: " . $redirectUrl);
             exit;
 
         } catch (Exception $e) {
             set_flash('error', 'Lỗi hệ thống khi tạo lệnh nạp: ' . $e->getMessage(), 'Lỗi Xử Lý');
-            header("Location: deposit.php");
+            header("Location: " . $redirectRoute);
             exit;
         }
     }
@@ -200,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             set_flash('warning', 'Không tìm thấy lệnh nạp cần hủy hoặc lệnh đã được xử lý trước đó.', 'Thông Báo');
         }
-        header("Location: deposit.php");
+        header("Location: " . $redirectRoute);
         exit;
     }
 }
