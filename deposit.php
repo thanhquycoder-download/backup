@@ -1585,6 +1585,85 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             background: #eff6ff;
         }
 
+        /* Các nút bấm thao tác trong bảng lịch sử giao dịch nạp tiền */
+        .btn-action-view {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            transition: var(--transition);
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+            text-decoration: none;
+            cursor: pointer;
+            line-height: 1.2;
+        }
+
+        .btn-action-view:hover {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+            box-shadow: 0 3px 8px rgba(37, 99, 235, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-action-qr {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: #ffffff;
+            border: 1px solid #4f46e5;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            transition: var(--transition);
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+            text-decoration: none;
+            cursor: pointer;
+            line-height: 1.2;
+        }
+
+        .btn-action-qr:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-action-cancel {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: #fff1f2;
+            color: #e11d48;
+            border: 1px solid #fecdd3;
+            padding: 5px 11px;
+            border-radius: 50px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            transition: var(--transition);
+            cursor: pointer;
+            line-height: 1.2;
+        }
+
+        .btn-action-cancel:hover {
+            background: #e11d48;
+            color: #ffffff;
+            border-color: #e11d48;
+            box-shadow: 0 3px 8px rgba(225, 29, 72, 0.25);
+            transform: translateY(-1px);
+        }
+
         /* ==========================================================
          * HÓA ĐƠN CHI TIẾT NẠP TIỀN & XUẤT WORD
         /* ==========================================================
