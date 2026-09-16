@@ -481,19 +481,18 @@ INSERT INTO `settings` (`user_uuid`, `setting_key`, `setting_value`, `setting_gr
 ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
 
 -- 11. Dữ liệu Tài khoản ngân hàng nhận tiền mẫu của Admin (bank_accounts)
+-- Chỉ sử dụng duy nhất ngân hàng TPBank theo cấu hình hệ thống
 INSERT INTO `bank_accounts` (`id`, `bank_code`, `bank_name`, `account_number`, `account_name`, `branch`, `qr_template`, `min_deposit`, `max_deposit`, `is_default`, `status`) VALUES
-(1, 'MB', 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active'),
-(2, 'VCB', 'Vietcombank (Ngoại Thương Việt Nam)', '1018899889', 'TRAN THANH QUY', 'Chi Nhánh Ba Đình', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
-(3, 'TCB', 'Techcombank (Kỹ Thương Việt Nam)', '19036688990011', 'TRAN THANH QUY', 'Chi Nhánh Thăng Long', 'compact2', 10000.00, 50000000.00, 0, 'Active'),
-(4, 'MOMO', 'Ví Điện Tử MoMo', '0987654321', 'TRAN THANH QUY', 'Toàn Quốc', 'compact2', 10000.00, 20000000.00, 0, 'Active')
-ON DUPLICATE KEY UPDATE `bank_name` = VALUES(`bank_name`), `account_number` = VALUES(`account_number`), `account_name` = VALUES(`account_name`);
+(1, 'TPB', 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 'Hội Sở Chính Hà Nội', 'compact2', 10000.00, 50000000.00, 1, 'Active')
+ON DUPLICATE KEY UPDATE `bank_code` = VALUES(`bank_code`), `bank_name` = VALUES(`bank_name`), `account_number` = VALUES(`account_number`), `account_name` = VALUES(`account_name`);
 
 -- 12. Dữ liệu lệnh nạp tiền mẫu của người dùng (deposits)
+-- Định dạng mã đơn và cú pháp: ThanhQuyTech(mã 7 số ngẫu nhiên)
 INSERT INTO `deposits` (`user_uuid`, `deposit_code`, `bank_id`, `bank_name`, `account_number`, `account_name`, `amount`, `transfer_content`, `status`, `approved_at`, `created_at`) VALUES
-('0191eb50-0002-7000-8000-000000000002', 'NAP6839204-01', 1, 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 2000000.00, 'NAP 6839204', 'Success', DATE_SUB(NOW(), INTERVAL 3 HOUR), DATE_SUB(NOW(), INTERVAL 3 HOUR)),
-('0191eb50-0003-7000-8000-000000000003', 'NAP3185927-01', 1, 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 850000.00, 'NAP 3185927', 'Success', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
-('0191eb50-0004-7000-8000-000000000004', 'NAP7524918-01', 2, 'Vietcombank (Ngoại Thương Việt Nam)', '1018899889', 'TRAN THANH QUY', 320000.00, 'NAP 7524918', 'Success', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
-('0191eb50-0002-7000-8000-000000000002', 'NAP6839204-02', 1, 'MBBank (Ngân Hàng Quân Đội)', '0987654321', 'TRAN THANH QUY', 500000.00, 'NAP 6839204', 'Pending', NULL, DATE_SUB(NOW(), INTERVAL 15 MINUTE))
+('0191eb50-0002-7000-8000-000000000002', '6839204', 1, 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 2000000.00, 'ThanhQuyTech6839204', 'Success', DATE_SUB(NOW(), INTERVAL 3 HOUR), DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+('0191eb50-0003-7000-8000-000000000003', '3185927', 1, 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 850000.00, 'ThanhQuyTech3185927', 'Success', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('0191eb50-0004-7000-8000-000000000004', '7524918', 1, 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 320000.00, 'ThanhQuyTech7524918', 'Success', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('0191eb50-0002-7000-8000-000000000002', '9281045', 1, 'TPBank (Ngân Hàng Tiên Phong)', '0987654321', 'TRAN THANH QUY', 500000.00, 'ThanhQuyTech9281045', 'Pending', NULL, DATE_SUB(NOW(), INTERVAL 15 MINUTE))
 ON DUPLICATE KEY UPDATE `amount` = VALUES(`amount`), `status` = VALUES(`status`);
 
 
