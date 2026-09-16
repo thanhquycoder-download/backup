@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/token/golike.php';
 
 require_login();
 
@@ -30,8 +31,10 @@ if (!$user) {
 $isAdmin = ($user['role'] === 'Admin');
 $currentUser = $user;
 
-// 2. Tự động kiểm tra và khởi tạo bảng `token` nếu chưa có
+// 2. Tự động kiểm tra và khởi tạo bảng `token` & `golike_tokens` nếu chưa có
 try {
+    ensure_golike_table($pdo);
+
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `token` (
             `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -54,10 +57,61 @@ try {
     // Bỏ qua nếu bảng đã tồn tại
 }
 
-// 3. XỬ LÝ CÁC HÀNH ĐỘNG POST (Tạo, Thu hồi, Xóa Token)
+// 3. XỬ LÝ CÁC HÀNH ĐỘNG POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         set_flash('error', 'Phiên làm việc hoặc mã bảo mật CSRF không hợp lệ. Vui lòng tải lại trang.', 'Lỗi xác thực');
+        header("Location: token.php");
+        exit;
+    }
+
+    $action = $_POST['action'] ?? '';
+
+    // ==========================================
+    // 3.1. HÀNH ĐỘNG VỚI TOKEN GOLIKE
+    // ==========================================
+    // A. LƯU HOẶC CẬP NHẬT TOKEN GOLIKE
+    if ($action === 'save_golike_token') {
+        $golikeToken = trim($_POST['golike_token'] ?? '');
+        if (empty($golikeToken)) {
+            set_flash('error', 'Vui lòng nhập hoặc dán mã Token Golike (Authorization Bearer).', 'Thiếu thông tin');
+            header("Location: token.php?tab=golike");
+            exit;
+        }
+
+        $res = save_or_update_golike_account($pdo, $user['uuid'], $golikeToken);
+        if ($res['success']) {
+            set_flash('success', "Đã kết nối tài khoản Golike thành công: <strong>" . htmlspecialchars($res['name']) . "</strong> (@" . htmlspecialchars($res['username']) . ") - ID: <strong>#" . htmlspecialchars($res['golike_id']) . "</strong> - Số dư: <strong class='text-success'>" . $res['coin_formatted'] . "</strong>", 'Kết nối thành công');
+        } else {
+            set_flash('error', $res['message'], 'Lỗi kết nối Golike');
+        }
+        header("Location: token.php?tab=golike");
+        exit;
+    }
+
+    // B. LÀM MỚI SỐ DƯ TÀI KHOẢN GOLIKE
+    if ($action === 'refresh_golike_token') {
+        $accountId = (int)($_POST['golike_account_id'] ?? 0);
+        $res = refresh_golike_account($pdo, $user['uuid'], $accountId);
+        if ($res['success']) {
+            set_flash('success', $res['message'], 'Cập nhật số dư');
+        } else {
+            set_flash('error', $res['message'], 'Cảnh báo Token');
+        }
+        header("Location: token.php?tab=golike");
+        exit;
+    }
+
+    // C. XÓA TÀI KHOẢN GOLIKE KHỎI DANH SÁCH
+    if ($action === 'delete_golike_token') {
+        $accountId = (int)($_POST['golike_account_id'] ?? 0);
+        ensure_golike_table($pdo);
+        $stmtDel = $pdo->prepare("DELETE FROM `golike_tokens` WHERE `id` = ? AND `user_uuid` = ?");
+        $stmtDel->execute([$accountId, $user['uuid']]);
+        set_flash('success', 'Đã xóa tài khoản Golike khỏi danh sách lưu trữ.', 'Đã xóa');
+        header("Location: token.php?tab=golike");
+        exit;
+    }
         header("Location: token.php");
         exit;
     }
