@@ -69,17 +69,17 @@ function save_user_setting(PDO $pdo, string $userUuid, string $key, string $valu
 function is_platform_matching_scope(string $plat, string $scope): bool {
     $plat = strtolower(trim($plat));
     $scope = strtolower(trim($scope));
-    if ($scope === 'general' || $scope === 'cloud' || empty($scope)) {
+    if ($scope === 'general' || $scope === 'all' || $scope === 'cloud' || empty($scope)) {
         return true;
     }
     if ($scope === 'golike') {
-        return ($plat === 'golike');
+        return ($plat === 'golike' || $plat === 'go_like' || strpos($plat, 'golike') !== false);
     }
-    if ($scope === 'tuongtaccheo') {
-        return ($plat === 'tuongtaccheo' || $plat === 'ttc');
+    if ($scope === 'tuongtaccheo' || $scope === 'ttc') {
+        return ($plat === 'tuongtaccheo' || $plat === 'ttc' || $plat === 'tuong_tac_cheo' || strpos($plat, 'ttc') !== false || strpos($plat, 'tuongtac') !== false);
     }
-    if ($scope === 'traodoisub') {
-        return ($plat === 'traodoisub' || $plat === 'tds');
+    if ($scope === 'traodoisub' || $scope === 'tds') {
+        return ($plat === 'traodoisub' || $plat === 'tds' || $plat === 'trao_doi_sub' || strpos($plat, 'tds') !== false || strpos($plat, 'traodoi') !== false);
     }
     return ($plat === $scope);
 }
@@ -133,8 +133,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $cloudCustomEnabled = isset($_POST['cloud_custom_enabled']) ? 1 : 0;
 
-        // Xử lý tài khoản đã chọn (Fallback tìm acc đầu tiên phù hợp với scope nếu để trống)
+        // Xử lý tài khoản đã chọn (Lọc chỉ giữ tài khoản khớp scope nếu chọn scope riêng)
         $selectedAccs = array_map('intval', $_POST['selected_accounts'] ?? []);
+        if ($scope !== 'general' && $scope !== 'cloud') {
+            $validScopeAccs = [];
+            foreach ($tokens as $t) {
+                $tp = strtolower($t['platform'] ?? 'golike');
+                if (is_platform_matching_scope($tp, $scope)) {
+                    $validScopeAccs[] = (int)$t['id'];
+                }
+            }
+            $selectedAccs = array_values(array_intersect($selectedAccs, $validScopeAccs));
+        }
+
+        // Tự động chọn acc đầu tiên phù hợp với scope nếu để trống
         if (empty($selectedAccs) && !empty($tokens)) {
             $firstPlatAcc = null;
             foreach ($tokens as $t) {
@@ -148,6 +160,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $cloudSelectedAccs = array_map('intval', $_POST['cloud_selected_accounts'] ?? []);
+        if ($scope !== 'general' && $scope !== 'cloud') {
+            $validCloudScopeAccs = [];
+            foreach ($tokens as $t) {
+                $tp = strtolower($t['platform'] ?? 'golike');
+                if (is_platform_matching_scope($tp, $scope)) {
+                    $validCloudScopeAccs[] = (int)$t['id'];
+                }
+            }
+            $cloudSelectedAccs = array_values(array_intersect($cloudSelectedAccs, $validCloudScopeAccs));
+        }
         if (empty($cloudSelectedAccs) && !empty($tokens)) {
             $firstPlatAcc = null;
             foreach ($tokens as $t) {
@@ -291,12 +313,32 @@ $defaultGeneralConfig = [
 $currentScopeKey = 'bot_config_' . $scopeParam;
 $activeConfig = $allConfigs[$currentScopeKey] ?? ($allConfigs['bot_config_general'] ?? $defaultGeneralConfig);
 
-if (empty($activeConfig['selected_accounts']) && !empty($tokens)) {
+if (!empty($activeConfig['selected_accounts']) && $scopeParam !== 'general' && $scopeParam !== 'cloud') {
+    $validIds = [];
+    foreach ($tokens as $t) {
+        $tp = strtolower($t['platform'] ?? 'golike');
+        if (is_platform_matching_scope($tp, $scopeParam)) {
+            $validIds[] = (int)$t['id'];
+        }
+    }
+    $filteredAccs = array_values(array_intersect($activeConfig['selected_accounts'], $validIds));
+    $activeConfig['selected_accounts'] = !empty($filteredAccs) ? $filteredAccs : $defaultFirstAcc;
+} elseif (empty($activeConfig['selected_accounts']) && !empty($tokens)) {
     $activeConfig['selected_accounts'] = $defaultFirstAcc;
 }
 
 $cloudSaved = $activeConfig['cloud_settings'] ?? ($allConfigs['bot_config_cloud'] ?? $defaultGeneralConfig['cloud_settings']);
-if (empty($cloudSaved['selected_accounts']) && !empty($tokens)) {
+if (!empty($cloudSaved['selected_accounts']) && $scopeParam !== 'general' && $scopeParam !== 'cloud') {
+    $validIdsCloud = [];
+    foreach ($tokens as $t) {
+        $tp = strtolower($t['platform'] ?? 'golike');
+        if (is_platform_matching_scope($tp, $scopeParam)) {
+            $validIdsCloud[] = (int)$t['id'];
+        }
+    }
+    $filteredCloudAccs = array_values(array_intersect($cloudSaved['selected_accounts'], $validIdsCloud));
+    $cloudSaved['selected_accounts'] = !empty($filteredCloudAccs) ? $filteredCloudAccs : $defaultFirstAcc;
+} elseif (empty($cloudSaved['selected_accounts']) && !empty($tokens)) {
     $cloudSaved['selected_accounts'] = $defaultFirstAcc;
 }
 
@@ -1976,20 +2018,20 @@ $flash = get_flash();
                     </div>
 
                     <div class="scope-selector-grid">
-                        <!-- Chung toàn hệ thống -->
-                        <div class="scope-card-item <?= ($scopeParam === 'general') ? 'active' : '' ?>" onclick="switchScope('general')">
+                        <!-- Toàn bộ hệ thống -->
+                        <div class="scope-card-item <?= ($scopeParam === 'general') ? 'active' : '' ?>" data-scope="general" onclick="switchScope('general', this)">
                             <div class="scope-icon-wrap text-primary">
-                                <i class="fa-solid fa-sliders"></i>
+                                <i class="fa-solid fa-globe"></i>
                             </div>
                             <div class="scope-text-wrap">
-                                <div class="scope-title">Cấu hình chung</div>
-                                <div class="scope-sub">Toàn hệ thống (Hiện all acc)</div>
+                                <div class="scope-title">Toàn bộ hệ thống</div>
+                                <div class="scope-sub">Hiện all acc (Mọi nền tảng)</div>
                             </div>
                             <i class="fa-solid fa-circle-check scope-check-dot"></i>
                         </div>
 
                         <!-- Golike -->
-                        <div class="scope-card-item <?= ($scopeParam === 'golike') ? 'active' : '' ?>" onclick="switchScope('golike')">
+                        <div class="scope-card-item <?= ($scopeParam === 'golike') ? 'active' : '' ?>" data-scope="golike" onclick="switchScope('golike', this)">
                             <div class="scope-icon-wrap">
                                 <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike">
                             </div>
@@ -2001,7 +2043,7 @@ $flash = get_flash();
                         </div>
 
                         <!-- Tương Tác Chéo -->
-                        <div class="scope-card-item <?= ($scopeParam === 'tuongtaccheo') ? 'active' : '' ?>" onclick="switchScope('tuongtaccheo')">
+                        <div class="scope-card-item <?= ($scopeParam === 'tuongtaccheo') ? 'active' : '' ?>" data-scope="tuongtaccheo" onclick="switchScope('tuongtaccheo', this)">
                             <div class="scope-icon-wrap text-success">
                                 <i class="fa-solid fa-arrows-rotate"></i>
                             </div>
@@ -2013,7 +2055,7 @@ $flash = get_flash();
                         </div>
 
                         <!-- Trao Đổi Sub -->
-                        <div class="scope-card-item <?= ($scopeParam === 'traodoisub') ? 'active' : '' ?>" onclick="switchScope('traodoisub')">
+                        <div class="scope-card-item <?= ($scopeParam === 'traodoisub') ? 'active' : '' ?>" data-scope="traodoisub" onclick="switchScope('traodoisub', this)">
                             <div class="scope-icon-wrap text-info">
                                 <i class="fa-solid fa-bolt"></i>
                             </div>
@@ -2110,16 +2152,41 @@ $flash = get_flash();
                             <?php 
                             $visibleCountNormal = 0;
                             foreach ($tokens as $t): 
-                                $isSelected = in_array((int)$t['id'], $savedAccs);
                                 $pCode = strtolower($t['platform'] ?? 'golike');
                                 $isMatch = is_platform_matching_scope($pCode, $scopeParam);
+                                $isSelected = in_array((int)$t['id'], $savedAccs) && $isMatch;
                                 if ($isMatch) $visibleCountNormal++;
+
+                                $badgeColor = '#eef2ff';
+                                $badgeTextColor = '#4f46e5';
+                                $pDisplay = strtoupper($pCode);
+                                if ($pCode === 'tuongtaccheo' || $pCode === 'ttc') {
+                                    $badgeColor = '#ecfdf5';
+                                    $badgeTextColor = '#059669';
+                                    $pDisplay = 'TTC';
+                                } elseif ($pCode === 'traodoisub' || $pCode === 'tds') {
+                                    $badgeColor = '#eff6ff';
+                                    $badgeTextColor = '#2563eb';
+                                    $pDisplay = 'TDS';
+                                }
                             ?>
                             <div class="account-select-card <?= $isSelected ? 'active' : '' ?>" data-acc-id="<?= $t['id'] ?>" data-plat="<?= htmlspecialchars($pCode) ?>" style="display: <?= $isMatch ? 'flex' : 'none' ?>;" onclick="toggleAccountCard(this, 'normal')">
-                                <input type="checkbox" name="selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isSelected ? 'checked' : '' ?>>
+                                <input type="checkbox" name="selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isSelected ? 'checked' : '' ?> <?= !$isMatch ? 'disabled' : '' ?>>
                                 <div class="account-avatar-box">
                                     <?php if ($pCode === 'golike'): ?>
                                         <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike">
+                                    <?php elseif ($pCode === 'tuongtaccheo' || $pCode === 'ttc'): ?>
+                                        <?php if (!empty($platformLogos['ttc'])): ?>
+                                            <img src="<?= htmlspecialchars($platformLogos['ttc']) ?>" alt="TTC">
+                                        <?php else: ?>
+                                            <div class="avatar-platform-icon" style="background:#ecfdf5; color:#059669; width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:800; font-size:0.75rem;">TTC</div>
+                                        <?php endif; ?>
+                                    <?php elseif ($pCode === 'traodoisub' || $pCode === 'tds'): ?>
+                                        <?php if (!empty($platformLogos['tds'])): ?>
+                                            <img src="<?= htmlspecialchars($platformLogos['tds']) ?>" alt="TDS">
+                                        <?php else: ?>
+                                            <div class="avatar-platform-icon" style="background:#eff6ff; color:#2563eb; width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:800; font-size:0.75rem;">TDS</div>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <i class="fa-solid fa-user text-muted"></i>
                                     <?php endif; ?>
@@ -2127,9 +2194,9 @@ $flash = get_flash();
                                 <div class="account-info-box">
                                     <div class="account-name-row"><?= htmlspecialchars($t['name']) ?></div>
                                     <div class="account-sub-row">
-                                        <span class="account-badge-plat"><?= strtoupper($pCode) ?></span>
+                                        <span class="account-badge-plat" style="background: <?= $badgeColor ?>; color: <?= $badgeTextColor ?>;"><?= $pDisplay ?></span>
                                         <span class="account-id-tag">ID: <?= htmlspecialchars($t['account_id']) ?></span>
-                                        <span class="account-coin-tag"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
+                                        <span class="account-coin-tag" style="white-space: nowrap !important;"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
                                     </div>
                                 </div>
                                 <i class="fa-solid fa-circle-check scope-check-dot"></i>
@@ -2358,16 +2425,41 @@ $flash = get_flash();
                                     <?php 
                                     $visibleCountCloud = 0;
                                     foreach ($tokens as $t): 
-                                        $isCSelected = in_array((int)$t['id'], $cSavedAccs);
                                         $pCode = strtolower($t['platform'] ?? 'golike');
                                         $isMatch = is_platform_matching_scope($pCode, $scopeParam);
+                                        $isCSelected = in_array((int)$t['id'], $cSavedAccs) && $isMatch;
                                         if ($isMatch) $visibleCountCloud++;
+
+                                        $badgeColor = '#eef2ff';
+                                        $badgeTextColor = '#4f46e5';
+                                        $pDisplay = strtoupper($pCode);
+                                        if ($pCode === 'tuongtaccheo' || $pCode === 'ttc') {
+                                            $badgeColor = '#ecfdf5';
+                                            $badgeTextColor = '#059669';
+                                            $pDisplay = 'TTC';
+                                        } elseif ($pCode === 'traodoisub' || $pCode === 'tds') {
+                                            $badgeColor = '#eff6ff';
+                                            $badgeTextColor = '#2563eb';
+                                            $pDisplay = 'TDS';
+                                        }
                                     ?>
                                     <div class="account-select-card <?= $isCSelected ? 'active' : '' ?>" data-acc-id="<?= $t['id'] ?>" data-plat="<?= htmlspecialchars($pCode) ?>" style="display: <?= $isMatch ? 'flex' : 'none' ?>;" onclick="toggleAccountCard(this, 'cloud')">
-                                        <input type="checkbox" name="cloud_selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isCSelected ? 'checked' : '' ?>>
+                                        <input type="checkbox" name="cloud_selected_accounts[]" value="<?= $t['id'] ?>" class="account-checkbox d-none" <?= $isCSelected ? 'checked' : '' ?> <?= !$isMatch ? 'disabled' : '' ?>>
                                         <div class="account-avatar-box">
                                             <?php if ($pCode === 'golike'): ?>
                                                 <img src="<?= htmlspecialchars($golikeLogo) ?>" alt="Golike">
+                                            <?php elseif ($pCode === 'tuongtaccheo' || $pCode === 'ttc'): ?>
+                                                <?php if (!empty($platformLogos['ttc'])): ?>
+                                                    <img src="<?= htmlspecialchars($platformLogos['ttc']) ?>" alt="TTC">
+                                                <?php else: ?>
+                                                    <div class="avatar-platform-icon" style="background:#ecfdf5; color:#059669; width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:800; font-size:0.75rem;">TTC</div>
+                                                <?php endif; ?>
+                                            <?php elseif ($pCode === 'traodoisub' || $pCode === 'tds'): ?>
+                                                <?php if (!empty($platformLogos['tds'])): ?>
+                                                    <img src="<?= htmlspecialchars($platformLogos['tds']) ?>" alt="TDS">
+                                                <?php else: ?>
+                                                    <div class="avatar-platform-icon" style="background:#eff6ff; color:#2563eb; width:100%; height:100%; display:flex; align-items:center; justify-content:center; border-radius:50%; font-weight:800; font-size:0.75rem;">TDS</div>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <i class="fa-solid fa-user text-muted"></i>
                                             <?php endif; ?>
@@ -2375,9 +2467,9 @@ $flash = get_flash();
                                         <div class="account-info-box">
                                             <div class="account-name-row"><?= htmlspecialchars($t['name']) ?></div>
                                             <div class="account-sub-row">
-                                                <span class="account-badge-plat"><?= strtoupper($pCode) ?></span>
+                                                <span class="account-badge-plat" style="background: <?= $badgeColor ?>; color: <?= $badgeTextColor ?>;"><?= $pDisplay ?></span>
                                                 <span class="account-id-tag">ID: <?= htmlspecialchars($t['account_id']) ?></span>
-                                                <span class="account-coin-tag"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
+                                                <span class="account-coin-tag" style="white-space: nowrap !important;"><?= number_format($t['coin'], 0, ',', '.') ?> xu</span>
                                             </div>
                                         </div>
                                         <i class="fa-solid fa-circle-check scope-check-dot"></i>
@@ -2567,14 +2659,16 @@ $flash = get_flash();
         // Chuẩn hóa mã nền tảng
         function normalizePlatform(plat) {
             plat = (plat || '').toLowerCase().trim();
-            if (plat === 'ttc') return 'tuongtaccheo';
-            if (plat === 'tds') return 'traodoisub';
+            if (plat === 'ttc' || plat === 'tuongtaccheo' || plat === 'tuong_tac_cheo' || plat.indexOf('ttc') !== -1 || plat.indexOf('tuongtac') !== -1) return 'tuongtaccheo';
+            if (plat === 'tds' || plat === 'traodoisub' || plat === 'trao_doi_sub' || plat.indexOf('tds') !== -1 || plat.indexOf('traodoi') !== -1) return 'traodoisub';
+            if (plat === 'golike' || plat === 'go_like' || plat.indexOf('golike') !== -1) return 'golike';
             return plat;
         }
 
         // Kiểm tra tài khoản có khớp với scope đang chọn hay không
         function matchScopePlatform(scope, plat) {
-            if (scope === 'general' || scope === 'cloud' || !scope) return true;
+            scope = (scope || 'general').toLowerCase().trim();
+            if (scope === 'general' || scope === 'all' || scope === 'cloud' || !scope) return true;
             const normPlat = normalizePlatform(plat);
             const normScope = normalizePlatform(scope);
             return normPlat === normScope;
@@ -2592,11 +2686,18 @@ $flash = get_flash();
                 cards.forEach(card => {
                     const plat = card.getAttribute('data-plat');
                     const isMatch = matchScopePlatform(scope, plat);
+                    const chk = card.querySelector('.account-checkbox');
                     if (isMatch) {
                         card.style.display = 'flex';
+                        if (chk) chk.disabled = false;
                         visibleCount++;
                     } else {
                         card.style.display = 'none';
+                        if (chk) {
+                            chk.disabled = true;
+                            chk.checked = false;
+                        }
+                        card.classList.remove('active');
                     }
                 });
 
@@ -2611,9 +2712,9 @@ $flash = get_flash();
                     emptyEl.style.display = 'block';
                     let platName = 'nền tảng này';
                     if (scope === 'golike') platName = 'Golike';
-                    else if (scope === 'tuongtaccheo') platName = 'Tương Tác Chéo';
-                    else if (scope === 'traodoisub') platName = 'Trao Đổi Sub';
-                    emptyEl.innerHTML = `<i class="fa-solid fa-circle-info text-primary me-1"></i> Chưa có tài khoản nào thuộc nền tảng <strong>${platName}</strong>. <a href="token.php" class="fw-bold ms-1 text-primary"><i class="fa-solid fa-plus me-1"></i>Thêm token ngay</a>`;
+                    else if (scope === 'tuongtaccheo') platName = 'Tương Tác Chéo (TTC)';
+                    else if (scope === 'traodoisub') platName = 'Trao Đổi Sub (TDS)';
+                    emptyEl.innerHTML = `<i class="fa-solid fa-circle-info text-primary me-1"></i> Chưa có tài khoản nào thuộc <strong>${platName}</strong>. <a href="token.php" class="fw-bold ms-1 text-primary"><i class="fa-solid fa-plus me-1"></i>Thêm token ngay</a>`;
                 } else if (emptyEl) {
                     emptyEl.style.display = 'none';
                 }
@@ -2624,31 +2725,35 @@ $flash = get_flash();
             // Cập nhật gợi ý tiêu đề mục 3
             const hintEl = document.getElementById('accountSectionHint');
             if (hintEl) {
-                let textMode = 'Toàn bộ';
-                if (scope === 'golike') textMode = 'Golike';
-                else if (scope === 'tuongtaccheo') textMode = 'Tương Tác Chéo';
-                else if (scope === 'traodoisub') textMode = 'Trao Đổi Sub';
-                hintEl.innerHTML = `(Đang hiển thị tài khoản theo chế độ: <strong>${textMode}</strong>. Tự động chọn tài khoản đầu tiên nếu bạn không tích chọn)`;
+                let textMode = 'Toàn bộ tài khoản (All acc)';
+                if (scope === 'golike') textMode = 'Chỉ tài khoản Golike';
+                else if (scope === 'tuongtaccheo') textMode = 'Chỉ tài khoản Tương Tác Chéo (TTC)';
+                else if (scope === 'traodoisub') textMode = 'Chỉ tài khoản Trao Đổi Sub (TDS)';
+                hintEl.innerHTML = `(Chế độ lọc: <strong class="text-primary">${textMode}</strong>. Tự động chọn tài khoản đầu tiên nếu chưa chọn)`;
             }
         }
 
         // 1. Chuyển đổi Scope (Chung, Golike, TTC, TDS)
-        function switchScope(scope) {
+        function switchScope(scope, cardEl) {
             const input = document.getElementById('targetScopeInput');
             if (input) input.value = scope;
 
             document.querySelectorAll('.scope-card-item').forEach(card => {
                 card.classList.remove('active');
             });
-            event.currentTarget.classList.add('active');
+            if (cardEl) {
+                cardEl.classList.add('active');
+            } else {
+                const targetCard = document.querySelector(`.scope-card-item[data-scope="${scope}"]`);
+                if (targetCard) targetCard.classList.add('active');
+            }
 
             const label = document.getElementById('activeScopeLabel');
             if (label) {
-                let displayScope = scope.toUpperCase();
-                if (scope === 'general') displayScope = 'CHUNG TOÀN HỆ THỐNG';
-                else if (scope === 'golike') displayScope = 'GOLIKE';
-                else if (scope === 'tuongtaccheo') displayScope = 'TƯƠNG TÁC CHÉO';
-                else if (scope === 'traodoisub') displayScope = 'TRAO ĐỔI SUB';
+                let displayScope = 'TOÀN BỘ (ALL ACC)';
+                if (scope === 'golike') displayScope = 'GOLIKE';
+                else if (scope === 'tuongtaccheo') displayScope = 'TƯƠNG TÁC CHÉO (TTC)';
+                else if (scope === 'traodoisub') displayScope = 'TRAO ĐỔI SUB (TDS)';
                 label.textContent = 'Đang chỉnh: ' + displayScope;
             }
 
@@ -2659,14 +2764,21 @@ $flash = get_flash();
             const config = ALL_CONFIGS[configKey] || ALL_CONFIGS['bot_config_general'] || DEFAULT_CONFIG;
             applyConfigToForm(config, scope);
 
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'info',
-                title: 'Đã chuyển sang cấu hình: ' + (scope === 'general' ? 'Toàn hệ thống' : scope.toUpperCase()),
-                showConfirmButton: false,
-                timer: 1500
-            });
+            let scopeToastTitle = 'Toàn bộ tài khoản (All acc)';
+            if (scope === 'golike') scopeToastTitle = 'Golike (chỉ acc Golike)';
+            else if (scope === 'tuongtaccheo') scopeToastTitle = 'Tương Tác Chéo (chỉ acc TTC)';
+            else if (scope === 'traodoisub') scopeToastTitle = 'Trao Đổi Sub (chỉ acc TDS)';
+
+            if (window.Swal) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Chế độ: ' + scopeToastTitle,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
         }
 
         // Áp dụng bộ cấu hình vào Form
@@ -2708,18 +2820,23 @@ $flash = get_flash();
             toggleCloudConfig(cloudOn);
 
             // Accounts selection (chỉ áp dụng cho các tài khoản đang hiển thị)
-            const accList = cfg.selected_accounts || [];
+            const accList = Array.isArray(cfg.selected_accounts) ? cfg.selected_accounts.map(x => parseInt(x)) : [];
             document.querySelectorAll('#accountsGridNormal .account-select-card').forEach(card => {
-                const chk = card.querySelector('.account-checkbox');
-                if (chk) {
-                    const isCheck = accList.includes(parseInt(chk.value));
-                    chk.checked = isCheck;
-                    if (isCheck) card.classList.add('active');
-                    else card.classList.remove('active');
+                if (card.style.display !== 'none') {
+                    const chk = card.querySelector('.account-checkbox');
+                    if (chk) {
+                        const isCheck = accList.includes(parseInt(chk.value));
+                        chk.checked = isCheck;
+                        if (isCheck) card.classList.add('active');
+                        else card.classList.remove('active');
+                    }
                 }
             });
 
             ensureDefaultAccount('normal', scope);
+            if (document.getElementById('checkCloudCustom')?.checked) {
+                ensureDefaultAccount('cloud', scope);
+            }
         }
 
         // 2. Điều khiển Chọn MXH
