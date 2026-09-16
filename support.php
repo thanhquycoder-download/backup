@@ -1616,11 +1616,6 @@ $flash = get_flash();
                 <div class="collapse" id="submenuGolike">
                     <ul class="sidebar-submenu">
                         <li>
-                            <a href="/jobs/golike" class="submenu-link fw-bold text-dark">
-                                <span><i class="fa-solid fa-fire text-danger me-1"></i> Tất cả nhiệm vụ</span>
-                            </a>
-                        </li>
-                        <li>
                             <a href="/jobs/golike/tiktok" class="submenu-link">
                                 <span><i class="fa-brands fa-tiktok me-1 text-dark"></i> TikTok</span>
                                 <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
@@ -1664,11 +1659,6 @@ $flash = get_flash();
                 <div class="collapse" id="submenuAccount">
                     <ul class="sidebar-submenu">
                         <li>
-                            <a href="/products/accounts" class="submenu-link fw-bold text-dark">
-                                <span><i class="fa-solid fa-store text-primary me-1"></i> Cửa hàng Account</span>
-                            </a>
-                        </li>
-                        <li>
                             <a href="/products/accounts/facebook" class="submenu-link">
                                 <span><i class="fa-brands fa-facebook me-1 text-primary"></i> Facebook</span>
                                 <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
@@ -1711,11 +1701,6 @@ $flash = get_flash();
                 </button>
                 <div class="collapse" id="submenuPayment">
                     <ul class="sidebar-submenu">
-                        <li>
-                            <a href="/payments" class="submenu-link fw-bold text-dark">
-                                <span><i class="fa-solid fa-wallet me-1 text-success"></i> Thanh toán</span>
-                            </a>
-                        </li>
                         <li>
                             <a href="/payments/deposit" class="submenu-link">
                                 <span><i class="fa-solid fa-circle-arrow-down me-1 text-success"></i> Nạp tiền</span>

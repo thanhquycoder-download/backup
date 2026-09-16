@@ -1571,11 +1571,6 @@ $csrfToken = get_csrf_token();
                 <div class="collapse" id="submenuGolike">
                     <ul class="sidebar-submenu">
                         <li>
-                            <a href="/jobs/golike" class="submenu-link fw-bold text-dark">
-                                <span><i class="fa-solid fa-arrow-right-to-bracket me-1 text-primary"></i> Tổng quan</span>
-                            </a>
-                        </li>
-                        <li>
                             <a href="/jobs/golike/instagram" class="submenu-link">
                                 <span><i class="fa-brands fa-instagram me-1 text-danger"></i> Instagram</span>
                                 <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
@@ -1607,11 +1602,6 @@ $csrfToken = get_csrf_token();
                 <div class="collapse" id="submenuAccount">
                     <ul class="sidebar-submenu">
                         <li>
-                            <a href="/products/accounts" class="submenu-link fw-bold text-dark">
-                                <span><i class="fa-solid fa-layer-group me-1 text-primary"></i> Kho tài khoản</span>
-                            </a>
-                        </li>
-                        <li>
                             <a href="/products/accounts/instagram" class="submenu-link">
                                 <span><i class="fa-brands fa-instagram me-1 text-danger"></i> Instagram</span>
                                 <span class="badge-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</span>
@@ -1642,11 +1632,6 @@ $csrfToken = get_csrf_token();
                 </button>
                 <div class="collapse" id="submenuPayment">
                     <ul class="sidebar-submenu">
-                        <li>
-                            <a href="/payments" class="submenu-link fw-bold text-dark">
-                                <span><i class="fa-solid fa-wallet me-1 text-success"></i> Thanh toán</span>
-                            </a>
-                        </li>
                         <li>
                             <a href="/payments/deposit" class="submenu-link">
                                 <span><i class="fa-solid fa-circle-arrow-down me-1 text-success"></i> Nạp tiền</span>
