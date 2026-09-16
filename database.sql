@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS `platforms` (
     `code` VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã định danh nền tảng (golike, tuongtaccheo...)',
     `name` VARCHAR(100) NOT NULL COMMENT 'Tên hiển thị nền tảng',
     `icon` VARCHAR(50) NOT NULL DEFAULT 'fa-bolt' COMMENT 'Icon FontAwesome',
+    `image` VARCHAR(255) DEFAULT NULL COMMENT 'Đường dẫn ảnh logo nền tảng',
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active' COMMENT 'Admin bật/tắt trạng thái',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -432,11 +433,11 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
 -- ==========================================================
 
 -- 1. Nền tảng mẫu
-INSERT INTO `platforms` (`id`, `code`, `name`, `icon`, `status`) VALUES
-(1, 'golike', 'Golike', 'fa-bolt', 'Active'),
-(2, 'tuongtaccheo', 'Tương Tác Chéo', 'fa-share-nodes', 'Active'),
-(3, 'traodoisub', 'Trao Đổi Sub', 'fa-arrows-rotate', 'Active')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `icon` = VALUES(`icon`);
+INSERT INTO `platforms` (`id`, `code`, `name`, `icon`, `image`, `status`) VALUES
+(1, 'golike', 'Golike', 'fa-bolt', 'https://cdn.jsdelivr.net/gh/thanhquytech-stack/images@main/golike.png', 'Active'),
+(2, 'tuongtaccheo', 'Tương Tác Chéo', 'fa-share-nodes', NULL, 'Active'),
+(3, 'traodoisub', 'Trao Đổi Sub', 'fa-arrows-rotate', NULL, 'Active')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `icon` = VALUES(`icon`), `image` = VALUES(`image`);
 
 -- 2. Người dùng mẫu (Admin & Members)
 -- Mật khẩu mặc định:

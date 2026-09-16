@@ -66,6 +66,17 @@ function ensure_tokens_table(PDO $pdo): void {
                 $pdo->exec("ALTER TABLE `tokens` ADD COLUMN `account_id` VARCHAR(50) NOT NULL AFTER `platform`");
             }
         }
+
+        // Kiểm tra và bổ sung cột image trong bảng platforms & lưu ảnh Golike
+        try {
+            $colPlatImg = $pdo->query("SHOW COLUMNS FROM `platforms` LIKE 'image'");
+            if ($colPlatImg && $colPlatImg->rowCount() === 0) {
+                $pdo->exec("ALTER TABLE `platforms` ADD COLUMN `image` VARCHAR(255) DEFAULT NULL AFTER `icon`");
+            }
+            $pdo->exec("UPDATE `platforms` SET `image` = 'https://cdn.jsdelivr.net/gh/thanhquytech-stack/images@main/golike.png' WHERE `code` = 'golike'");
+        } catch (Exception $e) {
+            // Bỏ qua nếu bảng platforms chưa có
+        }
     } catch (Exception $e) {
         // Bỏ qua nếu bảng đã sẵn sàng
     }

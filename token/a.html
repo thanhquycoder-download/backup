@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chuyển đổi URL ảnh GitHub</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #f0f2f5; display: flex; justify-content: center; padding: 40px 15px; margin: 0; }
+    .card { background: #fff; max-width: 650px; width: 100%; border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h2 { margin-top: 0; color: #1a1a1a; font-size: 22px; }
+    label { font-weight: 600; font-size: 13px; color: #4b5563; display: block; margin-top: 15px; margin-bottom: 5px; }
+    input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; }
+    input:focus, select:focus { border-color: #2563eb; ring: 2px solid #93c5fd; }
+    .row { display: flex; gap: 10px; margin-top: 8px; }
+    button { background: #2563eb; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    button:hover { background: #1d4ed8; }
+    .btn-copy { background: #10b981; }
+    .btn-copy:hover { background: #059669; }
+    .preview-box { margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 15px; display: none; }
+    .preview-box img { max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 10px; display: block; object-fit: contain; }
+    .alert { font-size: 13px; color: #dc2626; margin-top: 6px; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Công cụ đổi link ảnh GitHub sang CDN</h2>
+  
+  <label for="cdnMode">Chọn dạng Domain đích:</label>
+  <select id="cdnMode" onchange="convertUrl()">
+    <option value="jsdelivr">jsDelivr CDN (cdn.jsdelivr.net - Tốc độ cao)</option>
+    <option value="statically">Statically CDN (cdn.statically.io)</option>
+    <option value="raw">GitHub Raw trực tiếp (raw.githubusercontent.com)</option>
+    <option value="custom">Domain proxy riêng của bạn</option>
+  </select>
+
+  <div id="customDomainGroup" style="display: none;">
+    <label for="customPrefix">Nhập Prefix Domain của bạn:</label>
+    <input type="text" id="customPrefix" placeholder="https://cdn.domaincuaban.com/gh" value="https://cdn.domaincuaban.com/gh" oninput="convertUrl()">
+  </div>
+
+  <label for="githubUrl">Dán link GitHub (Blob, Raw, hoặc link repo thông thường):</label>
+  <input type="text" id="githubUrl" placeholder="https://github.com/user/repo/blob/main/images/photo.png" oninput="convertUrl()">
+  <div id="errorMsg" class="alert">Link GitHub không hợp lệ. Vui lòng nhập link file cụ thể.</div>
+
+  <label for="resultUrl">URL ảnh mới để nhúng vào web:</label>
+  <div class="row">
+    <input type="text" id="resultUrl" readonly placeholder="Link CDN sẽ hiển thị ở đây...">
+    <button class="btn-copy" onclick="copyLink()">Sao chép</button>
+  </div>
+
+  <div class="preview-box" id="previewBox">
+    <label>Xem trước ảnh:</label>
+    <img id="imagePreview" src="" alt="Preview">
+  </div>
+</div>
+
+<script>
+function parseGithubUrl(url) {
+  // Chuẩn hóa định dạng URL GitHub
+  const pattern = /github\.com\/([^\/]+)\/([^\/]+)\/(?:blob|raw)\/([^\/]+)\/(.+)/;
+  const match = url.trim().match(pattern);
+
+  if (match) {
+    return {
+      user: match[1],
+      repo: match[2],
+      branch: match[3],
+      path: match[4]
+    };
+  }
+  return null;
+}
+
+function convertUrl() {
+  const input = document.getElementById('githubUrl').value.trim();
+  const mode = document.getElementById('cdnMode').value;
+  const customGroup = document.getElementById('customDomainGroup');
+  const errorMsg = document.getElementById('errorMsg');
+  const resultInput = document.getElementById('resultUrl');
+  const previewBox = document.getElementById('previewBox');
+  const previewImg = document.getElementById('imagePreview');
+
+  // Ẩn/hiện ô domain tuỳ chỉnh
+  customGroup.style.display = (mode === 'custom') ? 'block' : 'none';
+
+  if (!input) {
+    errorMsg.style.display = 'none';
+    resultInput.value = '';
+    previewBox.style.display = 'none';
+    return;
+  }
+
+  const parsed = parseGithubUrl(input);
+
+  if (!parsed) {
+    errorMsg.style.display = 'block';
+    resultInput.value = '';
+    previewBox.style.display = 'none';
+    return;
+  }
+
+  errorMsg.style.display = 'none';
+  let finalUrl = '';
+
+  // Chuyển đổi theo format từng domain
+  if (mode === 'jsdelivr') {
+    finalUrl = `https://cdn.jsdelivr.net/gh/${parsed.user}/${parsed.repo}@${parsed.branch}/${parsed.path}`;
+  } else if (mode === 'statically') {
+    finalUrl = `https://cdn.statically.io/gh/${parsed.user}/${parsed.repo}/${parsed.branch}/${parsed.path}`;
+  } else if (mode === 'raw') {
+    finalUrl = `https://raw.githubusercontent.com/${parsed.user}/${parsed.repo}/${parsed.branch}/${parsed.path}`;
+  } else if (mode === 'custom') {
+    let prefix = document.getElementById('customPrefix').value.trim().replace(/\/+$/, '');
+    finalUrl = `${prefix}/${parsed.user}/${parsed.repo}@${parsed.branch}/${parsed.path}`;
+  }
+
+  resultInput.value = finalUrl;
+  previewImg.src = finalUrl;
+  previewBox.style.display = 'block';
+}
+
+function copyLink() {
+  const copyText = document.getElementById("resultUrl");
+  if (!copyText.value) return;
+
+  copyText.select();
+  copyText.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(copyText.value);
+
+  alert("Đã sao chép link ảnh CDN vào bộ nhớ tạm!");
+}
+</script>
+
+</body>
+</html>
