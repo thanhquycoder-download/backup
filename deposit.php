@@ -1710,12 +1710,36 @@ $csrfToken = get_csrf_token();
 
             /* Thẻ ngân hàng TPBank trên mobile */
             .bank-card-premium {
-                padding: 14px 12px !important;
+                padding: 14px !important;
+            }
+            .bank-card-header {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                margin-bottom: 12px !important;
             }
             .bank-badge-code {
-                width: 42px !important;
-                height: 42px !important;
+                width: 40px !important;
+                height: 40px !important;
                 font-size: 0.95rem !important;
+            }
+            .bank-title {
+                font-size: 0.98rem !important;
+            }
+            .bank-subtitle {
+                font-size: 0.72rem !important;
+            }
+            .bank-status-tag {
+                font-size: 0.7rem !important;
+                padding: 4px 8px !important;
+            }
+            .bank-card-details {
+                padding: 9px 12px !important;
+            }
+            .bank-account-num {
+                font-size: 0.96rem !important;
+            }
+            .bank-account-name {
+                font-size: 0.88rem !important;
             }
 
             /* Nút chọn nhanh số tiền: Grid 4 cột cân đối 2 hàng */
@@ -2204,22 +2228,35 @@ $csrfToken = get_csrf_token();
                                 <?php $bank = $bankAccounts[0]; ?>
                                 <input type="hidden" name="bank_id" value="<?= $bank['id'] ?>">
                                 <div class="bank-card-premium">
-                                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                                        <div class="bank-badge-code">
-                                            TPB
-                                        </div>
-                                        <div style="min-width: 0;">
-                                            <div class="fw-bold text-dark fs-6 mb-1"><?= htmlspecialchars($bank['bank_name']) ?></div>
-                                            <div class="text-muted small">
-                                                STK: <strong class="text-primary font-monospace fs-6"><?= htmlspecialchars($bank['account_number']) ?></strong> 
-                                                <span class="mx-1 text-muted">•</span> 
-                                                <span>Chủ TK: <strong class="text-dark"><?= htmlspecialchars($bank['account_name']) ?></strong></span>
+                                    <div class="bank-card-header">
+                                        <div class="bank-brand-info">
+                                            <div class="bank-badge-code">
+                                                TPB
+                                            </div>
+                                            <div>
+                                                <div class="bank-title"><?= htmlspecialchars($bank['bank_name']) ?></div>
+                                                <div class="bank-subtitle">Ngân Hàng Tiên Phong</div>
                                             </div>
                                         </div>
-                                        <div class="ms-auto">
-                                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-bold">
-                                                <i class="fa-solid fa-circle-check me-1"></i> Tự động 24/7 (Napas 247)
-                                            </span>
+                                        <div class="bank-status-tag">
+                                            <i class="fa-solid fa-bolt-lightning text-warning"></i>
+                                            <span>Tự động 24/7 (Napas)</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bank-card-details">
+                                        <div class="bank-detail-col">
+                                            <span class="bank-detail-label">Số tài khoản nhận</span>
+                                            <div class="bank-account-num">
+                                                <span id="bankCardAccNum"><?= htmlspecialchars($bank['account_number']) ?></span>
+                                                <button type="button" class="btn-copy-bank" onclick="copyText('<?= htmlspecialchars($bank['account_number']) ?>', this)" title="Sao chép STK">
+                                                    <i class="fa-regular fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="bank-detail-col text-end">
+                                            <span class="bank-detail-label">Chủ tài khoản</span>
+                                            <span class="bank-account-name"><?= htmlspecialchars($bank['account_name']) ?></span>
                                         </div>
                                     </div>
                                 </div>
