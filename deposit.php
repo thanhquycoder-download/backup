@@ -1736,12 +1736,9 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 background: #ffffff !important;
                 overflow: visible !important;
             }
-            body * {
-                visibility: hidden !important;
-            }
-            #depositInvoiceModal,
-            #depositInvoiceModal * {
-                visibility: visible !important;
+            /* Ẩn hoàn toàn tất cả các phần tử trang khác, không để lại chiều cao trống */
+            body > *:not(#depositInvoiceModal):not(#invoicePrintIframe) {
+                display: none !important;
             }
             #depositInvoiceModal {
                 position: static !important;
