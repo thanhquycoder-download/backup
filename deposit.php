@@ -1659,15 +1659,26 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         }
 
         .red-stamp-seal {
-            width: 110px;
-            height: 110px;
+            width: 120px;
+            height: 120px;
             position: absolute;
-            top: 25px;
-            right: 20px;
-            opacity: 0.88;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(-6deg);
+            opacity: 0.9;
             pointer-events: none;
-            transform: rotate(-8deg);
-            z-index: 2;
+            z-index: 1;
+        }
+
+        .signature-stroke-img {
+            max-height: 80px;
+            max-width: 195px;
+            mix-blend-mode: multiply;
+            display: inline-block;
+            background: transparent !important;
+            filter: contrast(1.18);
+            pointer-events: none;
+            user-select: none;
         }
 
         .signature-handwriting {
@@ -2691,7 +2702,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                                 <button type="button" 
                                                         class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1" 
                                                         style="font-size: 0.76rem; font-weight: 700;" 
-                                                        title="Xem hóa đơn chi tiết & xuất file Word" 
+                                                        title="Xem hóa đơn chi tiết & xuất file PDF" 
                                                         onclick='showDepositInvoice(<?= htmlspecialchars(json_encode([
                                                             'code' => $item['deposit_code'],
                                                             'amount' => (float)$item['amount'],
@@ -2702,8 +2713,8 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                                             'transfer_content' => $item['transfer_content'],
                                                             'created_at' => date('d/m/Y H:i:s', strtotime($item['created_at'])),
                                                             'status' => $item['status'],
-                                                            'customer_name' => !empty($currentUser['fullname']) ? $currentUser['fullname'] : $currentUser['username'],
-                                                            'customer_username' => $currentUser['username'],
+                                                            'customer_name' => !empty($currentUser['name']) ? $currentUser['name'] : (!empty($currentUser['username']) ? ltrim($currentUser['username'], '@') : 'Khách hàng'),
+                                                            'customer_username' => ltrim($currentUser['username'] ?? '', '@'),
                                                             'customer_email' => $currentUser['email'] ?? '',
                                                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') ?>)'>
                                                     <i class="fa-solid fa-receipt me-1"></i> Chi tiết
@@ -2763,8 +2774,8 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-bold" onclick="exportCurrentInvoiceToWord()">
-                            <i class="fa-solid fa-file-word me-1"></i> Xuất file Word
+                        <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" onclick="exportCurrentInvoiceToPdf()">
+                            <i class="fa-solid fa-file-pdf me-1"></i> Xuất file PDF
                         </button>
                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" onclick="printCurrentInvoice()">
                             <i class="fa-solid fa-print me-1"></i> In hóa đơn
@@ -2782,7 +2793,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                 </div>
                                 <div class="small text-muted mb-1">Mã số thuế (Tax Code): <strong class="text-dark">0318954321</strong></div>
                                 <div class="small text-muted mb-1">Địa chỉ: Tầng 12, Tòa nhà Công Nghệ Số, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
-                                <div class="small text-muted">Hotline: <strong>0987.654.321</strong> | Website: <strong>thanhquytech.vn</strong></div>
+                                <div class="small text-muted">SĐT: <strong>0355879036</strong> | Website: <strong id="invCompanyWebsite"><?= htmlspecialchars($dynamicHost) ?></strong></div>
                             </div>
                             <div class="col-md-5 text-center text-md-end">
                                 <div class="fw-bold text-uppercase text-dark" style="font-size: 0.86rem; letter-spacing: 0.4px;">
@@ -2885,21 +2896,16 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                             <strong>Số tiền viết bằng chữ:</strong> <span class="fst-italic text-dark fw-semibold" id="invModalAmountWords">---</span>
                         </div>
 
-                        <!-- 5. Phần Chữ Ký & Con Dấu Xác Nhận Doanh Nghiệp -->
-                        <div class="signature-section">
-                            <div class="signature-box">
-                                <div class="fw-bold text-dark text-uppercase">NGƯỜI MUA HÀNG</div>
-                                <div class="text-muted small fst-italic mb-5">(Ký, ghi rõ họ tên)</div>
-                                <div class="fw-bold text-dark mt-4" id="invModalSignCustomer">---</div>
-                                <div class="text-muted small">Khách hàng doanh nghiệp</div>
-                            </div>
-
-                            <div class="signature-box">
-                                <div class="fw-bold text-dark text-uppercase">NGƯỜI BÁN HÀNG / THỦ TRƯỞNG ĐƠN VỊ</div>
-                                <div class="text-muted small fst-italic">(Ký số, đóng dấu chứng thực)</div>
+                        <!-- 5. Phần Chữ Ký & Con Dấu Xác Nhận Đơn Vị Phát Hành (Chỉ bên bán/thủ trưởng) -->
+                        <div class="d-flex justify-content-end mt-4 mb-2">
+                            <div class="text-center" style="min-width: 290px; max-width: 320px;">
+                                <div class="fw-bold text-dark text-uppercase" style="font-size: 0.95rem; letter-spacing: 0.3px;">
+                                    NGƯỜI BÁN HÀNG / THỦ TRƯỞNG ĐƠN VỊ
+                                </div>
+                                <div class="text-muted small fst-italic mb-1">(Ký số, đóng dấu chứng thực)</div>
                                 
-                                <!-- Khối chứa con dấu và chữ ký thật của Phan Thành Quý -->
-                                <div style="position: relative; height: 110px; margin: 10px auto; display: flex; align-items: center; justify-content: center;">
+                                <!-- Khối chứa con dấu và chữ ký thật trong suốt của Phan Thành Quý -->
+                                <div style="position: relative; height: 115px; margin: 8px auto; display: flex; align-items: center; justify-content: center;">
                                     <!-- Con dấu tròn đỏ công ty -->
                                     <div class="red-stamp-seal" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-6deg); z-index: 1;">
                                         <svg viewBox="0 0 160 160" width="120" height="120">
@@ -2927,7 +2933,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                                         </svg>
                                     </div>
 
-                                    <!-- Chữ ký thật từ ảnh do user gửi -->
+                                    <!-- Chữ ký thật trong suốt của Phan Thành Quý -->
                                     <div style="position: relative; z-index: 2;" id="invModalSignatureImgContainer">
                                         <!-- Injected via JS using USER_SIGNATURE_BASE64 -->
                                     </div>
@@ -2941,7 +2947,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         <!-- 6. Footer Lời Cảm Ơn -->
                         <div class="mt-4 pt-3 border-top text-center text-muted small">
                             <div><i class="fa-solid fa-shield-halved text-success me-1"></i> Hóa đơn điện tử khởi tạo hợp pháp theo quy định của pháp luật Việt Nam.</div>
-                            <div style="font-size: 0.75rem;">Mọi thắc mắc xin liên hệ Hotline: 0987.654.321 | Email: support@thanhquytech.vn. Cảm ơn quý khách!</div>
+                            <div style="font-size: 0.75rem;">Mọi thắc mắc xin liên hệ SĐT: 0355879036 | Website: <span class="fw-semibold text-dark"><?= htmlspecialchars($dynamicHost) ?></span>. Cảm ơn quý khách!</div>
                         </div>
                     </div>
                 </div>
@@ -3123,7 +3129,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
 
         function generateBarcodeSvg(code) {
             return `
-                <svg class="invoice-barcode-svg" viewBox="0 0 260 52">
+                <svg class="invoice-barcode-svg" viewBox="0 0 260 38" style="max-width: 250px; height: 38px; display: inline-block;">
                     <rect x="10" y="0" width="3" height="38" fill="#111827"/>
                     <rect x="15" y="0" width="1.5" height="38" fill="#111827"/>
                     <rect x="18" y="0" width="4" height="38" fill="#111827"/>
@@ -3165,9 +3171,23 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                     <rect x="226" y="0" width="4" height="38" fill="#111827"/>
                     <rect x="233" y="0" width="1.5" height="38" fill="#111827"/>
                     <rect x="238" y="0" width="3" height="38" fill="#111827"/>
-                    <text x="130" y="50" font-family="'Courier New', Courier, monospace" font-size="11.5" font-weight="700" fill="#1e293b" text-anchor="middle" letter-spacing="3">*${code}*</text>
                 </svg>
             `;
+        }
+
+        // Chuyển đổi trạng thái giao dịch sang Tiếng Việt chuẩn
+        function getVietnameseStatus(status) {
+            const s = (status || '').toLowerCase();
+            if (s === 'success') {
+                return { text: 'ĐÃ HOÀN THÀNH', badgeClass: 'bg-success text-white', color: '#16a34a', icon: 'fa-circle-check' };
+            }
+            if (s === 'pending') {
+                return { text: 'ĐANG CHỜ THANH TOÁN', badgeClass: 'bg-warning text-dark', color: '#d97706', icon: 'fa-clock' };
+            }
+            if (s === 'cancelled') {
+                return { text: 'ĐÃ HỦY', badgeClass: 'bg-secondary text-white', color: '#64748b', icon: 'fa-ban' };
+            }
+            return { text: 'THẤT BẠI', badgeClass: 'bg-danger text-white', color: '#dc2626', icon: 'fa-circle-xmark' };
         }
 
         function showDepositInvoice(data) {
@@ -3201,30 +3221,29 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 }
             }
 
-            // 2. Trạng thái badge
+            // 2. Trạng thái badge (Tiếng Việt)
             const statusEl = document.getElementById('invModalStatusBadge');
             if (statusEl) {
-                const st = (data.status || 'Pending').toLowerCase();
-                if (st === 'success') {
-                    statusEl.innerHTML = '<span class="badge bg-success text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i> ĐÃ HOÀN THÀNH</span>';
-                } else if (st === 'pending') {
-                    statusEl.innerHTML = '<span class="badge bg-warning text-dark px-3 py-1 rounded-pill"><i class="fa-solid fa-clock me-1"></i> ĐANG CHỜ CHUYỂN TIỀN</span>';
-                } else if (st === 'cancelled') {
-                    statusEl.innerHTML = '<span class="badge bg-secondary text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-ban me-1"></i> ĐÃ HỦY</span>';
-                } else {
-                    statusEl.innerHTML = '<span class="badge bg-danger text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-xmark me-1"></i> THẤT BẠI</span>';
-                }
+                const vStatus = getVietnameseStatus(data.status);
+                statusEl.innerHTML = `<span class="badge ${vStatus.badgeClass} px-3 py-1 rounded-pill fw-bold"><i class="fa-solid ${vStatus.icon} me-1"></i> ${vStatus.text}</span>`;
             }
 
-            // 3. Thông tin người nạp (B2B)
+            // 3. Thông tin người nạp (Lấy name trong SQL, chuẩn hóa @username không bị dư @)
+            const cleanUsername = (data.customer_username || '').replace(/^@+/, '');
+            const customerName = data.customer_name || cleanUsername;
+
             const cName = document.getElementById('invModalCustomerName');
-            if (cName) cName.innerText = data.customer_name || data.customer_username;
+            if (cName) cName.innerText = customerName;
             const cUser = document.getElementById('invModalCustomerUsername');
-            if (cUser) cUser.innerText = '@' + data.customer_username;
+            if (cUser) cUser.innerText = '@' + cleanUsername;
             const cEmail = document.getElementById('invModalCustomerEmail');
             if (cEmail) cEmail.innerText = data.customer_email || 'Chưa cập nhật';
-            const cSign = document.getElementById('invModalSignCustomer');
-            if (cSign) cSign.innerText = data.customer_name || data.customer_username;
+
+            // Cập nhật website động theo domain hiện tại
+            const webEl = document.getElementById('invCompanyWebsite');
+            if (webEl) {
+                webEl.innerText = window.location.host || '<?= htmlspecialchars($dynamicHost) ?>';
+            }
 
             // 4. Thông tin ngân hàng
             const bName = document.getElementById('invModalBankName');
@@ -3248,17 +3267,17 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             const wordsEl = document.getElementById('invModalAmountWords');
             if (wordsEl) wordsEl.innerText = docSoTien(data.amount);
 
-            // 6. Chữ ký thật từ ảnh Phan Thành Quý
+            // 6. Chữ ký thật trong suốt của Phan Thành Quý (chỉ có nét mực ký, không có nền trắng)
             const sigBox = document.getElementById('invModalSignatureImgContainer');
             if (sigBox) {
                 if (USER_SIGNATURE_BASE64) {
-                    sigBox.innerHTML = `<img src="${USER_SIGNATURE_BASE64}" alt="Chữ ký Phan Thành Quý" style="max-height: 85px; max-width: 200px; mix-blend-mode: multiply; filter: contrast(1.15); display: inline-block;" />`;
+                    sigBox.innerHTML = `<img src="${USER_SIGNATURE_BASE64}" alt="Chữ ký Phan Thành Quý" class="signature-stroke-img" style="max-height: 80px; max-width: 195px; mix-blend-mode: multiply; filter: contrast(1.2); display: inline-block;" />`;
                 } else {
                     sigBox.innerHTML = `<span style="font-family: 'Brush Script MT', cursive; font-size: 26px; color: #1d4ed8; font-weight: bold;">Phan Thành Quý</span>`;
                 }
             }
 
-            // 7. Barcode siêu thị
+            // 7. Barcode siêu thị (không có số phía dưới)
             const barcodeBox = document.getElementById('invModalBarcodeSvg');
             if (barcodeBox) barcodeBox.innerHTML = generateBarcodeSvg(data.code);
 
@@ -3279,296 +3298,53 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             }
         }
 
-        // Xuất hóa đơn ra file Microsoft Word (.doc)
-        function exportCurrentInvoiceToWord() {
+        // Xuất hóa đơn ra file PDF chất lượng cao (Không thể chỉnh sửa, bảo mật chuẩn doanh nghiệp)
+        function exportCurrentInvoiceToPdf() {
             if (!currentInvoiceData) return;
             const data = currentInvoiceData;
-            const words = docSoTien(data.amount);
-            const statusText = (data.status === 'Success') ? 'ĐÃ HOÀN TẤT THANH TOÁN' : (data.status === 'Pending' ? 'ĐANG CHỜ THANH TOÁN' : data.status);
-            const statusColor = (data.status === 'Success') ? '#16a34a' : (data.status === 'Pending' ? '#d97706' : '#dc2626');
-
-            // Định dạng ngày tháng năm cho văn bản hành chính Word
-            let ngay = '...', thang = '...', nam = '...';
-            if (data.created_at) {
-                try {
-                    const datePart = data.created_at.split(' ')[0];
-                    const parts = datePart.split('-');
-                    if (parts.length === 3) {
-                        nam = parts[0];
-                        thang = parts[1];
-                        ngay = parts[2];
-                    }
-                } catch(e) {}
-            }
-
-            // Tạo mã chữ ký hiển thị trong file Word
-            const signatureImgHtml = USER_SIGNATURE_BASE64
-                ? `<div style="margin: 6px 0;"><img src="${USER_SIGNATURE_BASE64}" width="180" height="75" style="display:inline-block;" alt="Chữ ký Phan Thành Quý" /></div>`
-                : `<div style="font-size: 22pt; font-family: 'Brush Script MT', cursive; color: #1d4ed8; font-weight: bold; margin: 12px 0;">Phan Thành Quý</div>`;
-
-            const wordHtml = `
-            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head>
-                <meta charset='utf-8'>
-                <title>Hóa Đơn Điện Tử Bán Hàng - #${data.code}</title>
-                <!--[if gte mso 9]>
-                <xml>
-                <w:WordDocument>
-                <w:View>Print</w:View>
-                <w:Zoom>100</w:Zoom>
-                <w:DoNotOptimizeForBrowser/>
-                </w:WordDocument>
-                </xml>
-                <![endif]-->
-                <style>
-                    @page {
-                        size: A4;
-                        margin: 18mm 15mm 18mm 15mm;
-                    }
-                    body {
-                        font-family: 'Times New Roman', Times, serif;
-                        font-size: 13pt;
-                        line-height: 1.4;
-                        color: #111111;
-                    }
-                    .text-center { text-align: center; }
-                    .text-right { text-align: right; }
-                    .text-left { text-align: left; }
-                    .fw-bold { font-weight: bold; }
-                    .table-main {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 14px;
-                        margin-bottom: 14px;
-                    }
-                    .table-main th, .table-main td {
-                        border: 1px solid #333333;
-                        padding: 8px 10px;
-                        font-size: 12pt;
-                    }
-                    .table-main th {
-                        background-color: #f1f5f9;
-                    }
-                    .barcode-text {
-                        font-family: 'Courier New', Courier, monospace;
-                        font-size: 13pt;
-                        font-weight: bold;
-                        letter-spacing: 4px;
-                        text-align: center;
-                        margin: 4px 0;
-                    }
-                    .barcode-bars {
-                        letter-spacing: 1px;
-                        font-family: 'Courier New', Courier, monospace;
-                        font-size: 19pt;
-                        line-height: 1;
-                        font-weight: bold;
-                    }
-                    .stamp-box {
-                        display: inline-block;
-                        border: 2px solid #dc2626;
-                        color: #dc2626;
-                        padding: 5px 12px;
-                        font-weight: bold;
-                        text-align: center;
-                        border-radius: 6px;
-                    }
-                </style>
-            </head>
-            <body>
-                <!-- Header: Bên trái là Thông tin Công ty xuất hóa đơn, bên phải là Quốc hiệu - Tiêu ngữ -->
-                <table style="width: 100%; border: none; margin-bottom: 8px;">
-                    <tr>
-                        <td style="width: 54%; border: none; vertical-align: top;">
-                            <div style="font-size: 13pt; font-weight: bold; color: #1e3a8a; text-transform: uppercase;">
-                                CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
-                            </div>
-                            <div style="font-size: 10.5pt; color: #333333; margin-top: 3px;">
-                                <b>Mã số thuế (Tax Code):</b> <span style="font-family: 'Courier New', monospace; font-weight: bold;">0318954321</span>
-                            </div>
-                            <div style="font-size: 10.5pt; color: #333333;">
-                                <b>Địa chỉ:</b> Tầng 12, Tòa nhà Công Nghệ Số, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh
-                            </div>
-                            <div style="font-size: 10.5pt; color: #333333;">
-                                <b>Hotline:</b> 0987.654.321 &nbsp;|&nbsp; <b>Website:</b> thanhquytech.vn
-                            </div>
-                        </td>
-                        <td style="width: 46%; border: none; text-align: center; vertical-align: top;">
-                            <div style="font-size: 11.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
-                                CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
-                            </div>
-                            <div style="font-size: 11.5pt; font-weight: bold; margin-top: 2px;">
-                                Độc lập - Tự do - Hạnh phúc
-                            </div>
-                            <div style="width: 140px; border-bottom: 1.5px solid #111111; margin: 4px auto 6px auto;"></div>
-                            <div style="font-size: 10.5pt; font-style: italic; color: #475569;">
-                                TP. Hồ Chí Minh, ngày ${ngay} tháng ${thang} năm ${nam}
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-
-                <hr style="border: 0; border-top: 1.5px solid #cbd5e1; margin: 10px 0 14px 0;" />
-
-                <!-- Tiêu đề Hóa Đơn Bán Hàng Dịch Vụ Công Nghệ B2B -->
-                <div class="text-center" style="margin: 10px 0 14px;">
-                    <div style="font-size: 18pt; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
-                        HÓA ĐƠN BÁN HÀNG DỊCH VỤ CÔNG NGHỆ
-                    </div>
-                    <div style="font-size: 10.5pt; font-style: italic; color: #64748b;">
-                        (Bản thể hiện hóa đơn điện tử phục vụ chứng từ đối soát doanh nghiệp)
-                    </div>
-                    <div style="font-size: 11pt; margin-top: 6px;">
-                        <b>Ký hiệu (Serial):</b> <span style="color: #0f172a; font-weight: bold;">TQ/26E</span> &nbsp;|&nbsp;
-                        <b>Số hóa đơn (No.):</b> <span style="color: #4338ca; font-weight: bold; font-family: 'Courier New', monospace;">#${data.code}</span> &nbsp;|&nbsp;
-                        <b>Ngày lập:</b> ${data.created_at} &nbsp;|&nbsp;
-                        <span style="font-size: 10pt; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 4px;">
-                            ${statusText}
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Mã vạch siêu thị tra cứu đối soát -->
-                <div class="text-center" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; margin: 10px auto; max-width: 320px;">
-                    <div style="font-size: 8.5pt; text-transform: uppercase; color: #64748b; letter-spacing: 1px;">Mã vạch tra cứu đối soát (Retail Barcode)</div>
-                    <div class="barcode-bars">||| | |||| | ||||| | ||| || |||| | |||</div>
-                    <div class="barcode-text">*${data.code}*</div>
-                </div>
-
-                <!-- Thông tin Khách hàng Doanh nghiệp và Thông tin Ngân hàng chuyển tiền -->
-                <table style="width: 100%; border: 1px solid #cccccc; margin-top: 14px; background: #fafafa; border-collapse: collapse;">
-                    <tr>
-                        <td style="width: 50%; border: 1px solid #cccccc; padding: 10px 12px; vertical-align: top;">
-                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
-                                1. ĐƠN VỊ MUA HÀNG / KHÁCH HÀNG
-                            </div>
-                            <div>- Tên khách hàng / Đơn vị: <b>${data.customer_name || data.customer_username}</b></div>
-                            <div>- Tài khoản hệ thống: <b style="color: #4338ca;">@${data.customer_username}</b></div>
-                            <div>- Email nhận hóa đơn: ${data.customer_email || 'Chưa cập nhật'}</div>
-                            <div>- Hình thức thanh toán: <b>Chuyển khoản (VietQR Napas 24/7)</b></div>
-                        </td>
-                        <td style="width: 50%; border: 1px solid #cccccc; padding: 10px 12px; vertical-align: top;">
-                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
-                                2. THÔNG TIN THỤ HƯỞNG & GIAO DỊCH
-                            </div>
-                            <div>- Ngân hàng thụ hưởng: <b>${data.bank_name}</b></div>
-                            <div>- Số tài khoản: <b style="font-family: 'Courier New', monospace;">${data.account_number}</b></div>
-                            <div>- Chủ tài khoản: <b>${data.account_name}</b></div>
-                            <div>- Nội dung chuyển khoản: <b style="color: #dc2626; font-family: 'Courier New', monospace;">${data.transfer_content}</b></div>
-                        </td>
-                    </tr>
-                </table>
-
-                <!-- Bảng chi tiết dịch vụ thanh toán B2B -->
-                <table class="table-main">
-                    <thead>
-                        <tr>
-                            <th style="width: 6%; text-align: center;">STT</th>
-                            <th style="width: 44%; text-align: left;">Tên hàng hóa, dịch vụ</th>
-                            <th style="width: 12%; text-align: center;">Đơn vị tính</th>
-                            <th style="width: 8%; text-align: center;">Số lượng</th>
-                            <th style="width: 15%; text-align: right;">Đơn giá (VNĐ)</th>
-                            <th style="width: 15%; text-align: right;">Thành tiền (VNĐ)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="text-center">01</td>
-                            <td>
-                                <b>Nạp số dư dịch vụ công nghệ & key bản quyền tự động</b>
-                                <div style="font-size: 10pt; color: #555555; margin-top: 2px;">Cộng tiền tự động vào ví số dư tài khoản hệ thống ThanhQuyTech</div>
-                            </td>
-                            <td class="text-center">Giao dịch</td>
-                            <td class="text-center">01</td>
-                            <td class="text-right">${data.amount_formatted}</td>
-                            <td class="text-right"><b>${data.amount_formatted}</b></td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" class="text-right" style="color: #475569;">Cộng tiền hàng (Subtotal):</td>
-                            <td class="text-right"><b>${data.amount_formatted}</b></td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" class="text-right" style="color: #475569;">Thuế suất GTGT (VAT Rate):</td>
-                            <td class="text-right">0% (Không tính thuế)</td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" class="text-right" style="color: #475569;">Phí xử lý cổng thanh toán:</td>
-                            <td class="text-right" style="color: #16a34a; font-weight: bold;">0 đ (Miễn phí)</td>
-                        </tr>
-                        <tr style="background-color: #f8fafc;">
-                            <td colspan="5" class="text-right" style="font-weight: bold; font-size: 13pt;">TỔNG CỘNG TIỀN THANH TOÁN:</td>
-                            <td class="text-right" style="font-weight: bold; font-size: 14pt; color: #16a34a;">${data.amount_formatted}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div style="margin: 10px 0; font-size: 12pt; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 4px;">
-                    <b>Số tiền viết bằng chữ:</b> <i>${words}</i>
-                </div>
-
-                <hr style="border: 0; border-top: 1px dashed #cccccc; margin: 20px 0 15px;" />
-
-                <!-- Phần chữ ký & con dấu xác nhận doanh nghiệp -->
-                <table style="width: 100%; border: none; margin-top: 10px;">
-                    <tr>
-                        <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
-                            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI MUA HÀNG</div>
-                            <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Ký, ghi rõ họ tên)</div>
-                            <div style="height: 75px;"></div>
-                            <div style="font-weight: bold; font-size: 12.5pt;">${data.customer_name || data.customer_username}</div>
-                            <div style="font-size: 10pt; color: #666666;">Khách hàng doanh nghiệp</div>
-                        </td>
-                        <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
-                            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI BÁN HÀNG / THỦ TRƯỞNG ĐƠN VỊ</div>
-                            <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Ký điện tử & đóng dấu chứng thực)</div>
-                            
-                            <!-- Con dấu xác nhận công ty -->
-                            <div style="margin: 8px auto;">
-                                <div class="stamp-box">
-                                    ★ CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH ★<br/>
-                                    <span style="font-size: 11pt; font-weight: 900;">MST: 0318954321 - ĐÃ XÁC NHẬN</span><br/>
-                                    <span style="font-size: 8.5pt;">CHỨNG TỪ ĐIỆN TỬ HỢP LỆ THEO QUY ĐỊNH</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Chữ ký thật của Phan Thành Quý -->
-                            ${signatureImgHtml}
-
-                            <div style="font-weight: bold; font-size: 13pt; color: #0f172a;">Phan Thành Quý</div>
-                            <div style="font-size: 10pt; color: #666666;">Giám đốc điều hành / Đại diện pháp luật</div>
-                        </td>
-                    </tr>
-                </table>
-
-                <!-- Lời cảm ơn & Chân trang -->
-                <div class="text-center" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eeeeee; font-size: 10pt; color: #64748b;">
-                    <div><i class="fa-solid fa-shield-halved"></i> Hóa đơn điện tử này được tạo lập hợp lệ theo quy định của pháp luật Việt Nam.</div>
-                    <div>Cảm ơn Quý khách hàng & Doanh nghiệp đã tin tưởng sử dụng dịch vụ của <b>ThanhQuyTech</b>!</div>
-                </div>
-            </body>
-            </html>
-            `;
-
-            const blob = new Blob(['\ufeff', wordHtml], {
-                type: 'application/msword;charset=utf-8'
-            });
-            const downloadUrl = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = downloadUrl;
-            downloadLink.download = `Hoa_Don_Doanh_Nghiep_${data.code}.doc`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(downloadUrl);
+            const element = document.getElementById('invoiceCardPrintArea');
+            if (!element) return;
 
             Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Đã xuất hóa đơn doanh nghiệp ra file Word (.doc) thành công!',
-                showConfirmButton: false,
-                timer: 2500
+                title: 'Đang khởi tạo file PDF...',
+                text: 'Vui lòng chờ trong giây lát để hệ thống tạo hóa đơn bảo mật.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
             });
+
+            const opt = {
+                margin: [8, 8, 8, 8],
+                filename: `Hoa_Don_Doanh_Nghiep_${data.code}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: false,
+                    letterRendering: true,
+                    scrollY: 0
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            if (typeof html2pdf !== 'undefined') {
+                html2pdf().set(opt).from(element).save().then(function() {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Đã xuất hóa đơn PDF thành công!',
+                        showConfirmButton: false,
+                        timer: 2500
+                    });
+                }).catch(function(err) {
+                    console.error('PDF Export Error:', err);
+                    window.print();
+                });
+            } else {
+                window.print();
+            }
         }
 
         function printCurrentInvoice() {
