@@ -11,6 +11,8 @@ USE `thanhquytech_db`;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `deposits`;
 DROP TABLE IF EXISTS `bank_accounts`;
+DROP TABLE IF EXISTS `tokens`;
+DROP TABLE IF EXISTS `golike_tokens`;
 DROP TABLE IF EXISTS `settings`;
 DROP TABLE IF EXISTS `token`;
 DROP TABLE IF EXISTS `support_messages`;
@@ -287,6 +289,34 @@ CREATE TABLE IF NOT EXISTS `token` (
     INDEX `idx_token_status` (`status`),
     INDEX `idx_token_expires_at` (`expires_at`),
     CONSTRAINT `fk_token_user_uuid`
+        FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 11.1. Bảng: tokens (Quản lý mã Token & Tài khoản các nền tảng: Golike, TTC, TDS...)
+-- Liên kết khóa ngoại với users.uuid
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `tokens` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính tự tăng',
+    `user_uuid` CHAR(36) NOT NULL COMMENT 'Liên kết bảng users.uuid',
+    `platform` VARCHAR(50) NOT NULL DEFAULT 'golike' COMMENT 'Nền tảng (golike, ttc, tds...)',
+    `account_id` VARCHAR(50) NOT NULL COMMENT 'ID tài khoản trên nền tảng (VD: 3150119)',
+    `name` VARCHAR(150) NOT NULL COMMENT 'Họ tên tài khoản trên nền tảng',
+    `username` VARCHAR(150) NOT NULL COMMENT 'Tên đăng nhập / Username',
+    `coin` BIGINT NOT NULL DEFAULT 0 COMMENT 'Số dư xu (coin) trên nền tảng',
+    `token` TEXT NOT NULL COMMENT 'Chuỗi mã Authorization Token Bearer JWT',
+    `status` ENUM('Active', 'Expired', 'Error') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái hoạt động của Token',
+    `last_checked_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm kiểm tra/đồng bộ số dư gần nhất',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm liên kết tài khoản',
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Thời điểm cập nhật gần nhất',
+    
+    INDEX `idx_tokens_user_uuid` (`user_uuid`),
+    INDEX `idx_tokens_platform` (`platform`),
+    INDEX `idx_tokens_account_id` (`account_id`),
+    INDEX `idx_tokens_status` (`status`),
+    UNIQUE KEY `uq_user_platform_account` (`user_uuid`, `platform`, `account_id`),
+    CONSTRAINT `fk_tokens_user_uuid`
         FOREIGN KEY (`user_uuid`) REFERENCES `users` (`uuid`)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

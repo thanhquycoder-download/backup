@@ -14,32 +14,66 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../config/config.php';
 
 /**
- * Tự động kiểm tra và khởi tạo bảng `golike_tokens` nếu chưa tồn tại
+ * Tự động kiểm tra và khởi tạo bảng `tokens` nếu chưa tồn tại
+ * Hỗ trợ đa nền tảng (Golike, TTC, TDS...) với cột `platform`
  */
-function ensure_golike_table(PDO $pdo): void {
+function ensure_tokens_table(PDO $pdo): void {
     try {
+        // Tự động chuyển đổi nếu đã có bảng golike_tokens cũ
+        $checkOld = $pdo->query("SHOW TABLES LIKE 'golike_tokens'");
+        if ($checkOld && $checkOld->rowCount() > 0) {
+            $checkNew = $pdo->query("SHOW TABLES LIKE 'tokens'");
+            if (!$checkNew || $checkNew->rowCount() === 0) {
+                $pdo->exec("RENAME TABLE `golike_tokens` TO `tokens`");
+            }
+        }
+
         $pdo->exec("
-            CREATE TABLE IF NOT EXISTS `golike_tokens` (
+            CREATE TABLE IF NOT EXISTS `tokens` (
                 `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 `user_uuid` CHAR(36) NOT NULL,
-                `golike_id` VARCHAR(50) NOT NULL,
-                `name` VARCHAR(150) NOT NULL,
-                `username` VARCHAR(150) NOT NULL,
-                `coin` BIGINT NOT NULL DEFAULT 0,
-                `token` TEXT NOT NULL,
+                `platform` VARCHAR(50) NOT NULL DEFAULT 'golike' COMMENT 'Nền tảng (golike, ttc, tds...)',
+                `account_id` VARCHAR(50) NOT NULL COMMENT 'ID tài khoản trên nền tảng',
+                `name` VARCHAR(150) NOT NULL COMMENT 'Tên hiển thị tài khoản',
+                `username` VARCHAR(150) NOT NULL COMMENT 'Tên người dùng / username',
+                `coin` BIGINT NOT NULL DEFAULT 0 COMMENT 'Số dư xu / coin',
+                `token` TEXT NOT NULL COMMENT 'Chuỗi Authorization Token Bearer',
                 `status` ENUM('Active', 'Expired', 'Error') NOT NULL DEFAULT 'Active',
                 `last_checked_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
                 `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX `idx_gtoken_user_uuid` (`user_uuid`),
-                INDEX `idx_gtoken_golike_id` (`golike_id`),
-                INDEX `idx_gtoken_status` (`status`),
-                UNIQUE KEY `uq_user_golike_id` (`user_uuid`, `golike_id`)
+                INDEX `idx_tokens_user_uuid` (`user_uuid`),
+                INDEX `idx_tokens_platform` (`platform`),
+                INDEX `idx_tokens_account_id` (`account_id`),
+                INDEX `idx_tokens_status` (`status`),
+                UNIQUE KEY `uq_user_platform_account` (`user_uuid`, `platform`, `account_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
+
+        // Kiểm tra và bổ sung cột platform nếu bảng cũ chưa có
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `tokens` LIKE 'platform'");
+        if ($colCheck && $colCheck->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE `tokens` ADD COLUMN `platform` VARCHAR(50) NOT NULL DEFAULT 'golike' AFTER `user_uuid`");
+        }
+
+        // Kiểm tra và đồng bộ cột account_id
+        $colCheckAcc = $pdo->query("SHOW COLUMNS FROM `tokens` LIKE 'account_id'");
+        if ($colCheckAcc && $colCheckAcc->rowCount() === 0) {
+            $colCheckGo = $pdo->query("SHOW COLUMNS FROM `tokens` LIKE 'golike_id'");
+            if ($colCheckGo && $colCheckGo->rowCount() > 0) {
+                $pdo->exec("ALTER TABLE `tokens` CHANGE `golike_id` `account_id` VARCHAR(50) NOT NULL");
+            } else {
+                $pdo->exec("ALTER TABLE `tokens` ADD COLUMN `account_id` VARCHAR(50) NOT NULL AFTER `platform`");
+            }
+        }
     } catch (Exception $e) {
         // Bỏ qua nếu bảng đã sẵn sàng
     }
+}
+
+// Giữ alias ensure_golike_table để đảm bảo tương thích ngược
+function ensure_golike_table(PDO $pdo): void {
+    ensure_tokens_table($pdo);
 }
 
 /**
@@ -118,7 +152,7 @@ function me(string $token): array {
 }
 
 /**
- * Lấy thông tin từ Golike và lưu/cập nhật vào bảng cơ sở dữ liệu `golike_tokens`
+ * Lấy thông tin từ Golike và lưu/cập nhật vào bảng cơ sở dữ liệu `tokens`
  *
  * @param PDO $pdo
  * @param string $userUuid
@@ -176,10 +210,10 @@ function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawTo
     try {
         // Sử dụng INSERT ... ON DUPLICATE KEY UPDATE để nếu đã tồn tại thì cập nhật
         $stmt = $pdo->prepare("
-            INSERT INTO `golike_tokens` 
-                (`user_uuid`, `golike_id`, `name`, `username`, `coin`, `token`, `status`, `last_checked_at`, `updated_at`)
+            INSERT INTO `tokens` 
+                (`user_uuid`, `platform`, `account_id`, `name`, `username`, `coin`, `token`, `status`, `last_checked_at`, `updated_at`)
             VALUES 
-                (?, ?, ?, ?, ?, ?, 'Active', NOW(), NOW())
+                (?, 'golike', ?, ?, ?, ?, ?, 'Active', NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                 `name` = VALUES(`name`),
                 `username` = VALUES(`username`),
@@ -196,6 +230,8 @@ function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawTo
         return [
             'success'        => true,
             'message'        => "Đã liên kết tài khoản Golike thành công: {$name} (@{$username})",
+            'platform'       => 'golike',
+            'account_id'     => $golikeId,
             'golike_id'      => $golikeId,
             'name'           => $name,
             'username'       => $username,
@@ -216,11 +252,11 @@ function save_or_update_golike_account(PDO $pdo, string $userUuid, string $rawTo
  * Làm mới (đồng bộ) số dư và thông tin của một tài khoản Golike đã lưu
  */
 function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): array {
-    ensure_golike_table($pdo);
+    ensure_tokens_table($pdo);
 
     $stmt = $pdo->prepare("
-        SELECT id, golike_id, name, username, coin, token, status 
-        FROM `golike_tokens` 
+        SELECT id, platform, account_id, account_id AS golike_id, name, username, coin, token, status 
+        FROM `tokens` 
         WHERE `id` = ? AND `user_uuid` = ? 
         LIMIT 1
     ");
@@ -245,7 +281,7 @@ function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): arra
     if (!$isOk) {
         // Đánh dấu token hết hạn
         $stmtUpdate = $pdo->prepare("
-            UPDATE `golike_tokens` 
+            UPDATE `tokens` 
             SET `status` = 'Expired', `last_checked_at` = NOW() 
             WHERE `id` = ? AND `user_uuid` = ?
         ");
@@ -264,7 +300,7 @@ function refresh_golike_account(PDO $pdo, string $userUuid, int $recordId): arra
     $coin     = (int)($accountData['coin'] ?? 0);
 
     $stmtUpdate = $pdo->prepare("
-        UPDATE `golike_tokens` 
+        UPDATE `tokens` 
         SET `name` = ?, `username` = ?, `coin` = ?, `status` = 'Active', `last_checked_at` = NOW(), `updated_at` = NOW() 
         WHERE `id` = ? AND `user_uuid` = ?
     ");
@@ -353,8 +389,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     // 4. Xóa tài khoản Golike
     if ($action === 'delete_account') {
         $recordId = (int)($_POST['record_id'] ?? 0);
-        ensure_golike_table($pdo);
-        $stmt = $pdo->prepare("DELETE FROM `golike_tokens` WHERE `id` = ? AND `user_uuid` = ?");
+        ensure_tokens_table($pdo);
+        $stmt = $pdo->prepare("DELETE FROM `tokens` WHERE `id` = ? AND `user_uuid` = ?");
         $stmt->execute([$recordId, $userUuid]);
         echo json_encode([
             'success' => true,

@@ -31,9 +31,9 @@ if (!$user) {
 $isAdmin = ($user['role'] === 'Admin');
 $currentUser = $user;
 
-// 2. Tự động kiểm tra và khởi tạo bảng `token` & `golike_tokens` nếu chưa có
+// 2. Tự động kiểm tra và khởi tạo bảng `token` & `tokens` nếu chưa có
 try {
-    ensure_golike_table($pdo);
+    ensure_tokens_table($pdo);
 
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `token` (
@@ -102,22 +102,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // C. XÓA TÀI KHOẢN GOLIKE KHỎI DANH SÁCH
+    // C. XÓA TÀI KHOẢN KHỎI DANH SÁCH
     if ($action === 'delete_golike_token') {
         $accountId = (int)($_POST['golike_account_id'] ?? 0);
-        ensure_golike_table($pdo);
-        $stmtDel = $pdo->prepare("DELETE FROM `golike_tokens` WHERE `id` = ? AND `user_uuid` = ?");
+        ensure_tokens_table($pdo);
+        $stmtDel = $pdo->prepare("DELETE FROM `tokens` WHERE `id` = ? AND `user_uuid` = ?");
         $stmtDel->execute([$accountId, $user['uuid']]);
-        set_flash('success', 'Đã xóa tài khoản Golike khỏi danh sách lưu trữ.', 'Đã xóa');
+        set_flash('success', 'Đã xóa tài khoản khỏi danh sách lưu trữ.', 'Đã xóa');
         header("Location: token.php?tab=golike");
         exit;
     }
-        header("Location: token.php");
-        exit;
-    }
 
-    $action = $_POST['action'] ?? '';
-
+    // ==========================================
+    // 3.2. HÀNH ĐỘNG VỚI PERSONAL ACCESS TOKEN (API KEY)
+    // ==========================================
     // A. TẠO ACCESS TOKEN MỚI
     if ($action === 'create_token') {
         $tokenName = trim($_POST['token_name'] ?? '');
@@ -247,7 +245,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 4. LẤY DANH SÁCH TOKEN CỦA USER
+// 4.1. LẤY DANH SÁCH TÀI KHOẢN TỪ BẢNG `tokens`
+$golikeAccounts = [];
+try {
+    ensure_tokens_table($pdo);
+    $stmtGolike = $pdo->prepare("
+        SELECT id, platform, account_id, account_id AS golike_id, name, username, coin, token, status, last_checked_at, created_at, updated_at 
+        FROM `tokens` 
+        WHERE `user_uuid` = ? 
+        ORDER BY id DESC
+    ");
+    $stmtGolike->execute([$user['uuid']]);
+    $golikeAccounts = $stmtGolike->fetchAll();
+} catch (Exception $e) {
+    $golikeAccounts = [];
+}
+
+// 4.2. THỐNG KÊ TỔNG QUAN GOLIKE
+$totalGolikeAccounts = count($golikeAccounts);
+$totalGolikeCoins = 0;
+$activeGolikeAccounts = 0;
+$expiredGolikeAccounts = 0;
+
+foreach ($golikeAccounts as $ga) {
+    $totalGolikeCoins += (int)$ga['coin'];
+    if ($ga['status'] === 'Active') {
+        $activeGolikeAccounts++;
+    } else {
+        $expiredGolikeAccounts++;
+    }
+}
+
+// Kiểm tra Tab hiển thị mặc định
+$activeTab = $_GET['tab'] ?? 'golike';
+if (!in_array($activeTab, ['golike', 'personal_token'])) {
+    $activeTab = 'golike';
+}
+
+// 5. LẤY DANH SÁCH PERSONAL ACCESS TOKEN CỦA USER
 $tokens = [];
 try {
     $stmtTokens = $pdo->prepare("
@@ -998,6 +1033,100 @@ $flash = get_flash();
             margin: 0;
         }
 
+        /* TABS NAVIGATION */
+        .token-nav-tabs {
+            display: flex;
+            gap: 12px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 26px;
+            padding-bottom: 0;
+            flex-wrap: wrap;
+        }
+
+        .token-tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .token-tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .token-tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: transparent;
+        }
+
+        .token-tab-badge {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: 50px;
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+        }
+
+        .token-tab-btn.active .token-tab-badge {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        /* GOLIKE STYLES */
+        .coin-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.88rem;
+            padding: 5px 12px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+        }
+
+        .stat-icon-gold {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .golike-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #4338ca;
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid #c7d2fe;
+        }
+
+        .live-preview-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1.5px solid #86efac;
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-top: 14px;
+            animation: fadeInMenu 0.3s ease-in-out;
+        }
+
         /* TABLE */
         .token-table {
             width: 100%;
@@ -1608,14 +1737,335 @@ $flash = get_flash();
         <div class="content-container">
 
             <!-- BREADCRUMB -->
+            <!-- BREADCRUMB -->
             <nav aria-label="breadcrumb" class="mb-3">
                 <ol class="breadcrumb mb-0" style="font-size: 0.85rem; font-weight: 600;">
                     <li class="breadcrumb-item"><a href="index.php" class="text-decoration-none text-muted"><i class="fa-solid fa-house me-1"></i> Trang chủ</a></li>
-                    <li class="breadcrumb-item active text-primary" aria-current="page">Access Token</li>
+                    <li class="breadcrumb-item active text-primary" aria-current="page">Quản Lý Token & Tài Khoản</li>
                 </ol>
             </nav>
 
-            <!-- HERO CARD -->
+            <!-- FLASH NOTIFICATIONS -->
+            <?php if ($flash): ?>
+            <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : $flash['type'] ?> alert-dismissible fade show rounded-3 shadow-sm border-0 mb-4" role="alert">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-circle-check fs-5"></i>
+                    <div>
+                        <strong><?= htmlspecialchars($flash['title']) ?>:</strong> <?= $flash['message'] ?>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php endif; ?>
+
+            <!-- TABS NAVIGATION -->
+            <div class="token-nav-tabs">
+                <a href="token.php?tab=golike" class="token-tab-btn <?= $activeTab === 'golike' ? 'active' : '' ?>">
+                    <i class="fa-solid fa-robot text-warning"></i>
+                    <span>Tài Khoản & Token Golike</span>
+                    <span class="token-tab-badge"><?= number_format($totalGolikeAccounts) ?></span>
+                </a>
+                <a href="token.php?tab=personal_token" class="token-tab-btn <?= $activeTab === 'personal_token' ? 'active' : '' ?>">
+                    <i class="fa-solid fa-fingerprint text-primary"></i>
+                    <span>Personal Access Token (API Key)</span>
+                    <span class="token-tab-badge"><?= number_format($totalTokens) ?></span>
+                </a>
+            </div>
+
+            <?php if ($activeTab === 'golike'): ?>
+            <!-- ====================================================
+             * TAB 1: GOLIKE TOKENS & ACCOUNTS
+             * ==================================================== -->
+            <!-- HERO CARD GOLIKE -->
+            <div class="token-hero">
+                <div class="hero-badge">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>CÔNG CỤ GOLIKE & ĐỒNG BỘ DỮ LIỆU TỰ ĐỘNG</span>
+                </div>
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div>
+                        <h1 class="hero-title">Quản Lý Token & Tài Khoản Golike</h1>
+                        <p class="hero-subtitle">
+                            Nhập mã Authorization Token từ Golike để tự động trích xuất Họ tên, Username, Golike ID và cập nhật số dư Coin thời gian thực. Hệ thống hỗ trợ lưu nhiều tài khoản và làm mới số dư siêu tốc.
+                        </p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <a href="#addGolikeCard" class="btn btn-light fw-bold px-4 py-2 rounded-3 shadow-sm">
+                            <i class="fa-solid fa-plus-circle text-primary me-2"></i> Thêm Token Golike
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATS CARDS GOLIKE -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper stat-icon-gold">
+                            <i class="fa-solid fa-coins"></i>
+                        </div>
+                        <div>
+                            <div class="stat-label">Tổng số xu (Coin)</div>
+                            <div class="stat-value text-warning fw-bolder"><?= number_format($totalGolikeCoins, 0, ',', '.') ?> <span style="font-size: 0.82rem; font-weight: 700;">xu</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper stat-icon-primary">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <div class="stat-label">Tài khoản Golike</div>
+                            <div class="stat-value text-primary"><?= number_format($totalGolikeAccounts) ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper stat-icon-success">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <div class="stat-label">Đang hoạt động</div>
+                            <div class="stat-value text-success"><?= number_format($activeGolikeAccounts) ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper stat-icon-warning">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <div class="stat-label">Cần cập nhật token</div>
+                            <div class="stat-value text-muted"><?= number_format($expiredGolikeAccounts) ?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KHUNG THÊM TOKEN GOLIKE -->
+            <div class="section-card" id="addGolikeCard">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fa-solid fa-circle-plus text-primary"></i>
+                        <span>Thêm Token Golike & Tự Động Lấy Thông Tin</span>
+                    </h2>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGuide" aria-expanded="false">
+                        <i class="fa-solid fa-circle-question me-1 text-primary"></i> Hướng dẫn lấy Token
+                    </button>
+                </div>
+
+                <!-- Hướng dẫn lấy token -->
+                <div class="collapse mb-3" id="collapseGuide">
+                    <div class="p-3 bg-light rounded-3 border">
+                        <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-lightbulb text-warning me-1"></i> Các bước lấy Authorization Token từ Golike:</h6>
+                        <ol class="mb-0 ps-3 small text-muted" style="line-height: 1.7;">
+                            <li>Đăng nhập tài khoản của bạn tại <strong>app.golike.net</strong>.</li>
+                            <li>Bấm phím <code>F12</code> (hoặc mở Developer Tools trên trình duyệt) &gt; chuyển qua tab <strong>Network</strong> &gt; lọc mục <strong>Fetch/XHR</strong>.</li>
+                            <li>Tìm yêu cầu có tên <code>me</code> (địa chỉ <code>https://gateway.golike.net/api/users/me</code>).</li>
+                            <li>Xem phần <strong>Request Headers</strong> &gt; sao chép toàn bộ chuỗi giá trị của <strong>authorization</strong> (ví dụ: <code>Bearer eyJ0eXAi...</code>).</li>
+                            <li>Dán vào ô nhập bên dưới và nhấn <strong>Lưu tài khoản</strong>.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <form action="token.php?tab=golike" method="POST" id="formSaveGolike">
+                    <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                    <input type="hidden" name="action" value="save_golike_token">
+
+                    <div class="mb-3">
+                        <label for="golike_token_input" class="form-label fw-bold text-dark">
+                            Mã Token Golike (Authorization Bearer Token) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-key"></i></span>
+                            <textarea class="form-control font-monospace" id="golike_token_input" name="golike_token" rows="2" placeholder="Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)" required></textarea>
+                            <button type="button" class="btn btn-light border" onclick="pasteGolikeToken()" title="Dán từ Clipboard">
+                                <i class="fa-solid fa-paste"></i>
+                            </button>
+                        </div>
+                        <div class="form-text text-muted">
+                            Hệ thống sẽ tự động gọi API <code>/api/users/me</code> để lấy <strong>Họ tên</strong>, <strong>Username</strong>, <strong>ID Golike</strong> và <strong>Số dư xu</strong>, sau đó lưu vào danh sách.
+                        </div>
+                    </div>
+
+                    <!-- Live Preview Box khi bấm Kiểm Tra Trước -->
+                    <div id="golikePreviewBox" class="live-preview-card d-none mb-3">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="golike-avatar" id="prevAvatar">G</div>
+                                <div>
+                                    <div class="fw-bold text-dark fs-6" id="prevName">---</div>
+                                    <div class="text-muted small">Username: <span class="fw-semibold text-primary" id="prevUsername">---</span> | ID: <span class="badge font-monospace bg-light text-dark border" id="prevId">---</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="coin-badge" id="prevCoin"><i class="fa-solid fa-coins"></i> 0 xu</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary fw-bold" id="btnCheckGolike" onclick="checkGolikeTokenLive()">
+                            <i class="fa-solid fa-bolt me-1"></i> Kiểm Tra Trước
+                        </button>
+                        <button type="submit" class="btn-gradient-primary">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Tài Khoản Vào Danh Sách
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- DANH SÁCH TÀI KHOẢN GOLIKE -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fa-solid fa-list-check text-success"></i>
+                        <span>Danh Sách Tài Khoản Golike Đã Liên Kết</span>
+                    </h2>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">
+                        Tổng cộng: <?= number_format($totalGolikeAccounts) ?> tài khoản
+                    </span>
+                </div>
+
+                <?php if (empty($golikeAccounts)): ?>
+                <div class="text-center py-5">
+                    <div class="mb-3 text-muted" style="font-size: 3rem;">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Chưa có tài khoản Golike nào trong danh sách</h5>
+                    <p class="text-muted small mx-auto" style="max-width: 480px;">
+                        Hãy dán mã Authorization Token từ Golike vào khung phía trên để hệ thống tự động kiểm tra số dư và lưu tài khoản.
+                    </p>
+                </div>
+                <?php else: ?>
+                <div class="table-responsive">
+                    <table class="token-table">
+                        <thead>
+                            <tr>
+                                <th>Nền Tảng</th>
+                                <th>ID Tài Khoản</th>
+                                <th>Tài Khoản</th>
+                                <th>Số Dư Coin</th>
+                                <th>Mã Token (Rút gọn)</th>
+                                <th>Trạng Thái</th>
+                                <th>Đồng Bộ Lần Cuối</th>
+                                <th class="text-end">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($golikeAccounts as $acc): 
+                                $isExpired = ($acc['status'] === 'Expired');
+                                $rawKey = $acc['token'];
+                                if (strlen($rawKey) > 24) {
+                                    $maskedToken = substr($rawKey, 0, 15) . '••••••••' . substr($rawKey, -6);
+                                } else {
+                                    $maskedToken = $rawKey;
+                                }
+                                $initial = mb_substr($acc['name'] ?: $acc['username'], 0, 1, 'UTF-8');
+                                $plat = strtolower($acc['platform'] ?? 'golike');
+                            ?>
+                            <tr id="row-golike-<?= $acc['id'] ?>">
+                                <td>
+                                    <?php if ($plat === 'golike'): ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size: 0.78rem;">
+                                            <i class="fa-solid fa-robot me-1 text-warning"></i> Golike
+                                        </span>
+                                    <?php elseif ($plat === 'ttc'): ?>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.78rem;">
+                                            <i class="fa-solid fa-share-nodes me-1 text-success"></i> TTC
+                                        </span>
+                                    <?php elseif ($plat === 'tds'): ?>
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1" style="font-size: 0.78rem;">
+                                            <i class="fa-solid fa-bolt me-1 text-info"></i> TDS
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size: 0.78rem;">
+                                            <?= htmlspecialchars(strtoupper($plat)) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border font-monospace fw-bold" style="font-size: 0.82rem;">
+                                        #<?= htmlspecialchars($acc['account_id'] ?? $acc['golike_id'] ?? '') ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="golike-avatar" style="width: 36px; height: 36px; font-size: 0.95rem;">
+                                            <?= htmlspecialchars(mb_strtoupper($initial)) ?>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark"><?= htmlspecialchars($acc['name']) ?></div>
+                                            <div class="text-muted small">@<?= htmlspecialchars($acc['username']) ?></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="coin-badge" id="coin-badge-<?= $acc['id'] ?>">
+                                        <i class="fa-solid fa-coins"></i> <?= number_format($acc['coin'], 0, ',', '.') ?> xu
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="token-code-inline"><?= htmlspecialchars($maskedToken) ?></span>
+                                        <button type="button" class="btn-copy" onclick="copyText('<?= htmlspecialchars($acc['token']) ?>', this)" title="Sao chép toàn bộ chuỗi Token">
+                                            <i class="fa-solid fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <?php if ($isExpired): ?>
+                                        <span class="status-pill expired" id="status-pill-<?= $acc['id'] ?>">
+                                            <span class="status-dot"></span> Hết hạn
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="status-pill active" id="status-pill-<?= $acc['id'] ?>">
+                                            <span class="status-dot"></span> Hoạt động
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="small text-muted" id="checked-time-<?= $acc['id'] ?>">
+                                        <?= !empty($acc['last_checked_at']) ? date('d/m/Y H:i', strtotime($acc['last_checked_at'])) : 'Vừa xong' ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex align-items-center justify-content-end gap-1">
+                                        <!-- Nút làm mới số dư -->
+                                        <button type="button" class="btn btn-light btn-sm border text-primary" onclick="refreshGolikeBalance(<?= $acc['id'] ?>, this)" title="Cập nhật số dư thời gian thực">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                        <!-- Nút sao chép token -->
+                                        <button type="button" class="btn btn-light btn-sm border text-secondary" onclick="copyText('<?= htmlspecialchars($acc['token']) ?>', this)" title="Sao chép Token">
+                                            <i class="fa-solid fa-copy"></i>
+                                        </button>
+                                        <!-- Nút xóa -->
+                                        <form action="token.php?tab=golike" method="POST" class="d-inline" onsubmit="return confirmDeleteGolike(this);">
+                                            <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+                                            <input type="hidden" name="action" value="delete_golike_token">
+                                            <input type="hidden" name="golike_account_id" value="<?= $acc['id'] ?>">
+                                            <button type="submit" class="btn btn-light btn-sm border text-danger" title="Xóa tài khoản">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <?php else: ?>
+            <!-- ====================================================
+             * TAB 2: PERSONAL ACCESS TOKEN (API KEY THANHQUYTECH)
+             * ==================================================== -->
+            <!-- HERO CARD PERSONAL TOKEN -->
             <div class="token-hero">
                 <div class="hero-badge">
                     <i class="fa-solid fa-shield-halved"></i>
@@ -1635,19 +2085,6 @@ $flash = get_flash();
                     </div>
                 </div>
             </div>
-
-            <!-- FLASH NOTIFICATIONS -->
-            <?php if ($flash): ?>
-            <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : $flash['type'] ?> alert-dismissible fade show rounded-3 shadow-sm border-0 mb-4" role="alert">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-circle-check fs-5"></i>
-                    <div>
-                        <strong><?= htmlspecialchars($flash['title']) ?>:</strong> <?= htmlspecialchars($flash['message']) ?>
-                    </div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            <?php endif; ?>
 
             <!-- BẢNG THÔNG BÁO TOKEN VỪA TẠO (CHỈ HIỂN THỊ 1 LẦN) -->
             <?php if ($newlyCreatedToken): ?>
@@ -2008,6 +2445,7 @@ print_r($result);
 ?&gt;</code>
                 </div>
             </div>
+            <?php endif; ?>
 
         </div>
 
@@ -2314,6 +2752,160 @@ print_r($result);
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'Xóa vĩnh viễn',
                 cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+            return false;
+        }
+
+        // 8. Chức năng hỗ trợ Golike Token
+        function pasteGolikeToken() {
+            navigator.clipboard.readText().then(text => {
+                if (text) {
+                    const input = document.getElementById('golike_token_input');
+                    if (input) input.value = text.trim();
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Đã dán token từ Clipboard!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                }
+            }).catch(() => {
+                prompt('Hãy dán chuỗi token vào đây:', '');
+            });
+        }
+
+        function checkGolikeTokenLive() {
+            const tokenInput = document.getElementById('golike_token_input');
+            const token = tokenInput ? tokenInput.value.trim() : '';
+            const btn = document.getElementById('btnCheckGolike');
+            const previewBox = document.getElementById('golikePreviewBox');
+
+            if (!token) {
+                Swal.fire('Thiếu thông tin', 'Vui lòng dán chuỗi Token Golike để kiểm tra.', 'warning');
+                return;
+            }
+
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang kiểm tra...';
+            btn.disabled = true;
+
+            const fd = new FormData();
+            fd.append('ajax_action', 'check_token');
+            fd.append('token', token);
+
+            fetch('token/golike.php', {
+                method: 'POST',
+                body: fd
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+
+                if (data.success && data.data) {
+                    const acc = data.data;
+                    document.getElementById('prevName').textContent = acc.name || '---';
+                    document.getElementById('prevUsername').textContent = '@' + (acc.username || '---');
+                    document.getElementById('prevId').textContent = '#' + (acc.id || '---');
+                    document.getElementById('prevCoin').innerHTML = '<i class="fa-solid fa-coins me-1"></i>' + (acc.coin_formatted || '0 xu');
+                    document.getElementById('prevAvatar').textContent = (acc.name || acc.username || 'G').charAt(0).toUpperCase();
+
+                    previewBox.classList.remove('d-none');
+                    previewBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: `Xác thực thành công: ${acc.name} (${acc.coin_formatted})`,
+                        showConfirmButton: false,
+                        timer: 2500
+                    });
+                } else {
+                    previewBox.classList.add('d-none');
+                    Swal.fire('Lỗi Token', data.message || 'Token Golike không chính xác hoặc đã hết hạn.', 'error');
+                }
+            })
+            .catch(err => {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                Swal.fire('Lỗi kết nối', 'Không thể kết nối API kiểm tra: ' + err.message, 'error');
+            });
+        }
+
+        function refreshGolikeBalance(id, btnElement) {
+            const origHtml = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btnElement.disabled = true;
+
+            const fd = new FormData();
+            fd.append('ajax_action', 'refresh_account');
+            fd.append('record_id', id);
+
+            fetch('token/golike.php', {
+                method: 'POST',
+                body: fd
+            })
+            .then(res => res.json())
+            .then(data => {
+                btnElement.innerHTML = origHtml;
+                btnElement.disabled = false;
+
+                if (data.success) {
+                    const coinBadge = document.getElementById('coin-badge-' + id);
+                    if (coinBadge) {
+                        coinBadge.innerHTML = '<i class="fa-solid fa-coins me-1"></i>' + data.coin_formatted;
+                    }
+                    const statusPill = document.getElementById('status-pill-' + id);
+                    if (statusPill) {
+                        statusPill.className = 'status-pill active';
+                        statusPill.innerHTML = '<span class="status-dot"></span> Hoạt động';
+                    }
+                    const timeEl = document.getElementById('checked-time-' + id);
+                    if (timeEl) {
+                        timeEl.textContent = 'Vừa xong';
+                    }
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: data.message,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                } else {
+                    const statusPill = document.getElementById('status-pill-' + id);
+                    if (statusPill && data.status === 'Expired') {
+                        statusPill.className = 'status-pill expired';
+                        statusPill.innerHTML = '<span class="status-dot"></span> Hết hạn';
+                    }
+                    Swal.fire('Cảnh báo', data.message, 'warning');
+                }
+            })
+            .catch(err => {
+                btnElement.innerHTML = origHtml;
+                btnElement.disabled = false;
+                Swal.fire('Lỗi kết nối', 'Lỗi khi làm mới số dư: ' + err.message, 'error');
+            });
+        }
+
+        function confirmDeleteGolike(form) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Xóa tài khoản Golike?',
+                text: 'Bạn có chắc chắn muốn xóa tài khoản này khỏi danh sách quản lý token?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đồng ý xóa',
+                cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.submit();
