@@ -896,71 +896,107 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             visibility: visible;
         }
 
-        /* 3. Main Layout */
+        /* ==========================================================
+         * 3. NỘI DUNG CHÍNH (APP MAIN CHUẨN 1:1 DEPOSIT.PHP)
+         * ========================================================== */
         .app-main {
-            margin-top: 70px;
             margin-left: 260px;
-            padding: 30px;
-            min-height: calc(100vh - 70px);
+            padding-top: 70px;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            transition: margin-left 0.3s ease;
+            transition: var(--transition);
+            background-color: var(--bg-body);
         }
-        body.sidebar-collapsed .app-sidebar { transform: translateX(-100%); }
-        body.sidebar-collapsed .app-main { margin-left: 0; }
 
-        .content-container { width: 100%; max-width: 1200px; margin: 0 auto; }
+        .content-container {
+            padding: 28px;
+            flex-grow: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
 
-        /* Breadcrumb */
+        /* BREADCRUMB */
         .breadcrumb-custom {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.84rem;
+            font-size: 0.85rem;
+            font-weight: 600;
             color: var(--text-muted);
             margin-bottom: 20px;
         }
-        .breadcrumb-custom a { color: var(--text-muted); text-decoration: none; font-weight: 600; }
-        .breadcrumb-custom a:hover { color: var(--primary); }
 
-        /* Hero Banner */
+        .breadcrumb-custom a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .breadcrumb-custom a:hover {
+            color: var(--primary);
+        }
+
+        .breadcrumb-custom i {
+            font-size: 0.72rem;
+            opacity: 0.6;
+        }
+
+        /* HERO BANNER */
         .withdraw-hero {
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
             border-radius: var(--radius-lg);
             padding: 32px 36px;
             color: #ffffff;
-            margin-bottom: 28px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 12px 30px -10px rgba(49, 46, 129, 0.3);
+            box-shadow: 0 15px 35px -10px rgba(30, 27, 75, 0.35);
+            margin-bottom: 28px;
         }
-        .withdraw-hero::after {
-            content: '';
+
+        .withdraw-hero::before {
+            content: "";
             position: absolute;
-            top: -40px;
-            right: -40px;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
+            top: -60px;
+            right: -60px;
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%);
             pointer-events: none;
         }
+
         .hero-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.78rem;
+            border-radius: 50px;
+            font-size: 0.76rem;
             font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: #a5b4fc;
             margin-bottom: 12px;
-            color: #fde047;
         }
-        .hero-title { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
-        .hero-desc { font-size: 0.92rem; color: #c7d2fe; max-width: 680px; margin: 0; line-height: 1.5; }
+
+        .hero-title {
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.25;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero-desc {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            max-width: 780px;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
 
         /* 4 Thẻ Thống Kê Chuẩn 1:1 */
         .stats-grid {
@@ -970,52 +1006,88 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             margin-bottom: 28px;
         }
         .stat-card {
-            background: var(--card-bg);
+            background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: var(--radius-md);
             padding: 18px 20px;
+            box-shadow: var(--shadow-card);
+            transition: var(--transition);
             display: flex;
             align-items: center;
             gap: 16px;
-            box-shadow: var(--shadow-card);
-            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
         }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06); }
-        .card-balance-highlight {
-            background: #f0fdf4 !important;
-            border: 1.5px solid #bbf7d0 !important;
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08);
+            border-color: #cbd5e1;
         }
+
+        .stat-card.card-balance-highlight {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #86efac;
+        }
+
         .stat-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 1.35rem;
             flex-shrink: 0;
         }
-        .stat-info { display: flex; flex-direction: column; }
-        .stat-label { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
-        .stat-val { font-size: 1.25rem; font-weight: 800; color: var(--text-heading); font-family: 'Fira Code', monospace; }
+
+        .stat-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .stat-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            white-space: nowrap;
+        }
 
         /* Layout Khối Form Rút Tiền */
-        .withdraw-layout { margin-bottom: 30px; }
+        .withdraw-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
         .withdraw-card {
-            background: var(--card-bg);
+            background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: var(--radius-lg);
-            padding: 28px 30px;
+            padding: 28px 32px;
             box-shadow: var(--shadow-card);
+            width: 100%;
         }
+
         .card-header-title {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             padding-bottom: 14px;
             border-bottom: 1px solid #f1f5f9;
         }
+
         .card-title-text {
             font-size: 1.15rem;
             font-weight: 800;
@@ -1025,124 +1097,182 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             gap: 10px;
         }
 
-        /* Nút chọn nhanh số tiền pills */
+        /* NÚT CHỌN NHANH SỐ TIỀN CHUẨN PILL BO TRÒN */
         .amount-quick-pills {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-        .amount-pill-btn {
-            border: 1px solid var(--card-border);
-            background: #ffffff;
-            color: #475569;
-            padding: 7px 14px;
-            border-radius: 50px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .amount-pill-btn:hover { background: #f1f5f9; color: var(--primary); border-color: var(--primary); }
-        .amount-pill-btn.active {
-            background: var(--primary);
-            color: #ffffff;
-            border-color: var(--primary);
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        /* Khung nhập tiền cao cấp Fintech */
+        .amount-pill-btn {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .amount-pill-btn:hover {
+            background: #eef2ff;
+            color: #4f46e5;
+            border-color: #c7d2fe;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .amount-pill-btn.active {
+            background: #4f46e5 !important;
+            color: #ffffff !important;
+            border-color: #4f46e5 !important;
+        }
+
+        /* KHUNG NHẬP TIỀN CAO CẤP HIỆN ĐẠI (FINTECH STYLE - GỌN GÀNG TINH TẾ) */
         .premium-amount-box {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 13px;
+            padding: 6px 14px;
             display: flex;
             align-items: center;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 8px 16px;
-            transition: var(--transition);
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
+
         .premium-amount-box:focus-within {
-            border-color: var(--primary);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), 0 4px 14px rgba(99, 102, 241, 0.06);
             background: #ffffff;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
         }
+
         .currency-symbol-badge {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
-            background: #e0e7ff;
-            color: var(--primary);
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            color: #4f46e5;
+            border: 1.5px solid #c7d2fe;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.15rem;
-            margin-right: 12px;
+            font-size: 1.18rem;
+            font-weight: 800;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.10);
         }
-        .amount-field-inner { flex-grow: 1; }
-        .amount-field-label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+
+        .amount-field-inner {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            justify-content: center;
+        }
+
+        .amount-field-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #94a3b8;
+            margin-bottom: 0px;
+            line-height: 1.1;
+        }
+
         .amount-input-control {
-            border: none;
-            background: transparent;
-            font-size: 1.4rem;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+            font-size: 1.3rem;
             font-weight: 800;
-            color: var(--text-heading);
+            color: #0f172a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            letter-spacing: -0.3px;
             width: 100%;
-            outline: none;
-            font-family: 'Fira Code', monospace;
+            height: auto !important;
+            line-height: 1.2;
         }
+
+        .amount-input-control::placeholder {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0;
+        }
+
         .currency-tag-pill {
-            font-size: 0.85rem;
+            background: #f8fafc;
+            color: #475569;
             font-weight: 800;
-            color: var(--text-muted);
-            background: #e2e8f0;
+            font-size: 0.76rem;
             padding: 4px 10px;
-            border-radius: 20px;
+            border-radius: 8px;
+            letter-spacing: 0.5px;
+            border: 1px solid #e2e8f0;
+            flex-shrink: 0;
         }
 
         .btn-gradient-primary {
             background: var(--gradient-primary);
             color: #ffffff;
+            font-weight: 700;
             border: none;
-            border-radius: 14px;
-            padding: 14px 28px;
-            font-size: 1rem;
-            font-weight: 800;
-            width: 100%;
-            cursor: pointer;
-            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
             transition: var(--transition);
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
         }
+
         .btn-gradient-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
             color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
         }
 
         /* Form Controls */
         .form-label-custom {
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             font-weight: 700;
-            color: var(--text-heading);
+            color: #0f172a;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 6px;
         }
+
         .form-control-custom, .form-select-custom {
             border: 1.5px solid var(--card-border);
             border-radius: 12px;
-            padding: 11px 16px;
+            padding: 10px 16px;
             font-size: 0.92rem;
             font-weight: 600;
             color: var(--text-heading);
             transition: var(--transition);
             width: 100%;
             background-color: #ffffff;
+            font-family: inherit;
         }
+
         .form-control-custom:focus, .form-select-custom:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
@@ -1151,28 +1281,79 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
 
         /* Thẻ Bảng Lịch Sử (Chuẩn 1:1 theo Dash-Card của deposit.php) */
         .dash-card {
-            background: var(--card-bg);
+            background: #ffffff;
             border: 1px solid var(--card-border);
             border-radius: var(--radius-lg);
-            padding: 24px 28px;
+            padding: 24px;
             box-shadow: var(--shadow-card);
-            margin-bottom: 30px;
+            margin-bottom: 24px;
+            width: 100%;
         }
-        .history-count-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #f8fafc;
-            border: 1px solid var(--card-border);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.82rem;
-        }
-        .count-badge-icon { color: var(--primary); }
-        .count-badge-label { color: var(--text-muted); font-weight: 600; }
-        .count-badge-number { font-weight: 800; color: var(--text-heading); font-family: 'Fira Code', monospace; }
 
-        .history-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .history-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e0eefe 100%);
+            border: 1px solid #bfdbfe;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            color: #1e293b;
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .history-count-badge:hover {
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+            border-color: #93c5fd;
+        }
+
+        .count-badge-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 0.68rem;
+            flex-shrink: 0;
+        }
+
+        .count-badge-label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.8rem;
+        }
+
+        .count-badge-number {
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #1d4ed8;
+            background: #ffffff;
+            padding: 1px 8px;
+            border-radius: 20px;
+            border: 1px solid #bfdbfe;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            display: inline-block;
+            line-height: 1.35;
+        }
+
+        .history-table {
+            width: 100%;
+            min-width: 820px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .history-table th,
+        .history-table td {
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+
         .history-table th {
             background: #f8fafc;
             color: #475569;
@@ -1183,14 +1364,26 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             letter-spacing: 0.3px;
             white-space: nowrap;
         }
+
+        .history-table th i {
+            font-size: 0.82rem;
+            vertical-align: middle;
+        }
+
         .history-table td {
             padding: 14px;
             border-bottom: 1px solid #f1f5f9;
             font-size: 0.88rem;
             white-space: nowrap;
-            vertical-align: middle;
         }
-        .history-table tr:hover td { background: #f8faff; }
+
+        .history-table td div {
+            text-align: center !important;
+        }
+
+        .history-table tr:hover td {
+            background: #f8faff;
+        }
 
         /* Badges trạng thái chuẩn 1:1 */
         .badge-status-pending { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 50px; font-weight: 700; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px; }
@@ -1215,7 +1408,9 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
             text-decoration: none;
             cursor: pointer;
+            line-height: 1.2;
         }
+
         .btn-action-view:hover {
             background: #2563eb;
             color: #ffffff;
@@ -1223,6 +1418,7 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             box-shadow: 0 3px 8px rgba(37, 99, 235, 0.25);
             transform: translateY(-1px);
         }
+
         .btn-action-cancel {
             display: inline-flex;
             align-items: center;
@@ -1239,7 +1435,9 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
             box-shadow: 0 1px 3px rgba(225, 29, 72, 0.08);
             text-decoration: none;
             cursor: pointer;
+            line-height: 1.2;
         }
+
         .btn-action-cancel:hover {
             background: #e11d48;
             color: #ffffff;
@@ -1252,13 +1450,17 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
         .invoice-card {
             background: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
-            border-radius: 8px !important;
-            padding: 14px 18px !important;
+            border-radius: 12px !important;
+            padding: 18px 22px !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
             color: #0f172a !important;
             width: 100% !important;
-            margin: 0 !important;
+            max-width: 740px !important;
+            margin: 0 auto !important;
             font-size: 0.82rem !important;
             line-height: 1.35 !important;
+            position: relative !important;
+            page-break-inside: avoid !important;
         }
         .invoice-barcode-wrap {
             text-align: center;
@@ -1513,58 +1715,89 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                 <div class="brand-icon">
                     <i class="fa-solid fa-bolt"></i>
                 </div>
-                <div class="brand-text">
+                <div class="brand-name">
                     ThanhQuy<span>Tech</span>
                 </div>
             </a>
         </div>
 
         <div class="header-right">
-            <!-- Nạp tiền nhanh -->
-            <a href="/payments/deposit" class="header-balance-card" title="Nạp thêm tiền vào ví">
+            <!-- Số dư tài khoản: Bấm vào khung để chuyển qua nạp tiền -->
+            <a href="/payments/deposit" class="header-balance-card" title="Nạp tiền vào tài khoản">
                 <div class="balance-wallet-icon">
                     <i class="fa-solid fa-wallet"></i>
                 </div>
                 <div class="balance-text-group">
-                    <span class="balance-title">Số dư ví</span>
+                    <span class="balance-title">Số dư</span>
                     <span class="balance-val"><?= number_format((float)$currentUser['balance'], 0, ',', '.') ?> ₫</span>
                 </div>
             </a>
 
-            <!-- Avatar & Profile Dropdown -->
+            <!-- Ảnh avatar hồ sơ & Bảng Popup Hồ Sơ -->
             <div class="user-profile-container" id="userDropdownContainer">
-                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)">
+                <button type="button" class="user-profile-toggle" id="userProfileToggle" onclick="toggleUserPopup(event)" aria-expanded="false" title="<?= htmlspecialchars($currentUser['name'] ?: $currentUser['username']) ?>">
                     <img src="<?= htmlspecialchars($currentUser['avatar'] ?: 'assets/images/default-avatar.svg') ?>" 
                          alt="Avatar" 
                          class="user-avatar-small"
                          onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
                 </button>
 
+                <!-- Bảng Popup Thông Tin & Chức Năng Hồ Sơ -->
                 <div class="user-profile-popup" id="userProfilePopup">
-                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-2">
+                    <!-- Thông tin người dùng -->
+                    <div class="d-flex align-items-center gap-3 pb-3 border-bottom mb-3">
                         <img src="<?= htmlspecialchars($currentUser['avatar'] ?: 'assets/images/default-avatar.svg') ?>" 
                              alt="Avatar" 
-                             style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff;"
+                             style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff; background: #eef2ff;"
                              onerror="this.onerror=null; this.src='assets/images/default-avatar.svg';">
                         <div style="min-width: 0; flex-grow: 1;">
                             <div class="fw-bold text-dark text-truncate" style="font-size: 0.95rem;"><?= htmlspecialchars($currentUser['name'] ?: $currentUser['username']) ?></div>
                             <div class="text-muted small text-truncate">@<?= htmlspecialchars(ltrim($currentUser['username'], '@')) ?></div>
-                            <span class="badge bg-primary-subtle text-primary mt-1" style="font-size: 0.68rem;">UID: #<?= htmlspecialchars($currentUser['uid']) ?></span>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge font-monospace text-primary bg-primary-subtle px-2 py-0" style="font-size: 0.7rem;">UID: #<?= htmlspecialchars($currentUser['uid']) ?></span>
+                                <?php if ($isAdmin): ?>
+                                    <span class="badge bg-danger text-white px-2 py-0" style="font-size: 0.68rem;">Admin</span>
+                                <?php else: ?>
+                                    <span class="badge bg-info-subtle text-info px-2 py-0" style="font-size: 0.68rem;">Thành viên</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Khung xem số dư và nạp tiền nhanh trong popup -->
+                    <div class="p-2 px-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div>
+                            <div class="text-muted" style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">Số dư khả dụng</div>
+                            <div class="fw-bold" style="color: #15803d; font-size: 0.95rem;"><?= number_format((float)$currentUser['balance'], 0, ',', '.') ?> ₫</div>
+                        </div>
+                        <a href="/payments/deposit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-arrow-down me-1"></i> Nạp tiền
+                        </a>
+                    </div>
+
+                    <!-- Danh sách liên kết nhanh -->
                     <div class="d-flex flex-column gap-1">
                         <a href="profile.php" class="popup-menu-item">
-                            <i class="fa-solid fa-user-gear me-2 text-secondary"></i> Tài khoản của tôi
+                            <i class="fa-solid fa-user-gear me-2 text-primary"></i> Thông tin cá nhân
                         </a>
                         <a href="/payments/deposit" class="popup-menu-item">
-                            <i class="fa-solid fa-circle-arrow-down me-2 text-success"></i> Nạp tiền ví
+                            <i class="fa-solid fa-wallet me-2 text-success"></i> Nạp tiền tài khoản
                         </a>
-                        <a href="/payments/withdraw" class="popup-menu-item text-primary fw-bold">
-                            <i class="fa-solid fa-circle-arrow-up me-2 text-primary"></i> Rút tiền ngân hàng
+                        <a href="/payments/withdraw" class="popup-menu-item" style="color: #4f46e5; background: #eef2ff;">
+                            <i class="fa-solid fa-circle-arrow-up me-2 text-primary"></i> Rút tiền tài khoản
+                        </a>
+                        <a href="buy-key.php" class="popup-menu-item">
+                            <i class="fa-solid fa-key me-2 text-warning"></i> Mua key bản quyền
+                        </a>
+                        <a href="token.php" class="popup-menu-item">
+                            <i class="fa-solid fa-fingerprint me-2 text-info"></i> Quản lý Access Token
+                        </a>
+                        <a href="settings.php" class="popup-menu-item">
+                            <i class="fa-solid fa-gear me-2 text-secondary"></i> Cài đặt tài khoản
                         </a>
                         <?php if ($isAdmin): ?>
                         <a href="/admin/dashboard" class="popup-menu-item text-danger fw-bold">
-                            <i class="fa-solid fa-shield-halved me-2 text-danger"></i> Quản trị Admin
+                            <i class="fa-solid fa-shield-halved text-danger me-2"></i> Quản trị Admin
                         </a>
                         <?php endif; ?>
                         <hr class="my-2 border-secondary-subtle">
@@ -2026,58 +2259,56 @@ if (file_exists($signatureLocalTrans) && filesize($signatureLocalTrans) > 0) {
                         <table class="history-table">
                             <thead>
                                 <tr>
-                                    <th class="text-center"><i class="fa-solid fa-hashtag text-primary me-1"></i> Mã đơn</th>
-                                    <th class="text-center"><i class="fa-solid fa-building-columns text-primary me-1"></i> Ngân hàng thụ hưởng</th>
-                                    <th class="text-center"><i class="fa-solid fa-coins text-primary me-1"></i> Số tiền rút</th>
-                                    <th class="text-center"><i class="fa-solid fa-hand-holding-dollar text-primary me-1"></i> Thực nhận</th>
-                                    <th class="text-center"><i class="fa-regular fa-clock text-primary me-1"></i> Thời gian tạo</th>
-                                    <th class="text-center"><i class="fa-solid fa-circle-check text-primary me-1"></i> Trạng thái</th>
-                                    <th class="text-center"><i class="fa-solid fa-gear text-primary me-1"></i> Thao tác</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-hashtag text-primary me-1"></i> Mã đơn</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-building-columns text-primary me-1"></i> Ngân hàng thụ hưởng</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-coins text-primary me-1"></i> Số tiền rút</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-hand-holding-dollar text-primary me-1"></i> Thực nhận</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-regular fa-clock text-primary me-1"></i> Thời gian tạo</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-circle-check text-primary me-1"></i> Trạng thái</th>
+                                    <th class="text-center" style="text-align: center !important;"><i class="fa-solid fa-gear text-primary me-1"></i> Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($withdrawHistory as $item): ?>
                                     <?php 
                                         $st = $item['status'];
-                                        $badgeClass = 'badge-status-pending';
-                                        $stText = 'Đang chờ duyệt';
-                                        $stIcon = 'fa-clock';
-                                        if ($st === 'Success') {
-                                            $badgeClass = 'badge-status-success';
-                                            $stText = 'Đã giải ngân';
-                                            $stIcon = 'fa-circle-check';
-                                        } elseif ($st === 'Cancelled') {
-                                            $badgeClass = 'badge-status-cancelled';
-                                            $stText = 'Đã hủy';
-                                            $stIcon = 'fa-ban';
-                                        } elseif ($st === 'Failed') {
-                                            $badgeClass = 'badge-status-failed';
-                                            $stText = 'Thất bại';
-                                            $stIcon = 'fa-circle-xmark';
-                                        }
                                     ?>
                                     <tr>
-                                        <td class="text-center">
+                                        <td class="text-center" style="text-align: center !important;">
                                             <strong class="font-monospace text-primary" style="font-size: 0.95rem;">#<?= htmlspecialchars($item['withdraw_code']) ?></strong>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center" style="text-align: center !important;">
                                             <div class="fw-bold text-dark"><?= htmlspecialchars($item['bank_name']) ?></div>
                                             <small class="text-muted font-monospace d-block">STK: <?= htmlspecialchars($item['account_number']) ?> (<?= htmlspecialchars($item['account_name']) ?>)</small>
                                         </td>
-                                        <td class="text-center">
-                                            <span class="fw-bold text-danger">-<?= number_format((float)$item['amount'], 0, ',', '.') ?> ₫</span>
+                                        <td class="text-center" style="text-align: center !important;">
+                                            <span class="fw-bold text-danger" style="font-size: 0.88rem; font-weight: 700;">-<?= number_format((float)$item['amount'], 0, ',', '.') ?> ₫</span>
                                         </td>
-                                        <td class="text-center">
-                                            <span class="fw-bold text-success">+<?= number_format((float)$item['net_amount'], 0, ',', '.') ?> ₫</span>
+                                        <td class="text-center" style="text-align: center !important;">
+                                            <span class="fw-bold text-success" style="font-size: 0.88rem; font-weight: 700;">+<?= number_format((float)$item['net_amount'], 0, ',', '.') ?> ₫</span>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center" style="text-align: center !important;">
                                             <div class="fw-semibold text-dark" style="font-size: 0.85rem;"><?= date('d/m/Y H:i', strtotime($item['created_at'])) ?></div>
                                             <small class="text-muted" style="font-size: 0.75rem;"><?= time_ago($item['created_at']) ?></small>
                                         </td>
-                                        <td class="text-center">
-                                            <span class="<?= $badgeClass ?>">
-                                                <i class="fa-solid <?= $stIcon ?> me-1"></i> <?= $stText ?>
-                                            </span>
+                                        <td class="text-center" style="text-align: center !important;">
+                                            <?php if ($st === 'Success'): ?>
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
+                                                    <i class="fa-solid fa-circle-check me-1"></i> Đã giải ngân
+                                                </span>
+                                            <?php elseif ($st === 'Pending'): ?>
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-1 rounded-pill text-dark fw-semibold">
+                                                    <i class="fa-solid fa-clock me-1"></i> Đang chờ duyệt
+                                                </span>
+                                            <?php elseif ($st === 'Cancelled'): ?>
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
+                                                    <i class="fa-solid fa-ban me-1"></i> Đã hủy
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
+                                                    <i class="fa-solid fa-circle-xmark me-1"></i> Thất bại
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center">
                                             <div class="d-inline-flex gap-2 justify-content-center align-items-center flex-wrap">
