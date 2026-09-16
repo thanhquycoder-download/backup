@@ -877,6 +877,205 @@ $flash = get_flash();
             color: #64748b !important;
         }
 
+        /* PLATFORM SELECTOR GRID (MODERN INTERACTIVE CARDS) */
+        .platform-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        @media (max-width: 991px) {
+            .platform-selector-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 575px) {
+            .platform-selector-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .platform-card-btn {
+            position: relative;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 13px 14px;
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            user-select: none;
+        }
+
+        .platform-card-btn:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06);
+        }
+
+        .platform-card-btn.active {
+            border-color: #4f46e5 !important;
+            background: #f5f7ff !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12), 0 8px 18px -4px rgba(79, 70, 229, 0.12) !important;
+        }
+
+        .platform-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.18rem;
+            flex-shrink: 0;
+            transition: transform 0.22s ease;
+        }
+
+        .platform-card-btn.active .platform-card-icon {
+            transform: scale(1.08);
+        }
+
+        .platform-card-title {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #0f172a;
+            line-height: 1.25;
+            margin-bottom: 2px;
+        }
+
+        .platform-card-sub {
+            font-size: 0.72rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .platform-card-check {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            font-size: 0.88rem;
+            color: #4f46e5;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .platform-card-btn.active .platform-card-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* MODERN TOKEN INPUT BOX */
+        .token-editor-box {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+
+        .token-editor-box:focus-within {
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important;
+        }
+
+        .token-editor-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .token-editor-textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.88rem;
+            color: #1e293b;
+            resize: vertical;
+            min-height: 68px;
+            line-height: 1.5;
+            padding: 0;
+        }
+
+        .token-editor-textarea::placeholder {
+            color: #94a3b8;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.84rem;
+        }
+
+        .token-editor-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 0.78rem;
+            color: #64748b;
+        }
+
+        .btn-modern-check {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            color: #4f46e5;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 10px 22px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            cursor: pointer;
+        }
+
+        .btn-modern-check:hover {
+            background: #f5f7ff;
+            border-color: #c7d2fe;
+            color: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.12);
+        }
+
+        .btn-modern-save {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 10px 24px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+            cursor: pointer;
+        }
+
+        .btn-modern-save:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+            color: #ffffff;
+        }
+
         .live-preview-card {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1.5px solid #86efac;
@@ -1564,15 +1763,20 @@ $flash = get_flash();
                 </div>
             </div>
 
-            <!-- KHUNG THÊM TOKEN MỚI -->
+            <!-- KHUNG THÊM TOKEN MỚI (GIAO DIỆN HIỆN ĐẠI CAO CẤP) -->
             <div class="section-card" id="addTokenCard">
                 <div class="section-header">
-                    <h2 class="section-title">
-                        <i class="fa-solid fa-circle-plus text-primary"></i>
-                        <span>Thêm Token & Tự Động Đồng Bộ Tài Khoản</span>
-                    </h2>
-                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGuide" aria-expanded="false">
-                        <i class="fa-solid fa-circle-question me-1 text-primary"></i> Hướng dẫn lấy Token
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon-wrapper stat-icon-primary" style="width: 44px; height: 44px; font-size: 1.2rem; border-radius: 12px;">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <div>
+                            <h2 class="section-title mb-0" style="font-size: 1.15rem;">Thêm Token & Tự Động Đồng Bộ Tài Khoản</h2>
+                            <div class="text-muted small" style="font-size: 0.78rem;">Kết nối tài khoản Golike, TDS, TTC để kiểm tra số dư và quản lý xu</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-light border rounded-pill px-3 fw-semibold text-primary shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGuide" aria-expanded="false">
+                        <i class="fa-solid fa-circle-question me-1"></i> Hướng dẫn lấy Token
                     </button>
                 </div>
 
@@ -1582,20 +1786,20 @@ $flash = get_flash();
                         <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-lightbulb text-warning me-1"></i> Cách lấy Token từ các nền tảng:</h6>
                         <div class="row g-3 small text-muted">
                             <div class="col-md-4">
-                                <div class="p-3 bg-white rounded border h-100">
-                                    <strong class="text-warning d-block mb-1"><i class="fa-solid fa-robot me-1"></i> Golike (JWT Bearer Token):</strong>
+                                <div class="p-3 bg-white rounded border h-100 shadow-sm">
+                                    <strong class="text-warning d-block mb-1"><i class="fa-solid fa-robot me-1"></i> Golike (JWT Bearer):</strong>
                                     Đăng nhập <code>app.golike.net</code> &gt; nhấn <code>F12</code> &gt; tab <strong>Network</strong> &gt; lọc <strong>Fetch/XHR</strong> &gt; tìm request <code>me</code> &gt; sao chép giá trị chuỗi <code>authorization</code>.
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="p-3 bg-white rounded border h-100">
-                                    <strong class="text-info d-block mb-1"><i class="fa-solid fa-bolt me-1"></i> Trao Đổi Sub - TDS:</strong>
+                                <div class="p-3 bg-white rounded border h-100 shadow-sm">
+                                    <strong class="text-info d-block mb-1"><i class="fa-solid fa-bolt me-1"></i> Trao Đổi Sub (TDS):</strong>
                                     Đăng nhập <code>traodoisub.com</code> &gt; vào mục <strong>Cài đặt</strong> hoặc <strong>API</strong> &gt; sao chép chuỗi <strong>Access Token</strong> của bạn.
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="p-3 bg-white rounded border h-100">
-                                    <strong class="text-success d-block mb-1"><i class="fa-solid fa-share-nodes me-1"></i> Tương Tác Chéo - TTC:</strong>
+                                <div class="p-3 bg-white rounded border h-100 shadow-sm">
+                                    <strong class="text-success d-block mb-1"><i class="fa-solid fa-arrows-rotate me-1"></i> Tương Tác Chéo (TTC):</strong>
                                     Đăng nhập <code>tuongtaccheo.com</code> &gt; vào mục <strong>Cài đặt / Token</strong> &gt; sao chép chuỗi <strong>Access Token</strong> tài khoản.
                                 </div>
                             </div>
@@ -1607,38 +1811,113 @@ $flash = get_flash();
                     <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
                     <input type="hidden" name="action" value="save_token">
 
-                    <!-- DROPDOWN CHỌN NỀN TẢNG -->
+                    <!-- CHỌN NỀN TẢNG (INTERACTIVE CARDS) -->
                     <div class="mb-3">
-                        <label for="platformSelect" class="form-label fw-bold text-dark">
-                            Chọn nền tảng tài khoản <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white" id="platformIconIndicator" style="width: 48px; justify-content: center; font-size: 1.15rem;">
-                                <i class="fa-solid fa-robot text-warning"></i>
-                            </span>
-                            <select class="form-select form-select-lg fw-semibold" id="platformSelect" name="platform" onchange="onPlatformChange()">
-                                <option value="golike" selected>Golike (JWT Bearer Token)</option>
-                                <option value="tds">Trao Đổi Sub - TDS (Access Token)</option>
-                                <option value="ttc">Tương Tác Chéo - TTC (Access Token)</option>
-                                <option value="other">Nền tảng khác (JWT Token)</option>
-                            </select>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label fw-bold text-dark mb-0">
+                                <i class="fa-solid fa-layer-group text-primary me-1"></i> Chọn nền tảng tài khoản <span class="text-danger">*</span>
+                            </label>
+                            <span class="badge bg-light text-muted border small fw-normal">Hỗ trợ đa nền tảng</span>
                         </div>
-                        <div class="form-text text-muted" id="platformHint">
-                            Nền tảng Golike: Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.
+
+                        <!-- 4 Thẻ nền tảng tương tác cao cấp -->
+                        <div class="platform-selector-grid" id="platformChipsContainer">
+                            <!-- 1. Golike -->
+                            <div class="platform-card-btn active" data-platform="golike" onclick="selectPlatformChip('golike')">
+                                <div class="platform-card-icon platform-avatar-golike">
+                                    <i class="fa-solid fa-robot"></i>
+                                </div>
+                                <div class="platform-card-info">
+                                    <div class="platform-card-title">Golike</div>
+                                    <div class="platform-card-sub">JWT Bearer Token</div>
+                                </div>
+                                <div class="platform-card-check">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                            </div>
+
+                            <!-- 2. Trao Đổi Sub -->
+                            <div class="platform-card-btn" data-platform="tds" onclick="selectPlatformChip('tds')">
+                                <div class="platform-card-icon platform-avatar-tds">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </div>
+                                <div class="platform-card-info">
+                                    <div class="platform-card-title">Trao Đổi Sub</div>
+                                    <div class="platform-card-sub">TDS Access Token</div>
+                                </div>
+                                <div class="platform-card-check">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                            </div>
+
+                            <!-- 3. Tương Tác Chéo -->
+                            <div class="platform-card-btn" data-platform="ttc" onclick="selectPlatformChip('ttc')">
+                                <div class="platform-card-icon platform-avatar-ttc">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </div>
+                                <div class="platform-card-info">
+                                    <div class="platform-card-title">Tương Tác Chéo</div>
+                                    <div class="platform-card-sub">TTC Access Token</div>
+                                </div>
+                                <div class="platform-card-check">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                            </div>
+
+                            <!-- 4. Nền tảng khác -->
+                            <div class="platform-card-btn" data-platform="other" onclick="selectPlatformChip('other')">
+                                <div class="platform-card-icon platform-avatar-other">
+                                    <i class="fa-solid fa-globe"></i>
+                                </div>
+                                <div class="platform-card-info">
+                                    <div class="platform-card-title">Nền tảng khác</div>
+                                    <div class="platform-card-sub">Tùy biến JWT Token</div>
+                                </div>
+                                <div class="platform-card-check">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Dropdown đồng bộ ẩn/dự phòng -->
+                        <select class="d-none" id="platformSelect" name="platform" onchange="onPlatformChange()">
+                            <option value="golike" selected>Golike (JWT Bearer Token)</option>
+                            <option value="tds">Trao Đổi Sub - TDS (Access Token)</option>
+                            <option value="ttc">Tương Tác Chéo - TTC (Access Token)</option>
+                            <option value="other">Nền tảng khác (JWT Token)</option>
+                        </select>
                     </div>
 
-                    <!-- Ô NHẬP TOKEN -->
+                    <!-- KHUNG NHẬP TOKEN CAO CẤP -->
                     <div class="mb-3">
-                        <label for="token_input" class="form-label fw-bold text-dark" id="tokenInputLabel">
-                            Mã Token Golike (Authorization Bearer Token) <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-key"></i></span>
-                            <textarea class="form-control font-monospace" id="token_input" name="token" rows="2" placeholder="Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)" required></textarea>
-                            <button type="button" class="btn btn-light border" onclick="pasteToken()" title="Dán từ Clipboard">
-                                <i class="fa-solid fa-paste"></i>
-                            </button>
+                        <div class="token-editor-box">
+                            <div class="token-editor-header">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-key text-primary"></i>
+                                    <span class="fw-bold text-dark" id="tokenInputLabel">Mã Token Golike (Authorization Bearer Token)</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="tokenTypeBadge" style="font-size: 0.72rem;">JWT Bearer</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-light border text-muted px-2 py-1 rounded-2" onclick="clearTokenInput()" title="Xóa nội dung">
+                                        <i class="fa-solid fa-xmark"></i> Xóa
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-light border text-primary fw-semibold px-3 py-1 rounded-2" onclick="pasteToken()" title="Dán nhanh từ Clipboard">
+                                        <i class="fa-solid fa-paste me-1"></i> Dán từ Clipboard
+                                    </button>
+                                </div>
+                            </div>
+
+                            <textarea class="token-editor-textarea" id="token_input" name="token" rows="3" placeholder="Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)" oninput="updateTokenCharCount()" required></textarea>
+
+                            <div class="token-editor-footer">
+                                <div class="d-flex align-items-center gap-2 text-muted" id="platformHint">
+                                    <i class="fa-solid fa-circle-info text-primary"></i>
+                                    <span>Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.</span>
+                                </div>
+                                <div class="font-monospace text-secondary" id="tokenCharCount" style="font-size: 0.76rem;">
+                                    0 ký tự
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1672,11 +1951,13 @@ $flash = get_flash();
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-primary fw-bold" id="btnCheckToken" onclick="checkTokenLive()">
-                            <i class="fa-solid fa-bolt me-1"></i> Kiểm Tra Trước
+                        <button type="button" class="btn-modern-check" id="btnCheckToken" onclick="checkTokenLive()">
+                            <i class="fa-solid fa-bolt text-warning"></i>
+                            <span>Kiểm Tra Trước</span>
                         </button>
-                        <button type="submit" class="btn-gradient-primary">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu & Đồng Bộ Ngay
+                        <button type="submit" class="btn-modern-save">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Lưu & Đồng Bộ Ngay</span>
                         </button>
                     </div>
                 </form>
@@ -1937,15 +2218,56 @@ $flash = get_flash();
             });
         }
 
-        // 4. Thay đổi hướng dẫn & placeholder khi chọn nền tảng
+        // 4. Chọn nền tảng qua thẻ tương tác trực quan
+        function selectPlatformChip(plat) {
+            const select = document.getElementById('platformSelect');
+            if (select) {
+                select.value = plat;
+            }
+            onPlatformChange();
+        }
+
+        // Cập nhật số ký tự token thời gian thực
+        function updateTokenCharCount() {
+            const input = document.getElementById('token_input');
+            const counter = document.getElementById('tokenCharCount');
+            if (input && counter) {
+                const len = input.value.trim().length;
+                counter.textContent = len > 0 ? (len.toLocaleString() + ' ký tự') : '0 ký tự';
+            }
+        }
+
+        // Xóa nhanh nội dung ô nhập token
+        function clearTokenInput() {
+            const input = document.getElementById('token_input');
+            if (input) {
+                input.value = '';
+                input.focus();
+                updateTokenCharCount();
+                const previewBox = document.getElementById('tokenPreviewBox');
+                if (previewBox) previewBox.classList.add('d-none');
+            }
+        }
+
+        // 5. Thay đổi hướng dẫn & placeholder khi chọn nền tảng
         function onPlatformChange() {
             const select = document.getElementById('platformSelect');
             const platform = select ? select.value : 'golike';
             const hint = document.getElementById('platformHint');
             const label = document.getElementById('tokenInputLabel');
+            const typeBadge = document.getElementById('tokenTypeBadge');
             const input = document.getElementById('token_input');
-            const iconIndicator = document.getElementById('platformIconIndicator');
             const prevAvatar = document.getElementById('prevAvatar');
+
+            // Cập nhật active class cho 4 thẻ tương tác
+            const chips = document.querySelectorAll('.platform-card-btn');
+            chips.forEach(c => {
+                if (c.getAttribute('data-platform') === platform) {
+                    c.classList.add('active');
+                } else {
+                    c.classList.remove('active');
+                }
+            });
 
             const platformIcons = {
                 'golike': '<i class="fa-solid fa-robot text-warning"></i>',
@@ -1961,31 +2283,43 @@ $flash = get_flash();
                 'other': 'platform-avatar-other'
             };
 
-            if (iconIndicator) {
-                iconIndicator.innerHTML = platformIcons[platform] || '<i class="fa-solid fa-globe text-secondary"></i>';
-            }
-
             if (prevAvatar) {
                 prevAvatar.innerHTML = platformIcons[platform] || '<i class="fa-solid fa-globe text-secondary"></i>';
                 prevAvatar.className = 'golike-avatar ' + (platformAvatars[platform] || 'platform-avatar-other');
             }
 
             if (platform === 'golike') {
-                if (label) label.innerHTML = 'Mã Token Golike (Authorization Bearer Token) <span class="text-danger">*</span>';
+                if (label) label.textContent = 'Mã Token Golike (Authorization Bearer Token)';
+                if (typeBadge) {
+                    typeBadge.textContent = 'JWT Bearer';
+                    typeBadge.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+                }
                 if (input) input.placeholder = 'Dán token tại đây (ví dụ: Bearer eyJ0eXAiOiJKV1QiLC... hoặc eyJ0eXAiOi...)';
-                if (hint) hint.innerHTML = 'Nền tảng Golike: Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.';
+                if (hint) hint.innerHTML = '<i class="fa-solid fa-circle-info text-primary me-1"></i><span>Nền tảng Golike: Hệ thống sẽ gọi API <code>/api/users/me</code> để tự động lấy Họ tên, Username, ID Golike và Số dư xu.</span>';
             } else if (platform === 'tds') {
-                if (label) label.innerHTML = 'Mã Access Token Trao Đổi Sub (TDS) <span class="text-danger">*</span>';
+                if (label) label.textContent = 'Mã Access Token Trao Đổi Sub (TDS)';
+                if (typeBadge) {
+                    typeBadge.textContent = 'Access Token';
+                    typeBadge.className = 'badge bg-info-subtle text-info border border-info-subtle';
+                }
                 if (input) input.placeholder = 'Dán mã Access Token lấy từ traodoisub.com tại đây...';
-                if (hint) hint.innerHTML = 'Nền tảng Trao Đổi Sub: Hệ thống sẽ kết nối API TDS để xác thực tài khoản và cập nhật số dư xu.';
+                if (hint) hint.innerHTML = '<i class="fa-solid fa-circle-info text-primary me-1"></i><span>Nền tảng Trao Đổi Sub: Hệ thống sẽ kết nối API TDS để xác thực tài khoản và cập nhật số dư xu.</span>';
             } else if (platform === 'ttc') {
-                if (label) label.innerHTML = 'Mã Access Token Tương Tác Chéo (TTC) <span class="text-danger">*</span>';
+                if (label) label.textContent = 'Mã Access Token Tương Tác Chéo (TTC)';
+                if (typeBadge) {
+                    typeBadge.textContent = 'Access Token';
+                    typeBadge.className = 'badge bg-success-subtle text-success border border-success-subtle';
+                }
                 if (input) input.placeholder = 'Dán mã Access Token lấy từ tuongtaccheo.com tại đây...';
-                if (hint) hint.innerHTML = 'Nền tảng Tương Tác Chéo: Hệ thống sẽ kết nối API TTC để xác thực tài khoản và cập nhật số dư xu.';
+                if (hint) hint.innerHTML = '<i class="fa-solid fa-circle-info text-primary me-1"></i><span>Nền tảng Tương Tác Chéo: Hệ thống sẽ kết nối API TTC để xác thực tài khoản và cập nhật số dư xu.</span>';
             } else {
-                if (label) label.innerHTML = 'Mã Token (JWT / Access Token) <span class="text-danger">*</span>';
+                if (label) label.textContent = 'Mã Token (JWT / Access Token)';
+                if (typeBadge) {
+                    typeBadge.textContent = 'Tùy biến Token';
+                    typeBadge.className = 'badge bg-secondary-subtle text-secondary border';
+                }
                 if (input) input.placeholder = 'Dán chuỗi JWT token hoặc access token của bạn tại đây...';
-                if (hint) hint.innerHTML = 'Nền tảng khác: Hệ thống sẽ giải mã JWT payload và lưu trữ vào danh sách.';
+                if (hint) hint.innerHTML = '<i class="fa-solid fa-circle-info text-primary me-1"></i><span>Nền tảng khác: Hệ thống sẽ giải mã JWT payload và lưu trữ vào danh sách.</span>';
             }
 
             // Ẩn preview box khi đổi nền tảng
@@ -1993,12 +2327,15 @@ $flash = get_flash();
             if (previewBox) previewBox.classList.add('d-none');
         }
 
-        // 5. Dán token từ Clipboard
+        // 6. Dán token từ Clipboard
         function pasteToken() {
             navigator.clipboard.readText().then(text => {
                 if (text) {
                     const input = document.getElementById('token_input');
-                    if (input) input.value = text.trim();
+                    if (input) {
+                        input.value = text.trim();
+                        updateTokenCharCount();
+                    }
                     Swal.fire({
                         toast: true,
                         position: 'top-end',
