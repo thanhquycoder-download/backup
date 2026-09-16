@@ -283,6 +283,19 @@ $hideBalance = ($stmtHide->fetchColumn() === '1');
 
 $flash = get_flash();
 $csrfToken = get_csrf_token();
+
+// Đọc và chuẩn bị chữ ký người đại diện Phan Thành Quý
+$signatureSource = 'C:/Users/admin/.gemini/antigravity-ide/brain/9b9e3d7d-8ebc-4447-93f8-00568d8227e1/.user_uploaded/media_1789531409754.png';
+$signatureLocal = __DIR__ . '/assets/images/signature.png';
+if (file_exists($signatureSource) && (!file_exists($signatureLocal) || filesize($signatureLocal) === 0)) {
+    @copy($signatureSource, $signatureLocal);
+}
+$signatureBase64 = '';
+if (file_exists($signatureLocal) && filesize($signatureLocal) > 0) {
+    $signatureBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signatureLocal));
+} elseif (file_exists($signatureSource)) {
+    $signatureBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signatureSource));
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -2709,161 +2722,174 @@ $csrfToken = get_csrf_token();
                 </div>
                 <div class="modal-body p-3 p-md-4 bg-light bg-opacity-50">
                     <div class="invoice-card" id="invoiceCardPrintArea">
-                        <!-- 1. Header Đơn vị phát hành -->
-                        <div class="invoice-top-brand">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">
-                                        <i class="fa-solid fa-bolt-lightning"></i>
-                                    </div>
-                                    <h4 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">THANH QUY TECH</h4>
+                        <!-- 1. Quốc hiệu - Tiêu ngữ & Thông tin Công ty -->
+                        <div class="row align-items-start mb-3 pb-3 border-bottom g-3">
+                            <div class="col-md-7 text-start">
+                                <div class="fw-bold text-primary fs-6 text-uppercase mb-1" style="letter-spacing: 0.3px;">
+                                    CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
                                 </div>
-                                <div class="text-muted small">HỆ THỐNG DỊCH VỤ CÔNG NGHỆ SỐ & GIẢI PHÁP TỰ ĐỘNG</div>
-                                <div class="text-muted small">Hotline: <strong>0987.654.321</strong> | Website: <strong>thanhquytech.vn</strong></div>
-                                <div class="text-muted small">Địa chỉ: Tòa nhà Công Nghệ, TP. Hồ Chí Minh, Việt Nam</div>
+                                <div class="small text-muted mb-1">Mã số thuế (Tax Code): <strong class="text-dark">0318954321</strong></div>
+                                <div class="small text-muted mb-1">Địa chỉ: Tầng 12, Tòa nhà Công Nghệ Số, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh</div>
+                                <div class="small text-muted">Hotline: <strong>0987.654.321</strong> | Website: <strong>thanhquytech.vn</strong></div>
                             </div>
-                            <div class="text-md-end">
-                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-bold mb-2 d-inline-block">
-                                    HÓA ĐƠN ĐIỆN TỬ
-                                </span>
-                                <div class="fw-bold text-dark fs-6" id="invModalCode">#---</div>
-                                <div class="text-muted small" id="invModalDate">--/--/---- --:--</div>
-                                <div class="mt-1" id="invModalStatusBadge">
-                                    <span class="badge bg-success text-white px-2 py-1 rounded-pill">Hoàn tất</span>
+                            <div class="col-md-5 text-center text-md-end">
+                                <div class="fw-bold text-uppercase text-dark" style="font-size: 0.86rem; letter-spacing: 0.4px;">
+                                    CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+                                </div>
+                                <div class="fw-bold text-dark" style="font-size: 0.84rem; margin-top: 2px;">
+                                    Độc lập - Tự do - Hạnh phúc
+                                </div>
+                                <div style="width: 130px; height: 1.5px; background: #0f172a; margin: 4px auto 8px;"></div>
+                                <div class="small text-muted fst-italic" id="invModalLocationDate">
+                                    TP. Hồ Chí Minh, ngày ... tháng ... năm ...
                                 </div>
                             </div>
                         </div>
 
                         <!-- 2. Tiêu đề Hóa Đơn & Barcode Siêu Thị -->
                         <div class="text-center my-3">
-                            <h3 class="fw-bold text-dark mb-1" style="letter-spacing: 0.5px; text-transform: uppercase;">HÓA ĐƠN GIAO DỊCH NẠP TIỀN</h3>
-                            <div class="text-muted small mb-2">(Bản thể hiện điện tử phục vụ lưu trữ và đối soát khách hàng)</div>
+                            <h3 class="fw-bold text-dark mb-1 text-uppercase" style="letter-spacing: 0.8px;">
+                                HÓA ĐƠN BÁN HÀNG DỊCH VỤ CÔNG NGHỆ
+                            </h3>
+                            <div class="text-muted small mb-2">(Bản thể hiện hóa đơn điện tử phục vụ chứng từ đối soát doanh nghiệp)</div>
+                            <div class="d-flex justify-content-center align-items-center gap-3 small text-muted mb-2">
+                                <span>Ký hiệu (Serial): <strong class="text-dark">TQ/26E</strong></span>
+                                <span>|</span>
+                                <span>Số hóa đơn (No.): <strong class="text-primary font-monospace fs-6" id="invModalCode">#---</strong></span>
+                                <span>|</span>
+                                <span id="invModalStatusBadge"><span class="badge bg-success text-white px-2 py-1 rounded-pill">Hoàn tất</span></span>
+                            </div>
                             
                             <!-- Mã vạch Barcode siêu thị -->
-                            <div class="invoice-barcode-wrap">
-                                <div class="text-muted small mb-1" style="font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase;">Mã vạch kiểm duyệt (Retail Barcode)</div>
+                            <div class="invoice-barcode-wrap my-2">
+                                <div class="text-muted small mb-1" style="font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase;">Mã vạch tra cứu đối soát (Retail Barcode)</div>
                                 <div id="invModalBarcodeSvg"></div>
                             </div>
                         </div>
 
-                        <!-- 3. Thông tin Khách hàng & Ngân hàng chuyển tiền -->
-                        <div class="row g-3 my-2" style="font-size: 0.88rem;">
-                            <div class="col-sm-6">
-                                <div class="p-3 bg-light rounded-3 h-100 border text-start">
-                                    <div class="fw-bold text-primary mb-2"><i class="fa-solid fa-user me-1"></i> THÔNG TIN KHÁCH HÀNG</div>
-                                    <div class="mb-1">Người nạp: <strong class="text-dark" id="invModalCustomerName">---</strong></div>
-                                    <div class="mb-1">Tài khoản: <span class="font-monospace text-secondary" id="invModalCustomerUsername">---</span></div>
-                                    <div>Email: <span class="text-muted" id="invModalCustomerEmail">---</span></div>
+                        <!-- 3. Thông tin Khách hàng Doanh nghiệp & Ngân hàng -->
+                        <div class="p-3 bg-light rounded-3 border mb-3 text-start" style="font-size: 0.88rem;">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="fw-bold text-primary mb-2"><i class="fa-solid fa-building me-1"></i> ĐƠN VỊ MUA HÀNG / KHÁCH HÀNG</div>
+                                    <div class="mb-1">Tên khách hàng / Đơn vị: <strong class="text-dark" id="invModalCustomerName">---</strong></div>
+                                    <div class="mb-1">Tài khoản hệ thống: <span class="font-monospace text-primary fw-bold" id="invModalCustomerUsername">---</span></div>
+                                    <div>Email nhận hóa đơn: <span class="text-dark" id="invModalCustomerEmail">---</span></div>
                                 </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="p-3 bg-light rounded-3 h-100 border text-start">
-                                    <div class="fw-bold text-primary mb-2"><i class="fa-solid fa-building-columns me-1"></i> THỤ HƯỞNG & PHƯƠNG THỨC</div>
-                                    <div class="mb-1">Ngân hàng: <strong class="text-dark" id="invModalBankName">---</strong></div>
-                                    <div class="mb-1">Số tài khoản: <span class="font-monospace text-dark fw-bold" id="invModalAccountNumber">---</span></div>
-                                    <div class="mb-1">Chủ tài khoản: <span class="text-uppercase text-dark" id="invModalAccountName">---</span></div>
-                                    <div>Nội dung CK: <span class="font-monospace text-danger fw-bold" id="invModalTransferContent">---</span></div>
+                                <div class="col-md-6">
+                                    <div class="fw-bold text-primary mb-2"><i class="fa-solid fa-building-columns me-1"></i> PHƯƠNG THỨC & THỤ HƯỞNG</div>
+                                    <div class="mb-1">Hình thức thanh toán: <strong class="text-dark">Chuyển khoản (VietQR Napas 24/7)</strong></div>
+                                    <div class="mb-1">Ngân hàng thụ hưởng: <span class="text-dark" id="invModalBankName">---</span></div>
+                                    <div class="mb-1">Số tài khoản: <span class="font-monospace text-dark fw-bold" id="invModalAccountNumber">---</span> (<span class="text-uppercase" id="invModalAccountName">---</span>)</div>
+                                    <div>Nội dung chuyển khoản: <span class="font-monospace text-danger fw-bold" id="invModalTransferContent">---</span></div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 4. Bảng chi tiết dịch vụ thanh toán -->
+                        <!-- 4. Bảng chi tiết dịch vụ thanh toán B2B -->
                         <table class="invoice-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 50px; text-align: center !important;">STT</th>
-                                    <th>Nội dung / Khoản mục thanh toán</th>
-                                    <th style="text-align: center !important;">Phương thức</th>
-                                    <th class="text-end" style="width: 140px; text-align: right !important;">Số tiền (VNĐ)</th>
+                                    <th style="width: 45px; text-align: center !important;">STT</th>
+                                    <th>Tên hàng hóa, dịch vụ</th>
+                                    <th style="width: 80px; text-align: center !important;">ĐVT</th>
+                                    <th style="width: 70px; text-align: center !important;">Số lượng</th>
+                                    <th class="text-end" style="width: 130px; text-align: right !important;">Đơn giá</th>
+                                    <th class="text-end" style="width: 140px; text-align: right !important;">Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td style="text-align: center !important;">01</td>
                                     <td style="text-align: left !important;">
-                                        <div class="fw-bold text-dark">Nạp số dư tài khoản dịch vụ</div>
-                                        <small class="text-muted">Cộng tiền tự động vào ví số dư ThanhQuyTech qua VietQR Napas 24/7</small>
+                                        <div class="fw-bold text-dark">Nạp số dư dịch vụ công nghệ & key bản quyền tự động</div>
+                                        <small class="text-muted">Cộng tiền tự động vào số dư ví tài khoản hệ thống ThanhQuyTech</small>
                                     </td>
-                                    <td style="text-align: center !important;">
-                                        <span class="badge bg-light text-dark border">VietQR / TPBank</span>
-                                    </td>
+                                    <td style="text-align: center !important;">Giao dịch</td>
+                                    <td style="text-align: center !important;">01</td>
+                                    <td class="text-end fw-semibold text-dark" style="text-align: right !important;" id="invModalUnitPrice">0 đ</td>
                                     <td class="text-end fw-bold text-dark" style="text-align: right !important;" id="invModalAmountItem">0 đ</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="3" class="text-end text-muted" style="text-align: right !important;">Phí xử lý giao dịch:</td>
-                                    <td class="text-end text-success fw-semibold" style="text-align: right !important;">0 đ (Miễn phí)</td>
+                                    <td colspan="5" class="text-end text-muted" style="text-align: right !important;">Cộng tiền hàng (Subtotal):</td>
+                                    <td class="text-end fw-bold text-dark" style="text-align: right !important;" id="invModalSubTotal">0 đ</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="3" class="text-end text-muted" style="text-align: right !important;">Thuế GTGT (VAT):</td>
-                                    <td class="text-end text-muted" style="text-align: right !important;">0 đ</td>
+                                    <td colspan="5" class="text-end text-muted" style="text-align: right !important;">Thuế suất GTGT (VAT Rate):</td>
+                                    <td class="text-end text-muted" style="text-align: right !important;">0% (Không tính thuế)</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="text-end text-muted" style="text-align: right !important;">Phí xử lý cổng thanh toán:</td>
+                                    <td class="text-end text-success fw-bold" style="text-align: right !important;">0 đ (Miễn phí)</td>
                                 </tr>
                                 <tr style="background: #f8fafc;">
-                                    <td colspan="3" class="text-end fw-bold text-dark fs-6" style="text-align: right !important;">TỔNG TIỀN THANH TOÁN:</td>
+                                    <td colspan="5" class="text-end fw-bold text-dark fs-6" style="text-align: right !important;">TỔNG CỘNG TIỀN THANH TOÁN:</td>
                                     <td class="text-end fw-bold text-success fs-5" style="text-align: right !important;" id="invModalTotalAmount">0 đ</td>
                                 </tr>
                             </tbody>
                         </table>
 
                         <div class="p-2 px-3 bg-light rounded-3 border mb-3 small text-start">
-                            <strong>Số tiền viết bằng chữ:</strong> <span class="fst-italic text-dark" id="invModalAmountWords">---</span>
+                            <strong>Số tiền viết bằng chữ:</strong> <span class="fst-italic text-dark fw-semibold" id="invModalAmountWords">---</span>
                         </div>
 
-                        <!-- 5. Phần Chữ Ký & Con Dấu Xác Nhận -->
+                        <!-- 5. Phần Chữ Ký & Con Dấu Xác Nhận Doanh Nghiệp -->
                         <div class="signature-section">
                             <div class="signature-box">
-                                <div class="fw-bold text-dark text-uppercase">NGƯỜI NẠP TIỀN</div>
+                                <div class="fw-bold text-dark text-uppercase">NGƯỜI MUA HÀNG</div>
                                 <div class="text-muted small fst-italic mb-5">(Ký, ghi rõ họ tên)</div>
                                 <div class="fw-bold text-dark mt-4" id="invModalSignCustomer">---</div>
-                                <div class="text-muted small">Khách hàng hệ thống</div>
+                                <div class="text-muted small">Khách hàng doanh nghiệp</div>
                             </div>
 
                             <div class="signature-box">
-                                <div class="fw-bold text-dark text-uppercase">ĐẠI DIỆN HỆ THỐNG / GIÁM ĐỐC</div>
-                                <div class="text-muted small fst-italic">(Ký điện tử & Đóng dấu chứng thực)</div>
+                                <div class="fw-bold text-dark text-uppercase">NGƯỜI BÁN HÀNG / THỦ TRƯỞNG ĐƠN VỊ</div>
+                                <div class="text-muted small fst-italic">(Ký số, đóng dấu chứng thực)</div>
                                 
-                                <!-- Con dấu tròn đỏ thẩm mỹ cao SVG -->
-                                <div class="red-stamp-seal">
-                                    <svg viewBox="0 0 160 160" width="100%" height="100%">
-                                        <circle cx="80" cy="80" r="74" fill="none" stroke="#dc2626" stroke-width="3.5" />
-                                        <circle cx="80" cy="80" r="67" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,3" />
-                                        <circle cx="80" cy="80" r="48" fill="none" stroke="#dc2626" stroke-width="1.5" />
-                                        
-                                        <!-- Chữ cong hình tròn phía trên -->
-                                        <path id="curveTop" d="M 22,80 A 58,58 0 1,1 138,80" fill="none" />
-                                        <text font-size="10.5" font-weight="900" fill="#dc2626" letter-spacing="1">
-                                            <textPath href="#curveTop" startOffset="50%" text-anchor="middle">
-                                                THANH QUY TECH
-                                            </textPath>
-                                        </text>
-                                        
-                                        <!-- Chữ cong hình tròn phía dưới -->
-                                        <path id="curveBottom" d="M 138,80 A 58,58 0 0,1 22,80" fill="none" />
-                                        <text font-size="9" font-weight="700" fill="#dc2626" letter-spacing="1">
-                                            <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">
-                                                ★ DỊCH VỤ CÔNG NGHỆ ★
-                                            </textPath>
-                                        </text>
-                                        
-                                        <!-- Ngôi sao và nội dung trung tâm -->
-                                        <polygon points="80,56 83,64 91,64 85,69 87,77 80,72 73,77 75,69 69,64 77,64" fill="#dc2626" />
-                                        <text x="80" y="93" font-size="11" font-weight="900" fill="#dc2626" text-anchor="middle" letter-spacing="0.5">ĐÃ XÁC NHẬN</text>
-                                        <text x="80" y="106" font-size="8.5" font-weight="700" fill="#dc2626" text-anchor="middle">THANH TOÁN</text>
-                                    </svg>
+                                <!-- Khối chứa con dấu và chữ ký thật của Phan Thành Quý -->
+                                <div style="position: relative; height: 110px; margin: 10px auto; display: flex; align-items: center; justify-content: center;">
+                                    <!-- Con dấu tròn đỏ công ty -->
+                                    <div class="red-stamp-seal" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-6deg); z-index: 1;">
+                                        <svg viewBox="0 0 160 160" width="120" height="120">
+                                            <circle cx="80" cy="80" r="74" fill="none" stroke="#dc2626" stroke-width="3" />
+                                            <circle cx="80" cy="80" r="67" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3,3" />
+                                            <circle cx="80" cy="80" r="48" fill="none" stroke="#dc2626" stroke-width="1.5" />
+                                            
+                                            <path id="curveTop" d="M 22,80 A 58,58 0 1,1 138,80" fill="none" />
+                                            <text font-size="9.5" font-weight="900" fill="#dc2626" letter-spacing="0.5">
+                                                <textPath href="#curveTop" startOffset="50%" text-anchor="middle">
+                                                    CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
+                                                </textPath>
+                                            </text>
+                                            
+                                            <path id="curveBottom" d="M 138,80 A 58,58 0 0,1 22,80" fill="none" />
+                                            <text font-size="8.5" font-weight="700" fill="#dc2626" letter-spacing="1">
+                                                <textPath href="#curveBottom" startOffset="50%" text-anchor="middle">
+                                                    ★ MST: 0318954321 ★ TP. HỒ CHÍ MINH
+                                                </textPath>
+                                            </text>
+                                            
+                                            <polygon points="80,57 82.5,63.5 89.5,63.5 84,68 86,74.5 80,70.5 74,74.5 76,68 70.5,63.5 77.5,63.5" fill="#dc2626" />
+                                            <text x="80" y="91" font-size="10" font-weight="900" fill="#dc2626" text-anchor="middle" letter-spacing="0.5">ĐÃ XÁC NHẬN</text>
+                                            <text x="80" y="103" font-size="8" font-weight="700" fill="#dc2626" text-anchor="middle">THANH TOÁN</text>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Chữ ký thật từ ảnh do user gửi -->
+                                    <div style="position: relative; z-index: 2;" id="invModalSignatureImgContainer">
+                                        <!-- Injected via JS using USER_SIGNATURE_BASE64 -->
+                                    </div>
                                 </div>
 
-                                <!-- Chữ ký tay nghệ thuật Phan Thành Quý -->
-                                <div>
-                                    <span class="signature-handwriting">Phan Thành Quý</span>
-                                </div>
                                 <div class="fw-bold text-dark fs-6 mt-1">Phan Thành Quý</div>
-                                <div class="text-muted small">Người đại diện hệ thống</div>
+                                <div class="text-muted small">Giám đốc điều hành / Người đại diện pháp luật</div>
                             </div>
                         </div>
 
                         <!-- 6. Footer Lời Cảm Ơn -->
                         <div class="mt-4 pt-3 border-top text-center text-muted small">
-                            <div><i class="fa-solid fa-heart text-danger me-1"></i> Cảm ơn quý khách đã tin tưởng và đồng hành cùng <strong>ThanhQuyTech</strong>!</div>
-                            <div style="font-size: 0.75rem;">Chứng từ này được tạo tự động từ hệ thống và có giá trị xác nhận giao dịch hợp lệ. Mọi thắc mắc xin liên hệ Hotline: 0987.654.321.</div>
+                            <div><i class="fa-solid fa-shield-halved text-success me-1"></i> Hóa đơn điện tử khởi tạo hợp pháp theo quy định của pháp luật Việt Nam.</div>
+                            <div style="font-size: 0.75rem;">Mọi thắc mắc xin liên hệ Hotline: 0987.654.321 | Email: support@thanhquytech.vn. Cảm ơn quý khách!</div>
                         </div>
                     </div>
                 </div>
@@ -2984,6 +3010,7 @@ $csrfToken = get_csrf_token();
         }
 
         // 6. Xử lý hiển thị Hóa đơn nạp tiền & Xuất file Word
+        const USER_SIGNATURE_BASE64 = <?= json_encode($signatureBase64) ?>;
         let currentInvoiceData = null;
 
         function docSoTien(so) {
@@ -3095,55 +3122,108 @@ $csrfToken = get_csrf_token();
             if (!data) return;
             currentInvoiceData = data;
 
-            // Đổ dữ liệu vào Modal
-            document.getElementById('invModalCode').innerText = '#' + data.code;
-            document.getElementById('invModalDate').innerText = data.created_at;
+            // 1. Mã đơn & Địa điểm ngày tháng
+            const codeEl = document.getElementById('invModalCode');
+            if (codeEl) codeEl.innerText = '#' + data.code;
 
-            // Trạng thái badge
-            const statusEl = document.getElementById('invModalStatusBadge');
-            const st = (data.status || 'Pending').toLowerCase();
-            if (st === 'success') {
-                statusEl.innerHTML = '<span class="badge bg-success text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i> ĐÃ HOÀN THÀNH</span>';
-            } else if (st === 'pending') {
-                statusEl.innerHTML = '<span class="badge bg-warning text-dark px-3 py-1 rounded-pill"><i class="fa-solid fa-clock me-1"></i> ĐANG CHỜ CHUYỂN TIỀN</span>';
-            } else if (st === 'cancelled') {
-                statusEl.innerHTML = '<span class="badge bg-secondary text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-ban me-1"></i> ĐÃ HỦY</span>';
-            } else {
-                statusEl.innerHTML = '<span class="badge bg-danger text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-xmark me-1"></i> THẤT BẠI</span>';
+            const locDateEl = document.getElementById('invModalLocationDate');
+            if (locDateEl) {
+                if (data.created_at) {
+                    try {
+                        const parts = data.created_at.split(' ');
+                        const datePart = parts[0];
+                        if (datePart.includes('/')) {
+                            const [d, m, y] = datePart.split('/');
+                            locDateEl.innerText = `TP. Hồ Chí Minh, ngày ${d} tháng ${m} năm ${y}`;
+                        } else if (datePart.includes('-')) {
+                            const [y, m, d] = datePart.split('-');
+                            locDateEl.innerText = `TP. Hồ Chí Minh, ngày ${d} tháng ${m} năm ${y}`;
+                        } else {
+                            locDateEl.innerText = 'TP. Hồ Chí Minh, ' + data.created_at;
+                        }
+                    } catch(e) {
+                        locDateEl.innerText = 'TP. Hồ Chí Minh, ' + data.created_at;
+                    }
+                } else {
+                    locDateEl.innerText = 'TP. Hồ Chí Minh, ngày ... tháng ... năm ...';
+                }
             }
 
-            // Thông tin người nạp
-            document.getElementById('invModalCustomerName').innerText = data.customer_name || data.customer_username;
-            document.getElementById('invModalCustomerUsername').innerText = '@' + data.customer_username;
-            document.getElementById('invModalCustomerEmail').innerText = data.customer_email || 'Chưa cập nhật';
-            document.getElementById('invModalSignCustomer').innerText = data.customer_name || data.customer_username;
-
-            // Thông tin ngân hàng
-            document.getElementById('invModalBankName').innerText = data.bank_name;
-            document.getElementById('invModalAccountNumber').innerText = data.account_number;
-            document.getElementById('invModalAccountName').innerText = data.account_name;
-            document.getElementById('invModalTransferContent').innerText = data.transfer_content;
-
-            // Số tiền
-            document.getElementById('invModalAmountItem').innerText = data.amount_formatted;
-            document.getElementById('invModalTotalAmount').innerText = data.amount_formatted;
-            document.getElementById('invModalAmountWords').innerText = docSoTien(data.amount);
-
-            // Barcode siêu thị
-            document.getElementById('invModalBarcodeSvg').innerHTML = generateBarcodeSvg(data.code);
-
-            // Mở Modal
-            const modalEl = document.getElementById('depositInvoiceModal');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                let modalInstance = bootstrap.Modal.getInstance(modalEl);
-                if (!modalInstance) {
-                    modalInstance = new bootstrap.Modal(modalEl);
+            // 2. Trạng thái badge
+            const statusEl = document.getElementById('invModalStatusBadge');
+            if (statusEl) {
+                const st = (data.status || 'Pending').toLowerCase();
+                if (st === 'success') {
+                    statusEl.innerHTML = '<span class="badge bg-success text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i> ĐÃ HOÀN THÀNH</span>';
+                } else if (st === 'pending') {
+                    statusEl.innerHTML = '<span class="badge bg-warning text-dark px-3 py-1 rounded-pill"><i class="fa-solid fa-clock me-1"></i> ĐANG CHỜ CHUYỂN TIỀN</span>';
+                } else if (st === 'cancelled') {
+                    statusEl.innerHTML = '<span class="badge bg-secondary text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-ban me-1"></i> ĐÃ HỦY</span>';
+                } else {
+                    statusEl.innerHTML = '<span class="badge bg-danger text-white px-3 py-1 rounded-pill"><i class="fa-solid fa-circle-xmark me-1"></i> THẤT BẠI</span>';
                 }
-                modalInstance.show();
-            } else {
-                modalEl.classList.add('show');
-                modalEl.style.display = 'block';
-                document.body.classList.add('modal-open');
+            }
+
+            // 3. Thông tin người nạp (B2B)
+            const cName = document.getElementById('invModalCustomerName');
+            if (cName) cName.innerText = data.customer_name || data.customer_username;
+            const cUser = document.getElementById('invModalCustomerUsername');
+            if (cUser) cUser.innerText = '@' + data.customer_username;
+            const cEmail = document.getElementById('invModalCustomerEmail');
+            if (cEmail) cEmail.innerText = data.customer_email || 'Chưa cập nhật';
+            const cSign = document.getElementById('invModalSignCustomer');
+            if (cSign) cSign.innerText = data.customer_name || data.customer_username;
+
+            // 4. Thông tin ngân hàng
+            const bName = document.getElementById('invModalBankName');
+            if (bName) bName.innerText = data.bank_name;
+            const bAcc = document.getElementById('invModalAccountNumber');
+            if (bAcc) bAcc.innerText = data.account_number;
+            const bAccName = document.getElementById('invModalAccountName');
+            if (bAccName) bAccName.innerText = data.account_name;
+            const bContent = document.getElementById('invModalTransferContent');
+            if (bContent) bContent.innerText = data.transfer_content;
+
+            // 5. Số tiền chi tiết B2B
+            const unitPrice = document.getElementById('invModalUnitPrice');
+            if (unitPrice) unitPrice.innerText = data.amount_formatted;
+            const amtItem = document.getElementById('invModalAmountItem');
+            if (amtItem) amtItem.innerText = data.amount_formatted;
+            const subTotal = document.getElementById('invModalSubTotal');
+            if (subTotal) subTotal.innerText = data.amount_formatted;
+            const totAmt = document.getElementById('invModalTotalAmount');
+            if (totAmt) totAmt.innerText = data.amount_formatted;
+            const wordsEl = document.getElementById('invModalAmountWords');
+            if (wordsEl) wordsEl.innerText = docSoTien(data.amount);
+
+            // 6. Chữ ký thật từ ảnh Phan Thành Quý
+            const sigBox = document.getElementById('invModalSignatureImgContainer');
+            if (sigBox) {
+                if (USER_SIGNATURE_BASE64) {
+                    sigBox.innerHTML = `<img src="${USER_SIGNATURE_BASE64}" alt="Chữ ký Phan Thành Quý" style="max-height: 85px; max-width: 200px; mix-blend-mode: multiply; filter: contrast(1.15); display: inline-block;" />`;
+                } else {
+                    sigBox.innerHTML = `<span style="font-family: 'Brush Script MT', cursive; font-size: 26px; color: #1d4ed8; font-weight: bold;">Phan Thành Quý</span>`;
+                }
+            }
+
+            // 7. Barcode siêu thị
+            const barcodeBox = document.getElementById('invModalBarcodeSvg');
+            if (barcodeBox) barcodeBox.innerHTML = generateBarcodeSvg(data.code);
+
+            // 8. Mở Modal
+            const modalEl = document.getElementById('depositInvoiceModal');
+            if (modalEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    let modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (!modalInstance) {
+                        modalInstance = new bootstrap.Modal(modalEl);
+                    }
+                    modalInstance.show();
+                } else {
+                    modalEl.classList.add('show');
+                    modalEl.style.display = 'block';
+                    document.body.classList.add('modal-open');
+                }
             }
         }
 
@@ -3155,11 +3235,30 @@ $csrfToken = get_csrf_token();
             const statusText = (data.status === 'Success') ? 'ĐÃ HOÀN TẤT THANH TOÁN' : (data.status === 'Pending' ? 'ĐANG CHỜ THANH TOÁN' : data.status);
             const statusColor = (data.status === 'Success') ? '#16a34a' : (data.status === 'Pending' ? '#d97706' : '#dc2626');
 
+            // Định dạng ngày tháng năm cho văn bản hành chính Word
+            let ngay = '...', thang = '...', nam = '...';
+            if (data.created_at) {
+                try {
+                    const datePart = data.created_at.split(' ')[0];
+                    const parts = datePart.split('-');
+                    if (parts.length === 3) {
+                        nam = parts[0];
+                        thang = parts[1];
+                        ngay = parts[2];
+                    }
+                } catch(e) {}
+            }
+
+            // Tạo mã chữ ký hiển thị trong file Word
+            const signatureImgHtml = USER_SIGNATURE_BASE64
+                ? `<div style="margin: 6px 0;"><img src="${USER_SIGNATURE_BASE64}" width="180" height="75" style="display:inline-block;" alt="Chữ ký Phan Thành Quý" /></div>`
+                : `<div style="font-size: 22pt; font-family: 'Brush Script MT', cursive; color: #1d4ed8; font-weight: bold; margin: 12px 0;">Phan Thành Quý</div>`;
+
             const wordHtml = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head>
                 <meta charset='utf-8'>
-                <title>Hóa Đơn Giao Dịch Nạp Tiền #${data.code}</title>
+                <title>Hóa Đơn Điện Tử Bán Hàng - #${data.code}</title>
                 <!--[if gte mso 9]>
                 <xml>
                 <w:WordDocument>
@@ -3172,7 +3271,7 @@ $csrfToken = get_csrf_token();
                 <style>
                     @page {
                         size: A4;
-                        margin: 20mm 15mm 20mm 15mm;
+                        margin: 18mm 15mm 18mm 15mm;
                     }
                     body {
                         font-family: 'Times New Roman', Times, serif;
@@ -3187,8 +3286,8 @@ $csrfToken = get_csrf_token();
                     .table-main {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-top: 15px;
-                        margin-bottom: 15px;
+                        margin-top: 14px;
+                        margin-bottom: 14px;
                     }
                     .table-main th, .table-main td {
                         border: 1px solid #333333;
@@ -3200,16 +3299,16 @@ $csrfToken = get_csrf_token();
                     }
                     .barcode-text {
                         font-family: 'Courier New', Courier, monospace;
-                        font-size: 14pt;
+                        font-size: 13pt;
                         font-weight: bold;
-                        letter-spacing: 5px;
+                        letter-spacing: 4px;
                         text-align: center;
-                        margin: 6px 0;
+                        margin: 4px 0;
                     }
                     .barcode-bars {
                         letter-spacing: 1px;
                         font-family: 'Courier New', Courier, monospace;
-                        font-size: 20pt;
+                        font-size: 19pt;
                         line-height: 1;
                         font-weight: bold;
                     }
@@ -3217,144 +3316,182 @@ $csrfToken = get_csrf_token();
                         display: inline-block;
                         border: 2px solid #dc2626;
                         color: #dc2626;
-                        padding: 6px 14px;
+                        padding: 5px 12px;
                         font-weight: bold;
                         text-align: center;
-                        border-radius: 8px;
+                        border-radius: 6px;
                     }
                 </style>
             </head>
             <body>
-                <!-- Header -->
-                <table style="width: 100%; border: none; margin-bottom: 10px;">
+                <!-- Header: Bên trái là Thông tin Công ty xuất hóa đơn, bên phải là Quốc hiệu - Tiêu ngữ -->
+                <table style="width: 100%; border: none; margin-bottom: 8px;">
                     <tr>
-                        <td style="width: 60%; border: none; vertical-align: top;">
-                            <div style="font-size: 15pt; font-weight: bold; color: #1e3a8a;">THANH QUY TECH</div>
-                            <div style="font-size: 10.5pt; color: #555555;">HỆ THỐNG DỊCH VỤ CÔNG NGHỆ SỐ & GIẢI PHÁP TỰ ĐỘNG</div>
-                            <div style="font-size: 10.5pt; color: #555555;">Hotline: 0987.654.321 | Website: thanhquytech.vn</div>
-                            <div style="font-size: 10.5pt; color: #555555;">Địa chỉ: Tòa nhà Công Nghệ, TP. Hồ Chí Minh, Việt Nam</div>
+                        <td style="width: 54%; border: none; vertical-align: top;">
+                            <div style="font-size: 13pt; font-weight: bold; color: #1e3a8a; text-transform: uppercase;">
+                                CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH
+                            </div>
+                            <div style="font-size: 10.5pt; color: #333333; margin-top: 3px;">
+                                <b>Mã số thuế (Tax Code):</b> <span style="font-family: 'Courier New', monospace; font-weight: bold;">0318954321</span>
+                            </div>
+                            <div style="font-size: 10.5pt; color: #333333;">
+                                <b>Địa chỉ:</b> Tầng 12, Tòa nhà Công Nghệ Số, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh
+                            </div>
+                            <div style="font-size: 10.5pt; color: #333333;">
+                                <b>Hotline:</b> 0987.654.321 &nbsp;|&nbsp; <b>Website:</b> thanhquytech.vn
+                            </div>
                         </td>
-                        <td style="width: 40%; border: none; text-align: right; vertical-align: top;">
-                            <div style="font-size: 11pt; font-weight: bold; color: #4338ca;">HÓA ĐƠN ĐIỆN TỬ</div>
-                            <div style="font-size: 13pt; font-weight: bold;">#${data.code}</div>
-                            <div style="font-size: 10.5pt; color: #555555;">Ngày lập: ${data.created_at}</div>
-                            <div style="margin-top: 5px;">
-                                <span style="font-size: 10pt; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 4px;">
-                                    ${statusText}
-                                </span>
+                        <td style="width: 46%; border: none; text-align: center; vertical-align: top;">
+                            <div style="font-size: 11.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
+                                CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+                            </div>
+                            <div style="font-size: 11.5pt; font-weight: bold; margin-top: 2px;">
+                                Độc lập - Tự do - Hạnh phúc
+                            </div>
+                            <div style="width: 140px; border-bottom: 1.5px solid #111111; margin: 4px auto 6px auto;"></div>
+                            <div style="font-size: 10.5pt; font-style: italic; color: #475569;">
+                                TP. Hồ Chí Minh, ngày ${ngay} tháng ${thang} năm ${nam}
                             </div>
                         </td>
                     </tr>
                 </table>
 
-                <hr style="border: 0; border-top: 1px dashed #999999; margin: 12px 0;" />
+                <hr style="border: 0; border-top: 1.5px solid #cbd5e1; margin: 10px 0 14px 0;" />
 
-                <!-- Tiêu đề Hóa Đơn -->
-                <div class="text-center" style="margin: 15px 0 5px;">
-                    <div style="font-size: 18pt; font-weight: bold; color: #0f172a; text-transform: uppercase;">HÓA ĐƠN GIAO DỊCH NẠP TIỀN</div>
-                    <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Bản thể hiện điện tử phục vụ chứng từ, lưu trữ và đối soát)</div>
+                <!-- Tiêu đề Hóa Đơn Bán Hàng Dịch Vụ Công Nghệ B2B -->
+                <div class="text-center" style="margin: 10px 0 14px;">
+                    <div style="font-size: 18pt; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                        HÓA ĐƠN BÁN HÀNG DỊCH VỤ CÔNG NGHỆ
+                    </div>
+                    <div style="font-size: 10.5pt; font-style: italic; color: #64748b;">
+                        (Bản thể hiện hóa đơn điện tử phục vụ chứng từ đối soát doanh nghiệp)
+                    </div>
+                    <div style="font-size: 11pt; margin-top: 6px;">
+                        <b>Ký hiệu (Serial):</b> <span style="color: #0f172a; font-weight: bold;">TQ/26E</span> &nbsp;|&nbsp;
+                        <b>Số hóa đơn (No.):</b> <span style="color: #4338ca; font-weight: bold; font-family: 'Courier New', monospace;">#${data.code}</span> &nbsp;|&nbsp;
+                        <b>Ngày lập:</b> ${data.created_at} &nbsp;|&nbsp;
+                        <span style="font-size: 10pt; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 8px; border-radius: 4px;">
+                            ${statusText}
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Mã vạch siêu thị -->
-                <div class="text-center" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; margin: 12px auto; max-width: 320px;">
-                    <div style="font-size: 8.5pt; text-transform: uppercase; color: #666666;">Mã vạch kiểm duyệt (Retail Barcode)</div>
+                <!-- Mã vạch siêu thị tra cứu đối soát -->
+                <div class="text-center" style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; margin: 10px auto; max-width: 320px;">
+                    <div style="font-size: 8.5pt; text-transform: uppercase; color: #64748b; letter-spacing: 1px;">Mã vạch tra cứu đối soát (Retail Barcode)</div>
                     <div class="barcode-bars">||| | |||| | ||||| | ||| || |||| | |||</div>
                     <div class="barcode-text">*${data.code}*</div>
                 </div>
 
-                <!-- Thông tin khách hàng và ngân hàng -->
-                <table style="width: 100%; border: 1px solid #cccccc; margin-top: 14px; background: #fafafa;">
+                <!-- Thông tin Khách hàng Doanh nghiệp và Thông tin Ngân hàng chuyển tiền -->
+                <table style="width: 100%; border: 1px solid #cccccc; margin-top: 14px; background: #fafafa; border-collapse: collapse;">
                     <tr>
-                        <td style="width: 50%; border: none; padding: 10px; vertical-align: top;">
-                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px;">1. THÔNG TIN KHÁCH HÀNG</div>
-                            <div>- Họ tên người nạp: <b>${data.customer_name || data.customer_username}</b></div>
-                            <div>- Tài khoản hệ thống: <b>@${data.customer_username}</b></div>
-                            <div>- Email liên hệ: ${data.customer_email || 'Chưa cập nhật'}</div>
+                        <td style="width: 50%; border: 1px solid #cccccc; padding: 10px 12px; vertical-align: top;">
+                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
+                                1. ĐƠN VỊ MUA HÀNG / KHÁCH HÀNG
+                            </div>
+                            <div>- Tên khách hàng / Đơn vị: <b>${data.customer_name || data.customer_username}</b></div>
+                            <div>- Tài khoản hệ thống: <b style="color: #4338ca;">@${data.customer_username}</b></div>
+                            <div>- Email nhận hóa đơn: ${data.customer_email || 'Chưa cập nhật'}</div>
+                            <div>- Hình thức thanh toán: <b>Chuyển khoản (VietQR Napas 24/7)</b></div>
                         </td>
-                        <td style="width: 50%; border: none; padding: 10px; vertical-align: top;">
-                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px;">2. THÔNG TIN THỤ HƯỞNG</div>
-                            <div>- Ngân hàng nhận: <b>${data.bank_name}</b></div>
-                            <div>- Số tài khoản: <b>${data.account_number}</b></div>
+                        <td style="width: 50%; border: 1px solid #cccccc; padding: 10px 12px; vertical-align: top;">
+                            <div style="font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #dddddd; padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase;">
+                                2. THÔNG TIN THỤ HƯỞNG & GIAO DỊCH
+                            </div>
+                            <div>- Ngân hàng thụ hưởng: <b>${data.bank_name}</b></div>
+                            <div>- Số tài khoản: <b style="font-family: 'Courier New', monospace;">${data.account_number}</b></div>
                             <div>- Chủ tài khoản: <b>${data.account_name}</b></div>
-                            <div>- Nội dung chuyển khoản: <b style="color: #dc2626;">${data.transfer_content}</b></div>
+                            <div>- Nội dung chuyển khoản: <b style="color: #dc2626; font-family: 'Courier New', monospace;">${data.transfer_content}</b></div>
                         </td>
                     </tr>
                 </table>
 
-                <!-- Bảng chi tiết khoản mục -->
+                <!-- Bảng chi tiết dịch vụ thanh toán B2B -->
                 <table class="table-main">
                     <thead>
                         <tr>
-                            <th style="width: 8%; text-align: center;">STT</th>
-                            <th style="width: 52%; text-align: left;">Diễn giải dịch vụ / Khoản mục</th>
-                            <th style="width: 20%; text-align: center;">Phương thức</th>
-                            <th style="width: 20%; text-align: right;">Số tiền (VNĐ)</th>
+                            <th style="width: 6%; text-align: center;">STT</th>
+                            <th style="width: 44%; text-align: left;">Tên hàng hóa, dịch vụ</th>
+                            <th style="width: 12%; text-align: center;">Đơn vị tính</th>
+                            <th style="width: 8%; text-align: center;">Số lượng</th>
+                            <th style="width: 15%; text-align: right;">Đơn giá (VNĐ)</th>
+                            <th style="width: 15%; text-align: right;">Thành tiền (VNĐ)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td class="text-center">01</td>
                             <td>
-                                <b>Nạp số dư tài khoản dịch vụ</b>
-                                <div style="font-size: 10pt; color: #555555;">Cộng tiền tự động vào ví số dư ThanhQuyTech qua Napas 24/7</div>
+                                <b>Nạp số dư dịch vụ công nghệ & key bản quyền tự động</b>
+                                <div style="font-size: 10pt; color: #555555; margin-top: 2px;">Cộng tiền tự động vào ví số dư tài khoản hệ thống ThanhQuyTech</div>
                             </td>
-                            <td class="text-center">VietQR / TPBank</td>
+                            <td class="text-center">Giao dịch</td>
+                            <td class="text-center">01</td>
+                            <td class="text-right">${data.amount_formatted}</td>
                             <td class="text-right"><b>${data.amount_formatted}</b></td>
                         </tr>
                         <tr>
-                            <td colspan="3" class="text-right" style="color: #555555;">Phí xử lý giao dịch:</td>
-                            <td class="text-right" style="color: #16a34a; font-weight: bold;">0 đ (Miễn phí)</td>
+                            <td colspan="5" class="text-right" style="color: #475569;">Cộng tiền hàng (Subtotal):</td>
+                            <td class="text-right"><b>${data.amount_formatted}</b></td>
                         </tr>
                         <tr>
-                            <td colspan="3" class="text-right" style="color: #555555;">Thuế GTGT (VAT):</td>
-                            <td class="text-right">0 đ</td>
+                            <td colspan="5" class="text-right" style="color: #475569;">Thuế suất GTGT (VAT Rate):</td>
+                            <td class="text-right">0% (Không tính thuế)</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="text-right" style="color: #475569;">Phí xử lý cổng thanh toán:</td>
+                            <td class="text-right" style="color: #16a34a; font-weight: bold;">0 đ (Miễn phí)</td>
                         </tr>
                         <tr style="background-color: #f8fafc;">
-                            <td colspan="3" class="text-right" style="font-weight: bold; font-size: 13pt;">TỔNG TIỀN THANH TOÁN:</td>
+                            <td colspan="5" class="text-right" style="font-weight: bold; font-size: 13pt;">TỔNG CỘNG TIỀN THANH TOÁN:</td>
                             <td class="text-right" style="font-weight: bold; font-size: 14pt; color: #16a34a;">${data.amount_formatted}</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <div style="margin: 8px 0; font-size: 12pt;">
+                <div style="margin: 10px 0; font-size: 12pt; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 4px;">
                     <b>Số tiền viết bằng chữ:</b> <i>${words}</i>
                 </div>
 
-                <hr style="border: 0; border-top: 1px dashed #cccccc; margin: 25px 0 15px;" />
+                <hr style="border: 0; border-top: 1px dashed #cccccc; margin: 20px 0 15px;" />
 
-                <!-- Phần chữ ký & dấu mộc -->
-                <table style="width: 100%; border: none; margin-top: 15px;">
+                <!-- Phần chữ ký & con dấu xác nhận doanh nghiệp -->
+                <table style="width: 100%; border: none; margin-top: 10px;">
                     <tr>
                         <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
-                            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI NẠP TIỀN</div>
+                            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI MUA HÀNG</div>
                             <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Ký, ghi rõ họ tên)</div>
-                            <div style="height: 60px;"></div>
-                            <div style="font-weight: bold; font-size: 12pt;">${data.customer_name || data.customer_username}</div>
-                            <div style="font-size: 10pt; color: #666666;">Khách hàng hệ thống</div>
+                            <div style="height: 75px;"></div>
+                            <div style="font-weight: bold; font-size: 12.5pt;">${data.customer_name || data.customer_username}</div>
+                            <div style="font-size: 10pt; color: #666666;">Khách hàng doanh nghiệp</div>
                         </td>
                         <td style="width: 50%; text-align: center; border: none; vertical-align: top;">
-                            <div style="font-weight: bold; text-transform: uppercase;">ĐẠI DIỆN HỆ THỐNG / GIÁM ĐỐC</div>
+                            <div style="font-weight: bold; text-transform: uppercase;">NGƯỜI BÁN HÀNG / THỦ TRƯỞNG ĐƠN VỊ</div>
                             <div style="font-size: 10.5pt; font-style: italic; color: #666666;">(Ký điện tử & đóng dấu chứng thực)</div>
-                            <div style="margin: 10px auto;">
+                            
+                            <!-- Con dấu xác nhận công ty -->
+                            <div style="margin: 8px auto;">
                                 <div class="stamp-box">
-                                    ★ THANH QUY TECH ★<br/>
-                                    <span style="font-size: 13pt; font-weight: 900;">ĐÃ XÁC NHẬN THANH TOÁN</span><br/>
-                                    <span style="font-size: 9pt;">CHỨNG TỪ ĐIỆN TỬ HỢP LỆ</span>
+                                    ★ CÔNG TY TNHH CÔNG NGHỆ SỐ THANH QUY TECH ★<br/>
+                                    <span style="font-size: 11pt; font-weight: 900;">MST: 0318954321 - ĐÃ XÁC NHẬN</span><br/>
+                                    <span style="font-size: 8.5pt;">CHỨNG TỪ ĐIỆN TỬ HỢP LỆ THEO QUY ĐỊNH</span>
                                 </div>
                             </div>
-                            <div style="font-size: 20pt; font-family: 'Brush Script MT', cursive; color: #1d4ed8; font-weight: bold; margin-top: 5px;">
-                                Phan Thành Quý
-                            </div>
+                            
+                            <!-- Chữ ký thật của Phan Thành Quý -->
+                            ${signatureImgHtml}
+
                             <div style="font-weight: bold; font-size: 13pt; color: #0f172a;">Phan Thành Quý</div>
-                            <div style="font-size: 10pt; color: #666666;">Người đại diện pháp lý / Giám đốc</div>
+                            <div style="font-size: 10pt; color: #666666;">Giám đốc điều hành / Đại diện pháp luật</div>
                         </td>
                     </tr>
                 </table>
 
-                <!-- Lời cảm ơn -->
-                <div class="text-center" style="margin-top: 35px; padding-top: 15px; border-top: 1px solid #eeeeee; font-size: 10pt; color: #777777;">
-                    <div>Cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của <b>ThanhQuyTech</b>!</div>
-                    <div>Chứng từ điện tử này được lưu trữ vĩnh viễn trên hệ thống và có giá trị xác nhận đối soát.</div>
+                <!-- Lời cảm ơn & Chân trang -->
+                <div class="text-center" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #eeeeee; font-size: 10pt; color: #64748b;">
+                    <div><i class="fa-solid fa-shield-halved"></i> Hóa đơn điện tử này được tạo lập hợp lệ theo quy định của pháp luật Việt Nam.</div>
+                    <div>Cảm ơn Quý khách hàng & Doanh nghiệp đã tin tưởng sử dụng dịch vụ của <b>ThanhQuyTech</b>!</div>
                 </div>
             </body>
             </html>
@@ -3366,7 +3503,7 @@ $csrfToken = get_csrf_token();
             const downloadUrl = URL.createObjectURL(blob);
             const downloadLink = document.createElement('a');
             downloadLink.href = downloadUrl;
-            downloadLink.download = `Hoa_Don_Nap_Tien_${data.code}.doc`;
+            downloadLink.download = `Hoa_Don_Doanh_Nghiep_${data.code}.doc`;
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
@@ -3376,7 +3513,7 @@ $csrfToken = get_csrf_token();
                 toast: true,
                 position: 'top-end',
                 icon: 'success',
-                title: 'Đã xuất hóa đơn file Word (.doc) thành công!',
+                title: 'Đã xuất hóa đơn doanh nghiệp ra file Word (.doc) thành công!',
                 showConfirmButton: false,
                 timer: 2500
             });
